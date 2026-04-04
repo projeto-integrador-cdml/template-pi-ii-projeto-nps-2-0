@@ -1,35 +1,46 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import DashboardLayout from "./components/DashboardLayout";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import ClientsPage from "./pages/ClientsPage";
+import ClientDetailPage from "./pages/ClientDetailPage";
+import PipelinePage from "./pages/PipelinePage";
+import TasksPage from "./pages/TasksPage";
+import AIAssistantPage from "./pages/AIAssistantPage";
+import RecordingsPage from "./pages/RecordingsPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import SettingsPage from "./pages/SettingsPage";
+import WhatsAppPage from "./pages/WhatsAppPage";
+import NotFound from "./pages/NotFound";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <DashboardLayout>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/clients" component={ClientsPage} />
+        <Route path="/clients/:id" component={ClientDetailPage} />
+        <Route path="/pipeline" component={PipelinePage} />
+        <Route path="/tasks" component={TasksPage} />
+        <Route path="/ai" component={AIAssistantPage} />
+        <Route path="/recordings" component={RecordingsPage} />
+        <Route path="/whatsapp" component={WhatsAppPage} />
+        <Route path="/admin/users" component={AdminUsersPage} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route path="/404" component={NotFound} />
+        <Route component={NotFound} />
+      </Switch>
+    </DashboardLayout>
   );
 }
-
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
           <Router />
