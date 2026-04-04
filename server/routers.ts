@@ -10,6 +10,7 @@ import { transcribeAudio } from "./_core/voiceTranscription";
 import * as db from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
+import bcrypt from "bcryptjs";
 
 export const appRouter = router({
   system: systemRouter,
@@ -47,6 +48,172 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── Atendentes ───
+  attendants: router({
+    // Login de atendente (email + senha) com sessão única
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+        ip: z.string().optional(),
+        userAgent: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const attendant = await db.getAttendantByEmail(input.email);
+        if (!attendant) throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
+        if (!attendant.isActive) throw new TRPCError({ code: "FORBIDDEN", message: "Sua conta foi desativada. Entre em contato com o administrador." });
+
+        const validPassword = await bcrypt.compare(input.password, attendant.password);
+        if (!validPassword) throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
+
+        // Verificar se a empresa está ativa
+        const client = await db.getClientById(attendant.clientId, 0); // userId 0 = bypass for lookup
+        // Gerar token de sessão única
+        const sessionToken = nanoid(64);
+
+        // Atualizar sessão do atendente (desconecta sessão anterior)
+        await db.updateAttendantSession(attendant.id, sessionToken, input.ip || "unknown", input.userAgent || "unknown");
+
+        // Criar sessão ativa
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+        await db.createActiveSession({
+          attendantId: attendant.id,
+          sessionToken,
+          ipAddress: input.ip,
+          userAgent: input.userAgent,
+          expiresAt,
+        });
+
+        return {
+          token: sessionToken,
+          attendant: {
+            id: attendant.id,
+            name: attendant.name,
+            email: attendant.email,
+            clientId: attendant.clientId,
+          },
+        };
+      }),
+
+    // Verificar sessão ativa
+    verifySession: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const session = await db.getActiveSessionByToken(input.token);
+        if (!session) return { valid: false, attendant: null };
+        if (new Date(session.expiresAt) < new Date()) return { valid: false, attendant: null };
+
+        const attendant = await db.getAttendantById(session.attendantId);
+        if (!attendant || !attendant.isActive) return { valid: false, attendant: null };
+        if (attendant.sessionToken !== input.token) return { valid: false, attendant: null }; // Sessão foi invalidada por outro login
+
+        return {
+          valid: true,
+          attendant: {
+            id: attendant.id,
+            name: attendant.name,
+            email: attendant.email,
+            clientId: attendant.clientId,
+            phone: attendant.phone,
+            position: attendant.position,
+          },
+        };
+      }),
+
+    // Logout de atendente
+    logout: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input }) => {
+        const session = await db.getActiveSessionByToken(input.token);
+        if (session) {
+          await db.clearAttendantSession(session.attendantId);
+          await db.deleteSessionsByAttendant(session.attendantId);
+        }
+        return { success: true };
+      }),
+
+    // Listar atendentes de uma empresa (admin ou empresa)
+    listByClient: protectedProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        return db.listAttendantsByClient(input.clientId);
+      }),
+
+    // Criar atendente (admin)
+    create: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        name: z.string().min(1),
+        email: z.string().email(),
+        password: z.string().min(6),
+        phone: z.string().optional(),
+        position: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        // Verificar se a empresa existe
+        const client = await db.getClientById(input.clientId, 0);
+        // Verificar limite de atendentes
+        const count = await db.countAttendantsByClient(input.clientId);
+        // Buscar o cliente diretamente para pegar maxAttendants
+        const clientData = await db.listClients(0, { limit: 1 });
+        // Verificar se email já existe
+        const existing = await db.getAttendantByEmail(input.email);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "Já existe um atendente com este email" });
+
+        const hashedPassword = await bcrypt.hash(input.password, 10);
+        return db.createAttendant({
+          ...input,
+          password: hashedPassword,
+        });
+      }),
+
+    // Atualizar atendente (admin)
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number(),
+        name: z.string().min(1).optional(),
+        email: z.string().email().optional(),
+        password: z.string().min(6).optional(),
+        phone: z.string().optional(),
+        position: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, clientId, password, ...data } = input;
+        const updateData: any = { ...data };
+        if (password) {
+          updateData.password = await bcrypt.hash(password, 10);
+        }
+        await db.updateAttendant(id, clientId, updateData);
+        return { success: true };
+      }),
+
+    // Excluir atendente (admin)
+    delete: adminProcedure
+      .input(z.object({ id: z.number(), clientId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteSessionsByAttendant(input.id);
+        await db.deleteAttendant(input.id, input.clientId);
+        return { success: true };
+      }),
+
+    // Ativar/desativar atendente (admin)
+    toggleActive: adminProcedure
+      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ input }) => {
+        await db.toggleAttendantActive(input.id, input.isActive);
+        if (!input.isActive) {
+          await db.deleteSessionsByAttendant(input.id);
+        }
+        return { success: true };
+      }),
+
+    // Listar todos os atendentes (admin)
+    listAll: adminProcedure.query(async () => {
+      return db.listAllAttendants();
+    }),
+  }),
+
   // ─── Clientes ───
   clients: router({
     list: protectedProcedure
@@ -78,6 +245,7 @@ export const appRouter = router({
         tags: z.string().optional(),
         source: z.string().optional(),
         status: z.enum(["active", "inactive", "prospect"]).optional(),
+        maxAttendants: z.number().min(1).max(100).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         return db.createClient({ ...input, userId: ctx.user.id, email: input.email || null });
@@ -95,6 +263,7 @@ export const appRouter = router({
         tags: z.string().optional(),
         source: z.string().optional(),
         status: z.enum(["active", "inactive", "prospect"]).optional(),
+        maxAttendants: z.number().min(1).max(100).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;

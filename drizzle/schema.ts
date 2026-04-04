@@ -34,12 +34,48 @@ export const clients = mysqlTable("clients", {
   tags: text("tags"),
   source: varchar("source", { length: 100 }),
   status: mysqlEnum("clientStatus", ["active", "inactive", "prospect"]).default("prospect").notNull(),
+  maxAttendants: int("maxAttendants").default(1).notNull(), // limite de atendentes por empresa
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = typeof clients.$inferInsert;
+
+// ─── Atendentes (vinculados a empresas/clientes) ───
+export const attendants = mysqlTable("attendants", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: int("clientId").notNull(), // empresa a que pertence
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  password: varchar("password", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 32 }),
+  position: varchar("position", { length: 255 }),
+  isActive: boolean("isActive").default(true).notNull(),
+  lastIp: varchar("lastIp", { length: 64 }),
+  lastDevice: text("lastDevice"),
+  sessionToken: varchar("sessionToken", { length: 255 }), // token da sessão ativa (sessão única)
+  lastLoginAt: timestamp("lastLoginAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Attendant = typeof attendants.$inferSelect;
+export type InsertAttendant = typeof attendants.$inferInsert;
+
+// ─── Sessões Ativas (controle de sessão única) ───
+export const activeSessions = mysqlTable("activeSessions", {
+  id: int("id").autoincrement().primaryKey(),
+  attendantId: int("attendantId").notNull(),
+  sessionToken: varchar("sessionToken", { length: 255 }).notNull(),
+  ipAddress: varchar("ipAddress", { length: 64 }),
+  userAgent: text("userAgent"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+});
+
+export type ActiveSession = typeof activeSessions.$inferSelect;
+export type InsertActiveSession = typeof activeSessions.$inferInsert;
 
 // ─── Oportunidades (Funil de Vendas) ───
 export const opportunities = mysqlTable("opportunities", {

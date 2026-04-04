@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Phone, Mail, Building2, MoreHorizontal, Trash2, Edit, Eye } from "lucide-react";
+import { Plus, Search, Phone, Mail, Building2, MoreHorizontal, Trash2, Edit, Eye, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
@@ -39,10 +39,10 @@ export default function ClientsPage() {
     onSuccess: () => { utils.clients.list.invalidate(); toast.success("Cliente removido!"); },
   });
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", position: "", address: "", notes: "", tags: "", source: "", status: "prospect" as "active" | "inactive" | "prospect" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", position: "", address: "", notes: "", tags: "", source: "", status: "prospect" as "active" | "inactive" | "prospect", maxAttendants: 1 });
 
-  const openCreate = () => { setEditingClient(null); setForm({ name: "", email: "", phone: "", company: "", position: "", address: "", notes: "", tags: "", source: "", status: "prospect" as "active" | "inactive" | "prospect" }); setDialogOpen(true); };
-  const openEdit = (client: any) => { setEditingClient(client); setForm({ name: client.name, email: client.email || "", phone: client.phone || "", company: client.company || "", position: client.position || "", address: client.address || "", notes: client.notes || "", tags: client.tags || "", source: client.source || "", status: client.status }); setDialogOpen(true); };
+  const openCreate = () => { setEditingClient(null); setForm({ name: "", email: "", phone: "", company: "", position: "", address: "", notes: "", tags: "", source: "", status: "prospect" as "active" | "inactive" | "prospect", maxAttendants: 1 }); setDialogOpen(true); };
+  const openEdit = (client: any) => { setEditingClient(client); setForm({ name: client.name, email: client.email || "", phone: client.phone || "", company: client.company || "", position: client.position || "", address: client.address || "", notes: client.notes || "", tags: client.tags || "", source: client.source || "", status: client.status, maxAttendants: client.maxAttendants ?? 1 }); setDialogOpen(true); };
 
   const handleSubmit = () => {
     if (!form.name.trim()) { toast.error("Nome é obrigatório"); return; }
@@ -142,13 +142,17 @@ export default function ClientsPage() {
                   {client.email && <p className="flex items-center gap-2 truncate"><Mail className="h-3.5 w-3.5 shrink-0" /> {client.email}</p>}
                   {client.phone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 shrink-0" /> {client.phone}</p>}
                 </div>
-                {client.tags && (
-                  <div className="flex flex-wrap gap-1 mt-3">
-                    {client.tags.split(",").map((tag, i) => (
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex flex-wrap gap-1">
+                    {client.tags && client.tags.split(",").map((tag: string, i: number) => (
                       <Badge key={i} variant="secondary" className="text-xs">{tag.trim()}</Badge>
                     ))}
                   </div>
-                )}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Users className="h-3 w-3" />
+                    <span>{(client as any).maxAttendants ?? 1} atendentes</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -181,7 +185,8 @@ export default function ClientsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-2"><Label>Tags (separadas por vírgula)</Label><Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="vip, premium, novo" /></div>
+              <div><Label>Máx. Atendentes</Label><Input type="number" min={1} max={100} value={form.maxAttendants} onChange={(e) => setForm({ ...form, maxAttendants: parseInt(e.target.value) || 1 })} placeholder="1" /></div>
+              <div><Label>Tags (separadas por vírgula)</Label><Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="vip, premium, novo" /></div>
               <div className="col-span-2"><Label>Notas</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Observações sobre o cliente..." rows={3} /></div>
             </div>
           </div>

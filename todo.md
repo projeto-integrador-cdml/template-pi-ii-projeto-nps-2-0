@@ -50,3 +50,15 @@
 - [x] Testes para dashboard procedures
 - [x] Testes para AI procedures
 - [x] Testes para audio procedures
+
+## Sistema de Atendentes por Empresa
+- [x] Tabela de atendentes (attendants) vinculados a clientes/empresas
+- [x] Tabela de sessões ativas para controle de sessão única
+- [x] Campo maxAttendants no cliente para limitar quantidade de atendentes
+- [x] Procedures para CRUD de atendentes (empresa gerencia seus atendentes)
+- [x] Login individual por atendente (email + senha)
+- [x] Sessão única por atendente (desconecta sessão anterior ao logar em novo dispositivo)
+- [x] Registro de IP e dispositivo em cada login
+- [x] Painel da empresa para gerenciar seus atendentes
+- [x] Admin pode desativar empresa inteira ou atendentes individuais
+- [x] Testes para o sistema de atendentes (44 testes passando)

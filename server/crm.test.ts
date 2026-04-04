@@ -101,6 +101,26 @@ vi.mock("./db", () => ({
   listAudioRecordings: vi.fn().mockResolvedValue([]),
   createAudioRecording: vi.fn().mockResolvedValue({ id: 1 }),
   updateAudioRecording: vi.fn().mockResolvedValue(undefined),
+  // Attendants
+  getAttendantByEmail: vi.fn().mockResolvedValue(null),
+  getAttendantById: vi.fn().mockResolvedValue({ id: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, sessionToken: "token-123", phone: "11999999999", position: "Vendedor" }),
+  listAttendantsByClient: vi.fn().mockResolvedValue([
+    { id: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, phone: "11999999999", position: "Vendedor", lastLoginAt: new Date(), lastIp: "127.0.0.1" },
+  ]),
+  listAllAttendants: vi.fn().mockResolvedValue([
+    { id: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, phone: "11999999999", position: "Vendedor", lastLoginAt: new Date(), lastIp: "127.0.0.1" },
+    { id: 2, clientId: 1, name: "Atendente 2", email: "att2@empresa.com", isActive: false, phone: null, position: null, lastLoginAt: null, lastIp: null },
+  ]),
+  countAttendantsByClient: vi.fn().mockResolvedValue(1),
+  createAttendant: vi.fn().mockResolvedValue({ id: 3 }),
+  updateAttendant: vi.fn().mockResolvedValue(undefined),
+  deleteAttendant: vi.fn().mockResolvedValue(undefined),
+  toggleAttendantActive: vi.fn().mockResolvedValue(undefined),
+  updateAttendantSession: vi.fn().mockResolvedValue(undefined),
+  clearAttendantSession: vi.fn().mockResolvedValue(undefined),
+  createActiveSession: vi.fn().mockResolvedValue(undefined),
+  getActiveSessionByToken: vi.fn().mockResolvedValue({ id: 1, attendantId: 1, sessionToken: "token-123", expiresAt: new Date(Date.now() + 86400000) }),
+  deleteSessionsByAttendant: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock notification
@@ -394,5 +414,123 @@ describe("audio", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.audio.list({});
     expect(result).toHaveLength(0);
+  });
+});
+
+describe("attendants", () => {
+  it("lists all attendants for admin", async () => {
+    const ctx = createAuthContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.listAll();
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("Atendente 1");
+    expect(result[1].isActive).toBe(false);
+  });
+
+  it("lists attendants by client", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.listByClient({ clientId: 1 });
+    expect(result).toHaveLength(1);
+    expect(result[0].email).toBe("att@empresa.com");
+  });
+
+  it("creates an attendant as admin", async () => {
+    const ctx = createAuthContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.create({
+      clientId: 1,
+      name: "Novo Atendente",
+      email: "novo@empresa.com",
+      password: "senha123",
+      phone: "11988888888",
+      position: "Suporte",
+    });
+    expect(result.id).toBe(3);
+  });
+
+  it("rejects creating attendant with duplicate email", async () => {
+    const { getAttendantByEmail } = await import("./db");
+    (getAttendantByEmail as any).mockResolvedValueOnce({ id: 1, email: "att@empresa.com" });
+    const ctx = createAuthContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.attendants.create({
+        clientId: 1,
+        name: "Duplicado",
+        email: "att@empresa.com",
+        password: "senha123",
+      })
+    ).rejects.toThrow("J\u00e1 existe um atendente com este email");
+  });
+
+  it("updates an attendant as admin", async () => {
+    const ctx = createAuthContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.update({
+      id: 1,
+      clientId: 1,
+      name: "Atendente Atualizado",
+    });
+    expect(result).toEqual({ success: true });
+  });
+
+  it("deletes an attendant as admin", async () => {
+    const ctx = createAuthContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.delete({ id: 1, clientId: 1 });
+    expect(result).toEqual({ success: true });
+  });
+
+  it("toggles attendant active status", async () => {
+    const ctx = createAuthContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.toggleActive({ id: 1, isActive: false });
+    expect(result).toEqual({ success: true });
+  });
+
+  it("rejects non-admin from listing all attendants", async () => {
+    const ctx = createAuthContext({ role: "user" });
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.attendants.listAll()).rejects.toThrow();
+  });
+
+  it("rejects non-admin from creating attendants", async () => {
+    const ctx = createAuthContext({ role: "user" });
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.attendants.create({
+        clientId: 1,
+        name: "Teste",
+        email: "test@test.com",
+        password: "senha123",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("verifies a valid session", async () => {
+    const ctx = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.verifySession({ token: "token-123" });
+    expect(result.valid).toBe(true);
+    expect(result.attendant).toBeTruthy();
+    expect(result.attendant?.name).toBe("Atendente 1");
+  });
+
+  it("rejects expired session", async () => {
+    const { getActiveSessionByToken } = await import("./db");
+    (getActiveSessionByToken as any).mockResolvedValueOnce({ id: 1, attendantId: 1, sessionToken: "expired-token", expiresAt: new Date(Date.now() - 1000) });
+    const ctx = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.verifySession({ token: "expired-token" });
+    expect(result.valid).toBe(false);
+    expect(result.attendant).toBeNull();
+  });
+
+  it("logs out an attendant", async () => {
+    const ctx = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.attendants.logout({ token: "token-123" });
+    expect(result).toEqual({ success: true });
   });
 });

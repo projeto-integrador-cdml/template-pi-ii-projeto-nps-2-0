@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Phone, Mail, Building2, MapPin, Calendar, Plus, MessageSquare, Sparkles } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Building2, MapPin, Calendar, Plus, MessageSquare, Sparkles, Users, Shield, ShieldOff } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ export default function ClientDetailPage() {
   const { data: client, isLoading } = trpc.clients.getById.useQuery({ id: clientId });
   const { data: interactions } = trpc.interactions.list.useQuery({ clientId });
   const { data: opportunitiesData } = trpc.opportunities.list.useQuery({ clientId });
+  const { data: attendantsList } = trpc.attendants.listByClient.useQuery({ clientId });
 
   const createInteraction = trpc.interactions.create.useMutation({
     onSuccess: () => { utils.interactions.list.invalidate(); setInteractionDialog(false); setInteractionForm({ type: "note", subject: "", content: "" }); toast.success("Interação registrada!"); },
@@ -89,6 +90,7 @@ export default function ClientDetailPage() {
             <TabsList>
               <TabsTrigger value="interactions">Interações ({interactions?.length ?? 0})</TabsTrigger>
               <TabsTrigger value="opportunities">Oportunidades ({opportunitiesData?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="attendants">Atendentes ({attendantsList?.length ?? 0})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="interactions" className="mt-4 space-y-4">
@@ -136,6 +138,39 @@ export default function ClientDetailPage() {
                 ))
               ) : (
                 <Card><CardContent className="p-8 text-center text-muted-foreground">Nenhuma oportunidade vinculada.</CardContent></Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="attendants" className="mt-4 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-muted-foreground">
+                  <Users className="h-4 w-4 inline mr-1" />
+                  {attendantsList?.length ?? 0} / {(client as any)?.maxAttendants ?? 1} atendentes
+                </p>
+              </div>
+              {attendantsList && attendantsList.length > 0 ? (
+                attendantsList.map((att: any) => (
+                  <Card key={att.id}>
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{att.name}</p>
+                          <Badge variant={att.isActive ? "default" : "secondary"} className="text-xs">
+                            {att.isActive ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{att.email}</p>
+                        {att.phone && <p className="text-xs text-muted-foreground mt-1">{att.phone}</p>}
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground">
+                        {att.position && <p>{att.position}</p>}
+                        {att.lastLoginAt && <p>Acesso: {new Date(att.lastLoginAt).toLocaleDateString("pt-BR")}</p>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card><CardContent className="p-8 text-center text-muted-foreground">Nenhum atendente cadastrado para esta empresa.</CardContent></Card>
               )}
             </TabsContent>
           </Tabs>

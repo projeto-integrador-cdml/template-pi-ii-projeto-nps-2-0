@@ -15,6 +15,13 @@
       "when": 1775307092801,
       "tag": "0001_bent_mysterio",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1775311350167,
+      "tag": "0002_fat_vindicator",
+      "breakpoints": true
     }
   ]
 }

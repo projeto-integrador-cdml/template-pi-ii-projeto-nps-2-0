@@ -9,6 +9,8 @@ import {
   InsertAudioRecording, audioRecordings,
   InsertWhatsappMessage, whatsappMessages,
   InsertSetting, settings,
+  InsertAttendant, attendants,
+  InsertActiveSession, activeSessions,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -311,4 +313,116 @@ export async function getOpportunitiesByStage(userId: number) {
     count: sql<number>`count(*)`,
     totalValue: sql<number>`coalesce(sum(value), 0)`,
   }).from(opportunities).where(eq(opportunities.userId, userId)).groupBy(opportunities.stage);
+}
+
+// ─── Attendants (Atendentes) ───
+export async function createAttendant(data: InsertAttendant) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(attendants).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function updateAttendant(id: number, clientId: number, data: Partial<InsertAttendant>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(attendants).set(data).where(and(eq(attendants.id, id), eq(attendants.clientId, clientId)));
+}
+
+export async function deleteAttendant(id: number, clientId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(attendants).where(and(eq(attendants.id, id), eq(attendants.clientId, clientId)));
+}
+
+export async function getAttendantById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(attendants).where(eq(attendants.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getAttendantByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(attendants).where(eq(attendants.email, email)).limit(1);
+  return result[0];
+}
+
+export async function listAttendantsByClient(clientId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(attendants).where(eq(attendants.clientId, clientId)).orderBy(desc(attendants.createdAt));
+}
+
+export async function countAttendantsByClient(clientId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(attendants).where(eq(attendants.clientId, clientId));
+  return result[0]?.count ?? 0;
+}
+
+export async function updateAttendantSession(id: number, sessionToken: string, ip: string, device: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(attendants).set({
+    sessionToken,
+    lastIp: ip,
+    lastDevice: device,
+    lastLoginAt: new Date(),
+  }).where(eq(attendants.id, id));
+}
+
+export async function clearAttendantSession(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(attendants).set({ sessionToken: null }).where(eq(attendants.id, id));
+}
+
+export async function listAllAttendants() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: attendants.id,
+    clientId: attendants.clientId,
+    name: attendants.name,
+    email: attendants.email,
+    phone: attendants.phone,
+    position: attendants.position,
+    isActive: attendants.isActive,
+    lastIp: attendants.lastIp,
+    lastDevice: attendants.lastDevice,
+    lastLoginAt: attendants.lastLoginAt,
+    createdAt: attendants.createdAt,
+    updatedAt: attendants.updatedAt,
+  }).from(attendants).orderBy(desc(attendants.createdAt));
+}
+
+export async function toggleAttendantActive(id: number, isActive: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(attendants).set({ isActive, sessionToken: isActive ? undefined : null }).where(eq(attendants.id, id));
+}
+
+// ─── Active Sessions ───
+export async function createActiveSession(data: InsertActiveSession) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  // Remove old sessions for this attendant (sessão única)
+  await db.delete(activeSessions).where(eq(activeSessions.attendantId, data.attendantId));
+  const result = await db.insert(activeSessions).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function getActiveSessionByToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(activeSessions).where(eq(activeSessions.sessionToken, token)).limit(1);
+  return result[0];
+}
+
+export async function deleteSessionsByAttendant(attendantId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(activeSessions).where(eq(activeSessions.attendantId, attendantId));
 }

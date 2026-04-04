@@ -34,6 +34,7 @@ import {
   PanelLeft,
   Shield,
   MessageCircle,
+  UserCheck,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -52,6 +53,7 @@ const menuItems = [
 
 const adminMenuItems = [
   { icon: Shield, label: "Usuários", path: "/admin/users" },
+  { icon: UserCheck, label: "Atendentes", path: "/admin/attendants" },
   { icon: Settings, label: "Configurações", path: "/settings" },
 ];
 
