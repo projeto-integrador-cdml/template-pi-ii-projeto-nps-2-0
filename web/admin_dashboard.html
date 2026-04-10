@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S.A.G.E. - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h2>Dashboard do Administrador</h2>
+            <a href="{{ url_for('admin_logout') }}">Sair</a>
+        </div>
+
+        <div class="input-group">
+            <label for="search-profissional">Buscar Profissional</label>
+            <input type="text" id="search-profissional" onkeyup="filtrarProfissionais()" placeholder="Digite para filtrar...">
+        </div>
+        <div class="input-group">
+            <label for="profissional-select">Resultado da busca:</label>
+            <select id="profissional-select" name="id_profissional">
+                <option value="">-- Escolha um profissional --</option>
+                {% for prof in profissionais %}
+                    <option value="{{ prof.id_profissional }}">{{ prof.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="date-filter">Filtrar por Data</label>
+            <input type="date" id="date-filter">
+        </div>
+
+
+
+        <div id="agenda-container">
+            <h3>Agenda</h3>
+            <table id="agenda-table">
+                <thead>
+                    <tr>
+                        <th>ID da Consulta</th>
+                        <th>Nome do Paciente</th>
+                        <th>Data e Hora</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- As linhas da tabela serão preenchidas por JavaScript -->
+                    <tr>
+                        <td colspan="5">Selecione um profissional para ver os agendamentos.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function filtrarProfissionais() {
+            const input = document.getElementById('search-profissional');
+            const filter = input.value.toUpperCase();
+            const select = document.getElementById('profissional-select');
+            const options = select.getElementsByTagName('option');
+
+            for (let i = 0; i < options.length; i++) {
+                const txtValue = options[i].textContent || options[i].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    options[i].style.display = "";
+                } else {
+                    // Mantém a primeira opção (placeholder) sempre visível
+                    if (options[i].value !== "") {
+                        options[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+        function buscarAgenda() {
+            const profissionalId = document.getElementById('profissional-select').value;
+            const dataFiltro = document.getElementById('date-filter').value;
+            const tabelaBody = document.querySelector('#agenda-table tbody');
+
+            if (!profissionalId) {
+                tabelaBody.innerHTML = '<tr><td colspan="5">Selecione um profissional para ver os agendamentos.</td></tr>';
+                return;
+            }
+
+            tabelaBody.innerHTML = '<tr><td colspan="5">Carregando agenda...</td></tr>';
+
+            // Constrói a URL com o filtro de data, se houver
+            let url = `/admin/api/agenda/${profissionalId}`;
+            if (dataFiltro) {
+                url += `?data=${dataFiltro}`;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    tabelaBody.innerHTML = ''; // Limpa a tabela
+                    if (data.length > 0) {
+                        data.forEach(consulta => {
+                            const row = `
+                                <tr>
+                                    <td>${consulta.id_consulta}</td>
+                                    <td>${consulta.nome_paciente}</td>
+                                    <td>${consulta.data_hora}</td>
+                                    <td>${consulta.status}</td>
+                                    <td class="actions">
+                                        <button class="btn-remarcar" onclick="alert('Função Remarcar não implementada.')">Remarcar</button>
+                                        <button class="btn-deletar" onclick="confirmarDelecao('${profissionalId}', '${consulta.id_consulta}')">Deletar</button>
+                                    </td>
+                                </tr>
+                            `;
+                            tabelaBody.innerHTML += row;
+                        });
+                    } else {
+                        tabelaBody.innerHTML = '<tr><td colspan="5">Nenhum agendamento encontrado para os filtros selecionados.</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar agenda:', error);
+                    tabelaBody.innerHTML = '<tr><td colspan="5">Erro ao carregar a agenda. Tente novamente.</td></tr>';
+                });
+        }
+
+        // Adiciona os event listeners para ambos os filtros
+        document.getElementById('profissional-select').addEventListener('change', buscarAgenda);
+        document.getElementById('date-filter').addEventListener('change', buscarAgenda);
+
+        function confirmarDelecao(profissionalId, consultaId) {
+
+            if (confirm(`Tem certeza que deseja deletar a consulta ${consultaId}?`)) {
+                fetch(`/admin/api/agenda/deletar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id_profissional: profissionalId,
+                        id_consulta: consultaId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Consulta deletada com sucesso!');
+                        // Recarrega a agenda do profissional selecionado
+                        document.getElementById('profissional-select').dispatchEvent(new Event('change'));
+                    } else {
+                        alert('Erro ao deletar consulta: ' + data.message);
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espaço Physio - Cuidado e Inovação</title>
+    <!-- Correção: Usando url_for para gerar o caminho correto para o CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <a href="#">ESPAÇO PHYSIO</a>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#tratamentos">Tratamentos</a></li>
+                    <li><a href="#estrutura">Nossa Estrutura</a></li>
+                    <li><a href="#depoimentos">Depoimentos</a></li>
+                    <li><a href="#contato">Contato</a></li>
+                </ul>
+            </nav>
+            <div class="header-contato">
+                <span>(00) 1234-5678</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="hero">
+            <div class="hero-content">
+                <h1>Fisioterapia de Ponta e Atendimento Humanizado</h1>
+                <p>Encontre o profissional ideal para suas necessidades com nosso sistema inteligente S.A.G.E. e inicie sua jornada para uma vida sem dor.</p>
+                <a href="#chat-widget-container" class="cta-button">Agende sua Avaliação</a>
+            </div>
+        </section>
+
+        <section id="tratamentos">
+            <h2>Tratamentos</h2>
+            <p class="section-subtitle">Oferecemos uma gama completa de especialidades para cuidar de você.</p>
+            <div class="grid-container">
+                <div class="grid-item">
+                    <img src="https://via.placeholder.com/100.png?text=Icon" alt="Ícone de Ortopedia" class="icon-placeholder">
+                    <h3>Fisioterapia Ortopédica</h3>
+                    <p>Reabilitação de lesões musculares, ósseas e articulares.</p>
+                </div>
+                <div class="grid-item">
+                    <img src="https://via.placeholder.com/100.png?text=Icon" alt="Ícone de Esporte" class="icon-placeholder">
+                    <h3>Fisioterapia Esportiva</h3>
+                    <p>Prevenção e tratamento de lesões em atletas de todos os níveis.</p>
+                </div>
+                <div class="grid-item">
+                    <img src="https://via.placeholder.com/100.png?text=Icon" alt="Ícone de Coluna" class="icon-placeholder">
+                    <h3>Quiropraxia</h3>
+                    <p>Terapia manual para diagnóstico e tratamento de condições do sistema neuro-músculo-esquelético.</p>
+                </div>
+                 <div class="grid-item">
+                    <img src="https://via.placeholder.com/100.png?text=Icon" alt="Ícone de Neurologia" class="icon-placeholder">
+                    <h3>Fisioterapia Neurológica</h3>
+                    <p>Reabilitação de pacientes com distúrbios neurológicos como AVC, Parkinson e lesões medulares.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="estrutura">
+            <h2>Nossa Estrutura</h2>
+            <p class="section-subtitle">Um ambiente moderno e acolhedor, projetado para o seu conforto e recuperação.</p>
+            <div class="gallery-container">
+                <img src="https://via.placeholder.com/400x300.png?text=Foto+da+Clínica+1" alt="Foto da Clínica 1">
+                <img src="https://via.placeholder.com/400x300.png?text=Foto+da+Clínica+2" alt="Foto da Clínica 2">
+                <img src="https://via.placeholder.com/400x300.png?text=Foto+da+Clínica+3" alt="Foto da Clínica 3">
+            </div>
+        </section>
+
+        <section id="depoimentos">
+            <h2>O que nossos pacientes dizem</h2>
+            <div class="depoimento-container">
+                <div class="depoimento-item">
+                    <blockquote>"O atendimento foi incrível! O sistema S.A.G.E. encontrou o profissional perfeito para mim. Recomendo a todos!"</blockquote>
+                    <cite>- João S.</cite>
+                </div>
+                <div class="depoimento-item">
+                    <blockquote>"Finalmente encontrei um lugar que entende minhas necessidades. A estrutura é ótima e os profissionais são excelentes."</blockquote>
+                    <cite>- Maria P.</cite>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <footer id="contato">
+        <div class="footer-container">
+            <div class="footer-info">
+                <h3>ESPAÇO PHYSIO</h3>
+                <p>Rua Fictícia, 123, Bairro Exemplo</p>
+                <p>Cidade, Estado - CEP 00000-000</p>
+            </div>
+            <div class="footer-contato">
+                <h3>Contato</h3>
+                <p>Email: contato@espacophysio.com</p>
+                <p>Telefone: (00) 1234-5678</p>
+            </div>
+            <div class="footer-redes">
+                <h3>Siga-nos</h3>
+                <!-- Placeholder para ícones de redes sociais -->
+                <a href="#">Instagram</a> | <a href="#">Facebook</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Espaço Physio. Todos os direitos reservados. Powered by S.A.G.E.</p>
+        </div>
+    </footer>
+
+    <!-- ===== WIDGET DE CHAT S.A.G.E. ===== -->
+    <div id="chat-widget-container">
+        <div id="chat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="36px" height="36px"><path d="M0 0h24v24H0z" fill="none"/><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+        </div>
+        <div id="chat-window" class="hidden">
+            <div id="chat-header">
+                <p>Converse com S.A.G.E.</p>
+                <button id="close-chat">-</button>
+            </div>
+            <div id="chat-body"></div>
+            <div id="chat-footer">
+                <input type="text" id="chat-input" placeholder="Digite sua mensagem...">
+                <button id="send-chat-btn">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Correção: Usando url_for para gerar o caminho correto para o JS -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
