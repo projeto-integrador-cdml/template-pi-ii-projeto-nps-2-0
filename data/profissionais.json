@@ -1,0 +1,3149 @@
+[
+  {
+    "id_profissional": "PROF001",
+    "nome": "Dr. Miguel Dias",
+    "especialidade": [
+      "Dermatofuncional",
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Linfedema",
+      "Quadril",
+      "Ombro"
+    ],
+    "experiencia_anos": 4,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "MPB",
+      "Folk",
+      "Clássica",
+      "Hip Hop"
+    ],
+    "score_comunicativo": 0.71,
+    "score_foco": 0.84
+  },
+  {
+    "id_profissional": "PROF002",
+    "nome": "Dra. Patrícia Carvalho",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória"
+    ],
+    "foco_areas": [
+      "UTI"
+    ],
+    "experiencia_anos": 8,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Clássica",
+      "Hip Hop",
+      "Infantil",
+      "Indie"
+    ],
+    "score_comunicativo": 0.52,
+    "score_foco": 0.64
+  },
+  {
+    "id_profissional": "PROF003",
+    "nome": "Dra. Luiza Carvalho",
+    "especialidade": [
+      "Fisioterapia Ortopédica",
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Crossfit",
+      "Mão",
+      "Futebol"
+    ],
+    "experiencia_anos": 9,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Funk",
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.92,
+    "score_foco": 0.68
+  },
+  {
+    "id_profissional": "PROF004",
+    "nome": "Dr. Roberto Souza",
+    "especialidade": [
+      "Dermatofuncional",
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Estética",
+      "Linfedema",
+      "Vôlei"
+    ],
+    "experiencia_anos": 3,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Bossa Nova",
+      "Jazz",
+      "Pagode",
+      "Eletrônica"
+    ],
+    "score_comunicativo": 0.62,
+    "score_foco": 0.71
+  },
+  {
+    "id_profissional": "PROF005",
+    "nome": "Dr. Lucas Martins",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória"
+    ],
+    "foco_areas": [
+      "UTI",
+      "Reabilitação Pulmonar"
+    ],
+    "experiencia_anos": 15,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Forró",
+      "Bossa Nova",
+      "Eletrônica"
+    ],
+    "score_comunicativo": 0.74,
+    "score_foco": 0.91
+  },
+  {
+    "id_profissional": "PROF006",
+    "nome": "Dra. Luiza Moreira",
+    "especialidade": [
+      "Fisioterapia Neurológica",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Saúde da Mulher",
+      "Esclerose Múltipla",
+      "Saúde do Homem"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Hip Hop",
+      "Funk"
+    ],
+    "score_comunicativo": 0.77,
+    "score_foco": 0.66
+  },
+  {
+    "id_profissional": "PROF007",
+    "nome": "Dr. Gustavo Azevedo",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "Reabilitação Pós-AVC",
+      "DPOC",
+      "Asma"
+    ],
+    "experiencia_anos": 3,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Eletrônica",
+      "Funk",
+      "Rock",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.53,
+    "score_foco": 0.92
+  },
+  {
+    "id_profissional": "PROF008",
+    "nome": "Dr. Heitor Azevedo",
+    "especialidade": [
+      "Fisioterapia do Trabalho",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Análise Ergonômica",
+      "Ansiedade"
+    ],
+    "experiencia_anos": 5,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Instrumental",
+      "Hip Hop",
+      "Folk",
+      "Forró"
+    ],
+    "score_comunicativo": 0.53,
+    "score_foco": 0.75
+  },
+  {
+    "id_profissional": "PROF009",
+    "nome": "Dra. Sofia Barros",
+    "especialidade": [
+      "Dermatofuncional",
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Dores musculoesqueléticas",
+      "Pós-operatório",
+      "Queimados"
+    ],
+    "experiencia_anos": 21,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Choro"
+    ],
+    "score_comunicativo": 0.63,
+    "score_foco": 0.55
+  },
+  {
+    "id_profissional": "PROF010",
+    "nome": "Dr. Mateus Dias",
+    "especialidade": [
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "LER/DORT"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Metal",
+      "Eletrônica"
+    ],
+    "score_comunicativo": 0.76,
+    "score_foco": 0.85
+  },
+  {
+    "id_profissional": "PROF011",
+    "nome": "Dra. Laura Santos",
+    "especialidade": [
+      "Dermatofuncional",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Estética",
+      "Pós-operatório",
+      "Dor crônica"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Eletrônica",
+      "Hip Hop"
+    ],
+    "score_comunicativo": 0.74,
+    "score_foco": 0.53
+  },
+  {
+    "id_profissional": "PROF012",
+    "nome": "Dr. Fernando Dias",
+    "especialidade": [
+      "Osteopatia",
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "Esclerose Múltipla",
+      "Mobilidade articular",
+      "Parkinson"
+    ],
+    "experiencia_anos": 19,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Eletrônica",
+      "Pop"
+    ],
+    "score_comunicativo": 0.93,
+    "score_foco": 0.51
+  },
+  {
+    "id_profissional": "PROF013",
+    "nome": "Dra. Luiza Vieira",
+    "especialidade": [
+      "Fisioterapia Neurológica",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Incontinência Urinária",
+      "Saúde da Mulher",
+      "Reabilitação Pós-AVC"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.73,
+    "score_foco": 0.89
+  },
+  {
+    "id_profissional": "PROF014",
+    "nome": "Dr. Samuel Vieira",
+    "especialidade": [
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Paralisia Cerebral"
+    ],
+    "experiencia_anos": 22,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Indie",
+      "MPB",
+      "Clássica",
+      "Folk"
+    ],
+    "score_comunicativo": 0.68,
+    "score_foco": 0.79
+  },
+  {
+    "id_profissional": "PROF015",
+    "nome": "Dr. Benício Barbosa",
+    "especialidade": [
+      "Quiropraxia",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Dor ciática",
+      "LER/DORT"
+    ],
+    "experiencia_anos": 24,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Eletrônica",
+      "Forró",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.81,
+    "score_foco": 0.87
+  },
+  {
+    "id_profissional": "PROF016",
+    "nome": "Dra. Beatriz Alves",
+    "especialidade": [
+      "Fisioterapia Geriátrica"
+    ],
+    "foco_areas": [
+      "Alzheimer"
+    ],
+    "experiencia_anos": 10,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues"
+    ],
+    "score_comunicativo": 0.58,
+    "score_foco": 0.98
+  },
+  {
+    "id_profissional": "PROF017",
+    "nome": "Dr. Enzo Mendes",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Coluna Vertebral"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues"
+    ],
+    "score_comunicativo": 0.71,
+    "score_foco": 0.53
+  },
+  {
+    "id_profissional": "PROF018",
+    "nome": "Dra. Yasmin Vieira",
+    "especialidade": [
+      "Quiropraxia",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Torcicolo Congênito",
+      "Desenvolvimento Motor",
+      "Ajustes gerais"
+    ],
+    "experiencia_anos": 21,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues",
+      "Eletrônica",
+      "Metal",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.88,
+    "score_foco": 0.81
+  },
+  {
+    "id_profissional": "PROF019",
+    "nome": "Dra. Manuela Ferreira",
+    "especialidade": [
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "Esclerose Múltipla"
+    ],
+    "experiencia_anos": 19,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Funk",
+      "Folk",
+      "Metal",
+      "Samba"
+    ],
+    "score_comunicativo": 0.57,
+    "score_foco": 0.59
+  },
+  {
+    "id_profissional": "PROF020",
+    "nome": "Dra. Luiza Barbosa",
+    "especialidade": [
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Mão"
+    ],
+    "experiencia_anos": 13,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Forró",
+      "Pop"
+    ],
+    "score_comunicativo": 0.64,
+    "score_foco": 0.53
+  },
+  {
+    "id_profissional": "PROF021",
+    "nome": "Dr. Théo Ferreira",
+    "especialidade": [
+      "Dermatofuncional",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Estética",
+      "Desenvolvimento Motor",
+      "Linfedema"
+    ],
+    "experiencia_anos": 12,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Sertanejo",
+      "MPB",
+      "Funk"
+    ],
+    "score_comunicativo": 0.53,
+    "score_foco": 0.68
+  },
+  {
+    "id_profissional": "PROF022",
+    "nome": "Dra. Lívia Ramos",
+    "especialidade": [
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco"
+    ],
+    "experiencia_anos": 19,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Bossa Nova",
+      "Pagode"
+    ],
+    "score_comunicativo": 0.56,
+    "score_foco": 0.61
+  },
+  {
+    "id_profissional": "PROF023",
+    "nome": "Dra. Heloísa Costa",
+    "especialidade": [
+      "Fisioterapia Esportiva",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Artes Marciais",
+      "Futebol",
+      "Paralisia Cerebral"
+    ],
+    "experiencia_anos": 9,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Samba",
+      "Infantil",
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.51,
+    "score_foco": 0.82
+  },
+  {
+    "id_profissional": "PROF024",
+    "nome": "Dra. Manuela Alves",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Pós-operatório",
+      "Linfedema"
+    ],
+    "experiencia_anos": 19,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Instrumental",
+      "Funk"
+    ],
+    "score_comunicativo": 0.61,
+    "score_foco": 0.79
+  },
+  {
+    "id_profissional": "PROF025",
+    "nome": "Dra. Isabela Pires",
+    "especialidade": [
+      "Fisioterapia Neurológica",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Insônia",
+      "Ansiedade",
+      "Reabilitação Pós-AVC"
+    ],
+    "experiencia_anos": 14,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pop",
+      "Folk",
+      "Funk"
+    ],
+    "score_comunicativo": 0.8,
+    "score_foco": 0.81
+  },
+  {
+    "id_profissional": "PROF026",
+    "nome": "Dr. Rafael Pereira",
+    "especialidade": [
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "LER/DORT"
+    ],
+    "experiencia_anos": 12,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Infantil",
+      "Folk",
+      "Rock",
+      "Pagode"
+    ],
+    "score_comunicativo": 0.8,
+    "score_foco": 0.86
+  },
+  {
+    "id_profissional": "PROF027",
+    "nome": "Dra. Isabela Ramos",
+    "especialidade": [
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Gestantes"
+    ],
+    "experiencia_anos": 23,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pagode"
+    ],
+    "score_comunicativo": 0.63,
+    "score_foco": 0.96
+  },
+  {
+    "id_profissional": "PROF028",
+    "nome": "Dra. Manuela Ramos",
+    "especialidade": [
+      "Quiropraxia",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ajustes gerais",
+      "Ginástica Laboral"
+    ],
+    "experiencia_anos": 11,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Choro"
+    ],
+    "score_comunicativo": 0.65,
+    "score_foco": 0.65
+  },
+  {
+    "id_profissional": "PROF029",
+    "nome": "Dr. Igor Rocha",
+    "especialidade": [
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Ansiedade",
+      "Insônia"
+    ],
+    "experiencia_anos": 12,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Reggae"
+    ],
+    "score_comunicativo": 0.95,
+    "score_foco": 0.98
+  },
+  {
+    "id_profissional": "PROF030",
+    "nome": "Dr. Fernando Lima",
+    "especialidade": [
+      "Osteopatia",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Torcicolo Congênito",
+      "Dores musculoesqueléticas"
+    ],
+    "experiencia_anos": 4,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Pagode",
+      "Infantil",
+      "Sertanejo",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.97,
+    "score_foco": 0.71
+  },
+  {
+    "id_profissional": "PROF031",
+    "nome": "Dr. Fernando Carvalho",
+    "especialidade": [
+      "Fisioterapia Ortopédica",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Incontinência Urinária",
+      "Quadril",
+      "Coluna",
+      "Saúde da Mulher"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "MPB",
+      "Forró",
+      "Pop",
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.64,
+    "score_foco": 0.91
+  },
+  {
+    "id_profissional": "PROF032",
+    "nome": "Dr. Lucas Azevedo",
+    "especialidade": [
+      "Dermatofuncional",
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Tornozelo",
+      "Estética"
+    ],
+    "experiencia_anos": 3,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Funk",
+      "Pop"
+    ],
+    "score_comunicativo": 0.88,
+    "score_foco": 0.64
+  },
+  {
+    "id_profissional": "PROF033",
+    "nome": "Dra. Luiza Alves",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória"
+    ],
+    "foco_areas": [
+      "Asma"
+    ],
+    "experiencia_anos": 23,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.6,
+    "score_foco": 0.6
+  },
+  {
+    "id_profissional": "PROF034",
+    "nome": "Dr. Gustavo Santos",
+    "especialidade": [
+      "Osteopatia",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco",
+      "Análise Ergonômica",
+      "Ginástica Laboral"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues",
+      "Infantil",
+      "Reggae"
+    ],
+    "score_comunicativo": 0.6,
+    "score_foco": 0.5
+  },
+  {
+    "id_profissional": "PROF035",
+    "nome": "Dra. Yasmin Cunha",
+    "especialidade": [
+      "Fisioterapia Geriátrica"
+    ],
+    "foco_areas": [
+      "Fortalecimento",
+      "Alzheimer"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Clássica",
+      "Eletrônica",
+      "Instrumental"
+    ],
+    "score_comunicativo": 0.76,
+    "score_foco": 0.64
+  },
+  {
+    "id_profissional": "PROF036",
+    "nome": "Dra. Alice Pereira",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Queimados",
+      "Reabilitação Pulmonar"
+    ],
+    "experiencia_anos": 6,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Eletrônica",
+      "Infantil",
+      "Clássica"
+    ],
+    "score_comunicativo": 0.6,
+    "score_foco": 0.92
+  },
+  {
+    "id_profissional": "PROF037",
+    "nome": "Dr. Samuel Farias",
+    "especialidade": [
+      "Fisioterapia Geriátrica",
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Pós-operatório de fraturas",
+      "Quadril",
+      "Joelho"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pop",
+      "Instrumental"
+    ],
+    "score_comunicativo": 0.54,
+    "score_foco": 0.83
+  },
+  {
+    "id_profissional": "PROF038",
+    "nome": "Dra. Sofia Cunha",
+    "especialidade": [
+      "Quiropraxia",
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco",
+      "Cefaleia Tensional"
+    ],
+    "experiencia_anos": 2,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Folk",
+      "Infantil",
+      "Hip Hop"
+    ],
+    "score_comunicativo": 0.91,
+    "score_foco": 0.72
+  },
+  {
+    "id_profissional": "PROF039",
+    "nome": "Dr. Heitor Costa",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Coluna Vertebral"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Blues"
+    ],
+    "score_comunicativo": 0.82,
+    "score_foco": 0.95
+  },
+  {
+    "id_profissional": "PROF040",
+    "nome": "Dr. Heitor Ferreira",
+    "especialidade": [
+      "Quiropraxia",
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Pós-operatório",
+      "Dor ciática",
+      "Linfedema"
+    ],
+    "experiencia_anos": 8,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Metal"
+    ],
+    "score_comunicativo": 0.54,
+    "score_foco": 0.68
+  },
+  {
+    "id_profissional": "PROF041",
+    "nome": "Dra. Heloísa Barbosa",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Dor ciática"
+    ],
+    "experiencia_anos": 20,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "MPB",
+      "Pop",
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.91,
+    "score_foco": 0.85
+  },
+  {
+    "id_profissional": "PROF042",
+    "nome": "Dra. Valentina Nogueira",
+    "especialidade": [
+      "Dermatofuncional",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Estética",
+      "Ansiedade",
+      "Insônia"
+    ],
+    "experiencia_anos": 15,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pagode"
+    ],
+    "score_comunicativo": 0.51,
+    "score_foco": 0.82
+  },
+  {
+    "id_profissional": "PROF043",
+    "nome": "Dr. Samuel Lima",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Cefaleia Tensional"
+    ],
+    "experiencia_anos": 2,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Pagode"
+    ],
+    "score_comunicativo": 0.72,
+    "score_foco": 0.98
+  },
+  {
+    "id_profissional": "PROF044",
+    "nome": "Dra. Luiza Barros",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Queimados"
+    ],
+    "experiencia_anos": 4,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Pagode",
+      "Infantil",
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.59,
+    "score_foco": 0.8
+  },
+  {
+    "id_profissional": "PROF045",
+    "nome": "Dr. Davi Dias",
+    "especialidade": [
+      "Quiropraxia",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "LER/DORT",
+      "Ginástica Laboral",
+      "Ajustes gerais"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Metal",
+      "Reggae",
+      "Blues"
+    ],
+    "score_comunicativo": 0.62,
+    "score_foco": 0.67
+  },
+  {
+    "id_profissional": "PROF046",
+    "nome": "Dra. Valentina Dias",
+    "especialidade": [
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Dor crônica"
+    ],
+    "experiencia_anos": 3,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Hip Hop",
+      "Indie",
+      "Choro"
+    ],
+    "score_comunicativo": 0.56,
+    "score_foco": 0.72
+  },
+  {
+    "id_profissional": "PROF047",
+    "nome": "Dr. Enzo Gomes",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "DPOC",
+      "UTI",
+      "Pé"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Clássica"
+    ],
+    "score_comunicativo": 0.51,
+    "score_foco": 0.56
+  },
+  {
+    "id_profissional": "PROF048",
+    "nome": "Dra. Sofia Ribeiro",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Estética",
+      "Linfedema"
+    ],
+    "experiencia_anos": 12,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Reggae",
+      "Metal",
+      "Rock"
+    ],
+    "score_comunicativo": 0.83,
+    "score_foco": 0.81
+  },
+  {
+    "id_profissional": "PROF049",
+    "nome": "Dr. Samuel Ferreira",
+    "especialidade": [
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Incontinência Urinária"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Clássica"
+    ],
+    "score_comunicativo": 0.59,
+    "score_foco": 0.56
+  },
+  {
+    "id_profissional": "PROF050",
+    "nome": "Dra. Isabela Farias",
+    "especialidade": [
+      "Fisioterapia Ortopédica",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Tornozelo",
+      "Mão",
+      "Atraso motor",
+      "Paralisia Cerebral"
+    ],
+    "experiencia_anos": 24,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Metal"
+    ],
+    "score_comunicativo": 0.8,
+    "score_foco": 0.54
+  },
+  {
+    "id_profissional": "PROF051",
+    "nome": "Dr. Miguel Rodrigues",
+    "especialidade": [
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Insônia"
+    ],
+    "experiencia_anos": 5,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Blues",
+      "Bossa Nova",
+      "Clássica"
+    ],
+    "score_comunicativo": 0.7200000000000001,
+    "score_foco": 0.9
+  },
+  {
+    "id_profissional": "PROF052",
+    "nome": "Dra. Heloísa Pires",
+    "especialidade": [
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco"
+    ],
+    "experiencia_anos": 15,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pop",
+      "Indie",
+      "Folk",
+      "Blues"
+    ],
+    "score_comunicativo": 0.82,
+    "score_foco": 0.65
+  },
+  {
+    "id_profissional": "PROF053",
+    "nome": "Dr. Lucas Melo",
+    "especialidade": [
+      "Fisioterapia do Trabalho",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Atraso motor",
+      "Paralisia Cerebral"
+    ],
+    "experiencia_anos": 6,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Infantil"
+    ],
+    "score_comunicativo": 0.64,
+    "score_foco": 0.71
+  },
+  {
+    "id_profissional": "PROF054",
+    "nome": "Dra. Amanda Mendes",
+    "especialidade": [
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Ansiedade"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Clássica"
+    ],
+    "score_comunicativo": 0.54,
+    "score_foco": 0.92
+  },
+  {
+    "id_profissional": "PROF055",
+    "nome": "Dr. Vinicius Lima",
+    "especialidade": [
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Quadril",
+      "Mão"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Folk"
+    ],
+    "score_comunicativo": 1.0,
+    "score_foco": 0.57
+  },
+  {
+    "id_profissional": "PROF056",
+    "nome": "Dra. Alice Cunha",
+    "especialidade": [
+      "Fisioterapia Geriátrica"
+    ],
+    "foco_areas": [
+      "Equilíbrio",
+      "Alzheimer"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues",
+      "MPB",
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.67,
+    "score_foco": 0.9
+  },
+  {
+    "id_profissional": "PROF057",
+    "nome": "Dr. Benício Santos",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Ajustes gerais"
+    ],
+    "experiencia_anos": 24,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues"
+    ],
+    "score_comunicativo": 0.73,
+    "score_foco": 0.84
+  },
+  {
+    "id_profissional": "PROF058",
+    "nome": "Dr. Arthur Barbosa",
+    "especialidade": [
+      "Dermatofuncional",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Estética",
+      "Pós-operatório",
+      "Ansiedade"
+    ],
+    "experiencia_anos": 22,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Jazz"
+    ],
+    "score_comunicativo": 0.62,
+    "score_foco": 0.64
+  },
+  {
+    "id_profissional": "PROF059",
+    "nome": "Dra. Beatriz Gomes",
+    "especialidade": [
+      "Osteopatia",
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Dores musculoesqueléticas",
+      "Ombro",
+      "Mobilidade articular"
+    ],
+    "experiencia_anos": 3,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Clássica",
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.57,
+    "score_foco": 0.91
+  },
+  {
+    "id_profissional": "PROF060",
+    "nome": "Dr. Benício Gomes",
+    "especialidade": [
+      "Dermatofuncional",
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Dores musculoesqueléticas",
+      "Pós-operatório",
+      "Queimados"
+    ],
+    "experiencia_anos": 24,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.89,
+    "score_foco": 0.9
+  },
+  {
+    "id_profissional": "PROF061",
+    "nome": "Dra. Patrícia Pereira",
+    "especialidade": [
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Ansiedade",
+      "Dor crônica"
+    ],
+    "experiencia_anos": 21,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.65,
+    "score_foco": 0.68
+  },
+  {
+    "id_profissional": "PROF062",
+    "nome": "Dr. Fernando Martins",
+    "especialidade": [
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Tornozelo",
+      "Coluna"
+    ],
+    "experiencia_anos": 14,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "MPB"
+    ],
+    "score_comunicativo": 0.62,
+    "score_foco": 0.87
+  },
+  {
+    "id_profissional": "PROF063",
+    "nome": "Dr. Bernardo Rodrigues",
+    "especialidade": [
+      "Quiropraxia",
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Ajustes gerais",
+      "Mobilidade articular"
+    ],
+    "experiencia_anos": 12,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Rock"
+    ],
+    "score_comunicativo": 0.67,
+    "score_foco": 0.8
+  },
+  {
+    "id_profissional": "PROF064",
+    "nome": "Dra. Beatriz Mendes",
+    "especialidade": [
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Coluna"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Indie",
+      "Forró"
+    ],
+    "score_comunicativo": 0.59,
+    "score_foco": 0.82
+  },
+  {
+    "id_profissional": "PROF065",
+    "nome": "Dr. Bernardo Dias",
+    "especialidade": [
+      "Osteopatia",
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco",
+      "Lesão Medular"
+    ],
+    "experiencia_anos": 5,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.64,
+    "score_foco": 0.65
+  },
+  {
+    "id_profissional": "PROF066",
+    "nome": "Dra. Mariana Barros",
+    "especialidade": [
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Artes Marciais"
+    ],
+    "experiencia_anos": 14,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Funk",
+      "Infantil",
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.53,
+    "score_foco": 0.8
+  },
+  {
+    "id_profissional": "PROF067",
+    "nome": "Dr. Bernardo Nogueira",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Pós-operatório"
+    ],
+    "experiencia_anos": 10,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Indie",
+      "Hip Hop",
+      "Reggae"
+    ],
+    "score_comunicativo": 0.88,
+    "score_foco": 0.79
+  },
+  {
+    "id_profissional": "PROF068",
+    "nome": "Dr. Enzo Lima",
+    "especialidade": [
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Desenvolvimento Motor",
+      "Atraso motor"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Indie"
+    ],
+    "score_comunicativo": 0.88,
+    "score_foco": 0.74
+  },
+  {
+    "id_profissional": "PROF069",
+    "nome": "Dra. Juliana Costa",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Linfedema",
+      "Queimados"
+    ],
+    "experiencia_anos": 2,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Pop",
+      "Metal",
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.7,
+    "score_foco": 0.65
+  },
+  {
+    "id_profissional": "PROF070",
+    "nome": "Dra. Lorena Pires",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória"
+    ],
+    "foco_areas": [
+      "Asma"
+    ],
+    "experiencia_anos": 5,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Bossa Nova",
+      "Infantil",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.91,
+    "score_foco": 0.56
+  },
+  {
+    "id_profissional": "PROF071",
+    "nome": "Dra. Valentina Rocha",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Dor ciática",
+      "Ajustes gerais"
+    ],
+    "experiencia_anos": 14,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Rock",
+      "Jazz",
+      "Clássica",
+      "Choro"
+    ],
+    "score_comunicativo": 0.61,
+    "score_foco": 0.72
+  },
+  {
+    "id_profissional": "PROF072",
+    "nome": "Dr. André Martins",
+    "especialidade": [
+      "Fisioterapia do Trabalho",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Ansiedade",
+      "Ginástica Laboral",
+      "Dor crônica"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pagode",
+      "Clássica",
+      "Reggae"
+    ],
+    "score_comunicativo": 0.79,
+    "score_foco": 0.93
+  },
+  {
+    "id_profissional": "PROF073",
+    "nome": "Dra. Clara Azevedo",
+    "especialidade": [
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Dor crônica",
+      "Insônia"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Forró",
+      "Eletrônica",
+      "Pop"
+    ],
+    "score_comunicativo": 0.55,
+    "score_foco": 0.75
+  },
+  {
+    "id_profissional": "PROF074",
+    "nome": "Dra. Valentina Gomes",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Pós-operatório",
+      "Linfedema"
+    ],
+    "experiencia_anos": 20,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues",
+      "Indie"
+    ],
+    "score_comunicativo": 0.82,
+    "score_foco": 0.56
+  },
+  {
+    "id_profissional": "PROF075",
+    "nome": "Dr. Bernardo Alves",
+    "especialidade": [
+      "Quiropraxia",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Dor ciática",
+      "Análise Ergonômica"
+    ],
+    "experiencia_anos": 8,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Blues",
+      "Pagode",
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.97,
+    "score_foco": 0.95
+  },
+  {
+    "id_profissional": "PROF076",
+    "nome": "Dr. Lucas Castro",
+    "especialidade": [
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "LER/DORT",
+      "Ginástica Laboral"
+    ],
+    "experiencia_anos": 9,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "MPB",
+      "Indie",
+      "Folk"
+    ],
+    "score_comunicativo": 0.63,
+    "score_foco": 0.83
+  },
+  {
+    "id_profissional": "PROF077",
+    "nome": "Dra. Alice Azevedo",
+    "especialidade": [
+      "Fisioterapia Geriátrica"
+    ],
+    "foco_areas": [
+      "Equilíbrio"
+    ],
+    "experiencia_anos": 19,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues"
+    ],
+    "score_comunicativo": 0.93,
+    "score_foco": 0.68
+  },
+  {
+    "id_profissional": "PROF078",
+    "nome": "Dr. Heitor Vieira",
+    "especialidade": [
+      "Fisioterapia Ortopédica",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Quadril",
+      "Ginástica Laboral"
+    ],
+    "experiencia_anos": 4,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Blues",
+      "MPB"
+    ],
+    "score_comunicativo": 0.57,
+    "score_foco": 1.0
+  },
+  {
+    "id_profissional": "PROF079",
+    "nome": "Dra. Heloísa Barros",
+    "especialidade": [
+      "Osteopatia",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Dores musculoesqueléticas",
+      "Ansiedade",
+      "Hérnia de Disco",
+      "Dor crônica"
+    ],
+    "experiencia_anos": 2,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Eletrônica",
+      "Hip Hop"
+    ],
+    "score_comunicativo": 0.86,
+    "score_foco": 0.82
+  },
+  {
+    "id_profissional": "PROF080",
+    "nome": "Dra. Camila Pires",
+    "especialidade": [
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Performance",
+      "Artes Marciais"
+    ],
+    "experiencia_anos": 5,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Pop",
+      "Sertanejo",
+      "Instrumental",
+      "Choro"
+    ],
+    "score_comunicativo": 0.94,
+    "score_foco": 0.78
+  },
+  {
+    "id_profissional": "PROF081",
+    "nome": "Dra. Manuela Castro",
+    "especialidade": [
+      "Quiropraxia",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Dor ciática",
+      "Ansiedade",
+      "Cefaleia Tensional",
+      "Insônia"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Metal",
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.81,
+    "score_foco": 0.68
+  },
+  {
+    "id_profissional": "PROF082",
+    "nome": "Dr. Heitor Barbosa",
+    "especialidade": [
+      "Dermatofuncional",
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco",
+      "Linfedema",
+      "Queimados",
+      "Dores musculoesqueléticas"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pagode"
+    ],
+    "score_comunicativo": 0.59,
+    "score_foco": 0.84
+  },
+  {
+    "id_profissional": "PROF083",
+    "nome": "Dra. Patrícia Azevedo",
+    "especialidade": [
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Atraso motor"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Forró",
+      "Sertanejo",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.6,
+    "score_foco": 0.81
+  },
+  {
+    "id_profissional": "PROF084",
+    "nome": "Dra. Yasmin Rodrigues",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Queimados"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Rock"
+    ],
+    "score_comunicativo": 0.94,
+    "score_foco": 0.62
+  },
+  {
+    "id_profissional": "PROF085",
+    "nome": "Dra. Gabriela Vieira",
+    "especialidade": [
+      "Fisioterapia Ortopédica",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Joelho",
+      "Ginástica Laboral"
+    ],
+    "experiencia_anos": 22,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.65,
+    "score_foco": 0.89
+  },
+  {
+    "id_profissional": "PROF086",
+    "nome": "Dr. Gustavo Ribeiro",
+    "especialidade": [
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Joelho"
+    ],
+    "experiencia_anos": 6,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Clássica"
+    ],
+    "score_comunicativo": 0.99,
+    "score_foco": 0.65
+  },
+  {
+    "id_profissional": "PROF087",
+    "nome": "Dra. Heloísa Barbosa",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Cefaleia Tensional",
+      "Ajustes gerais"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Metal"
+    ],
+    "score_comunicativo": 0.78,
+    "score_foco": 0.73
+  },
+  {
+    "id_profissional": "PROF088",
+    "nome": "Dr. Benício Costa",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "Esclerose Múltipla",
+      "Lesão Medular",
+      "Asma"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Infantil"
+    ],
+    "score_comunicativo": 0.96,
+    "score_foco": 0.79
+  },
+  {
+    "id_profissional": "PROF089",
+    "nome": "Dr. André Oliveira",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Pós-operatório",
+      "Linfedema"
+    ],
+    "experiencia_anos": 2,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Samba"
+    ],
+    "score_comunicativo": 0.84,
+    "score_foco": 0.97
+  },
+  {
+    "id_profissional": "PROF090",
+    "nome": "Dra. Sofia Cunha",
+    "especialidade": [
+      "Fisioterapia Geriátrica",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Marcha",
+      "Ansiedade",
+      "Dor crônica"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.78,
+    "score_foco": 0.6
+  },
+  {
+    "id_profissional": "PROF091",
+    "nome": "Dr. Théo Pires",
+    "especialidade": [
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Saúde da Mulher"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Forró",
+      "Reggae",
+      "Pagode"
+    ],
+    "score_comunicativo": 1.0,
+    "score_foco": 0.79
+  },
+  {
+    "id_profissional": "PROF092",
+    "nome": "Dra. Lorena Moreira",
+    "especialidade": [
+      "Fisioterapia Geriátrica"
+    ],
+    "foco_areas": [
+      "Prevenção de Quedas"
+    ],
+    "experiencia_anos": 11,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pop",
+      "Pagode"
+    ],
+    "score_comunicativo": 0.82,
+    "score_foco": 0.9
+  },
+  {
+    "id_profissional": "PROF093",
+    "nome": "Dr. Bernardo Barros",
+    "especialidade": [
+      "Fisioterapia Geriátrica"
+    ],
+    "foco_areas": [
+      "Pós-operatório de fraturas",
+      "Equilíbrio"
+    ],
+    "experiencia_anos": 21,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Infantil",
+      "Reggae",
+      "Hip Hop"
+    ],
+    "score_comunicativo": 0.89,
+    "score_foco": 0.87
+  },
+  {
+    "id_profissional": "PROF094",
+    "nome": "Dr. Davi Ramos",
+    "especialidade": [
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Crossfit",
+      "Futebol"
+    ],
+    "experiencia_anos": 2,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Metal"
+    ],
+    "score_comunicativo": 0.91,
+    "score_foco": 0.8
+  },
+  {
+    "id_profissional": "PROF095",
+    "nome": "Dr. Théo Ribeiro",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Dor ciática",
+      "Ajustes gerais"
+    ],
+    "experiencia_anos": 20,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Funk",
+      "Indie",
+      "Metal",
+      "Pop"
+    ],
+    "score_comunicativo": 0.52,
+    "score_foco": 0.95
+  },
+  {
+    "id_profissional": "PROF096",
+    "nome": "Dr. Ricardo Alves",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Reabilitação Cardíaca",
+      "DPOC",
+      "Saúde do Homem"
+    ],
+    "experiencia_anos": 21,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Metal",
+      "MPB"
+    ],
+    "score_comunicativo": 0.75,
+    "score_foco": 0.81
+  },
+  {
+    "id_profissional": "PROF097",
+    "nome": "Dr. Arthur Azevedo",
+    "especialidade": [
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Análise Ergonômica"
+    ],
+    "experiencia_anos": 23,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Folk",
+      "Funk",
+      "Sertanejo",
+      "Indie"
+    ],
+    "score_comunicativo": 0.5,
+    "score_foco": 0.87
+  },
+  {
+    "id_profissional": "PROF098",
+    "nome": "Dra. Laura Oliveira",
+    "especialidade": [
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Análise Ergonômica"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Forró",
+      "Metal",
+      "Choro"
+    ],
+    "score_comunicativo": 0.56,
+    "score_foco": 0.81
+  },
+  {
+    "id_profissional": "PROF099",
+    "nome": "Dr. Ricardo Rodrigues",
+    "especialidade": [
+      "Dermatofuncional",
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Ombro",
+      "Coluna",
+      "Linfedema",
+      "Queimados"
+    ],
+    "experiencia_anos": 14,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pagode",
+      "Samba",
+      "MPB",
+      "Hip Hop"
+    ],
+    "score_comunicativo": 0.71,
+    "score_foco": 0.99
+  },
+  {
+    "id_profissional": "PROF100",
+    "nome": "Dra. Juliana Dias",
+    "especialidade": [
+      "Quiropraxia",
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "Ajustes gerais",
+      "Coluna Vertebral",
+      "Reabilitação Pós-AVC"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Instrumental"
+    ],
+    "score_comunicativo": 0.89,
+    "score_foco": 0.95
+  },
+  {
+    "id_profissional": "PROF101",
+    "nome": "Dr. Arthur Pires",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Reabilitação Pulmonar",
+      "Hérnia de Disco",
+      "UTI",
+      "Mobilidade articular"
+    ],
+    "experiencia_anos": 9,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Funk",
+      "Pagode",
+      "Clássica",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.6,
+    "score_foco": 0.69
+  },
+  {
+    "id_profissional": "PROF102",
+    "nome": "Dra. Laura Azevedo",
+    "especialidade": [
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Torcicolo Congênito",
+      "Paralisia Cerebral"
+    ],
+    "experiencia_anos": 6,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Blues",
+      "Indie",
+      "MPB"
+    ],
+    "score_comunicativo": 0.56,
+    "score_foco": 0.71
+  },
+  {
+    "id_profissional": "PROF103",
+    "nome": "Dr. Davi Azevedo",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Estética",
+      "DPOC",
+      "Queimados"
+    ],
+    "experiencia_anos": 22,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Hip Hop"
+    ],
+    "score_comunicativo": 0.96,
+    "score_foco": 0.5
+  },
+  {
+    "id_profissional": "PROF104",
+    "nome": "Dra. Clara Souza",
+    "especialidade": [
+      "Fisioterapia Neurológica",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Torcicolo Congênito",
+      "Paralisia Cerebral",
+      "Parkinson"
+    ],
+    "experiencia_anos": 21,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Pop",
+      "Funk",
+      "Blues"
+    ],
+    "score_comunicativo": 0.94,
+    "score_foco": 0.95
+  },
+  {
+    "id_profissional": "PROF105",
+    "nome": "Dra. Lorena Alves",
+    "especialidade": [
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Reggae",
+      "Funk",
+      "Indie",
+      "Choro"
+    ],
+    "score_comunicativo": 0.79,
+    "score_foco": 0.59
+  },
+  {
+    "id_profissional": "PROF106",
+    "nome": "Dr. Fernando Barbosa",
+    "especialidade": [
+      "Fisioterapia Neurológica",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Esclerose Múltipla",
+      "Lesão Medular"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pagode",
+      "Hip Hop",
+      "Infantil"
+    ],
+    "score_comunicativo": 0.96,
+    "score_foco": 0.66
+  },
+  {
+    "id_profissional": "PROF107",
+    "nome": "Dr. Vinicius Alves",
+    "especialidade": [
+      "Osteopatia",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Saúde da Mulher",
+      "Incontinência Urinária",
+      "Hérnia de Disco",
+      "Mobilidade articular"
+    ],
+    "experiencia_anos": 20,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Eletrônica",
+      "Blues"
+    ],
+    "score_comunicativo": 0.53,
+    "score_foco": 0.91
+  },
+  {
+    "id_profissional": "PROF108",
+    "nome": "Dra. Amanda Ferreira",
+    "especialidade": [
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Gestantes"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Clássica"
+    ],
+    "score_comunicativo": 0.58,
+    "score_foco": 0.7
+  },
+  {
+    "id_profissional": "PROF109",
+    "nome": "Dra. Júlia Moreira",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Quadril",
+      "UTI",
+      "Pé"
+    ],
+    "experiencia_anos": 16,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "MPB",
+      "Clássica"
+    ],
+    "score_comunicativo": 0.79,
+    "score_foco": 0.88
+  },
+  {
+    "id_profissional": "PROF110",
+    "nome": "Dra. Yasmin Rocha",
+    "especialidade": [
+      "Fisioterapia Geriátrica"
+    ],
+    "foco_areas": [
+      "Pós-operatório de fraturas"
+    ],
+    "experiencia_anos": 24,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Folk",
+      "Jazz",
+      "Blues"
+    ],
+    "score_comunicativo": 0.95,
+    "score_foco": 0.85
+  },
+  {
+    "id_profissional": "PROF111",
+    "nome": "Dra. Camila Pereira",
+    "especialidade": [
+      "Fisioterapia Geriátrica"
+    ],
+    "foco_areas": [
+      "Marcha"
+    ],
+    "experiencia_anos": 24,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Instrumental",
+      "Folk"
+    ],
+    "score_comunicativo": 0.72,
+    "score_foco": 0.69
+  },
+  {
+    "id_profissional": "PROF112",
+    "nome": "Dr. Lucas Costa",
+    "especialidade": [
+      "Fisioterapia Geriátrica",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Pós-operatório de fraturas",
+      "Insônia",
+      "Dor crônica"
+    ],
+    "experiencia_anos": 11,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Infantil",
+      "Pagode",
+      "Samba"
+    ],
+    "score_comunicativo": 0.73,
+    "score_foco": 0.82
+  },
+  {
+    "id_profissional": "PROF113",
+    "nome": "Dra. Lívia Mendes",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Pós-operatório"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Rock",
+      "Samba",
+      "Funk",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.53,
+    "score_foco": 0.71
+  },
+  {
+    "id_profissional": "PROF114",
+    "nome": "Dr. Lucas Cunha",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Dor ciática"
+    ],
+    "experiencia_anos": 10,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Choro",
+      "Clássica",
+      "Instrumental",
+      "Infantil"
+    ],
+    "score_comunicativo": 0.89,
+    "score_foco": 0.8
+  },
+  {
+    "id_profissional": "PROF115",
+    "nome": "Dra. Isabela Cunha",
+    "especialidade": [
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Tornozelo"
+    ],
+    "experiencia_anos": 23,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Samba"
+    ],
+    "score_comunicativo": 0.51,
+    "score_foco": 0.93
+  },
+  {
+    "id_profissional": "PROF116",
+    "nome": "Dr. Fernando Costa",
+    "especialidade": [
+      "Quiropraxia",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Dor ciática",
+      "Insônia"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Forró"
+    ],
+    "score_comunicativo": 0.94,
+    "score_foco": 0.51
+  },
+  {
+    "id_profissional": "PROF117",
+    "nome": "Dra. Gabriela Ribeiro",
+    "especialidade": [
+      "Fisioterapia Geriátrica",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Saúde da Mulher",
+      "Alzheimer"
+    ],
+    "experiencia_anos": 13,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Folk",
+      "Clássica",
+      "Jazz"
+    ],
+    "score_comunicativo": 0.59,
+    "score_foco": 0.81
+  },
+  {
+    "id_profissional": "PROF118",
+    "nome": "Dr. Enzo Farias",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Reabilitação Pulmonar",
+      "LER/DORT",
+      "Asma"
+    ],
+    "experiencia_anos": 5,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Clássica",
+      "Sertanejo",
+      "Blues",
+      "Metal"
+    ],
+    "score_comunicativo": 0.71,
+    "score_foco": 0.86
+  },
+  {
+    "id_profissional": "PROF119",
+    "nome": "Dra. Patrícia Ribeiro",
+    "especialidade": [
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Torcicolo Congênito",
+      "Paralisia Cerebral"
+    ],
+    "experiencia_anos": 4,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Infantil"
+    ],
+    "score_comunicativo": 0.99,
+    "score_foco": 0.93
+  },
+  {
+    "id_profissional": "PROF120",
+    "nome": "Dra. Camila Oliveira",
+    "especialidade": [
+      "Fisioterapia Neurológica",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Paralisia Cerebral",
+      "Reabilitação Pós-AVC"
+    ],
+    "experiencia_anos": 18,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Blues",
+      "Samba",
+      "Pop"
+    ],
+    "score_comunicativo": 0.62,
+    "score_foco": 0.93
+  },
+  {
+    "id_profissional": "PROF121",
+    "nome": "Dr. Benício Costa",
+    "especialidade": [
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco",
+      "Mobilidade articular"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Rock"
+    ],
+    "score_comunicativo": 0.63,
+    "score_foco": 0.92
+  },
+  {
+    "id_profissional": "PROF122",
+    "nome": "Dr. Fernando Ramos",
+    "especialidade": [
+      "Dermatofuncional"
+    ],
+    "foco_areas": [
+      "Estética",
+      "Pós-operatório"
+    ],
+    "experiencia_anos": 9,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Rock",
+      "Reggae"
+    ],
+    "score_comunicativo": 0.59,
+    "score_foco": 0.74
+  },
+  {
+    "id_profissional": "PROF123",
+    "nome": "Dr. Benício Mendes",
+    "especialidade": [
+      "Fisioterapia do Trabalho",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Saúde da Mulher",
+      "Gestantes",
+      "Análise Ergonômica"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Bossa Nova",
+      "Pagode"
+    ],
+    "score_comunicativo": 0.58,
+    "score_foco": 0.59
+  },
+  {
+    "id_profissional": "PROF124",
+    "nome": "Dra. Isabela Pereira",
+    "especialidade": [
+      "Quiropraxia",
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Coluna Vertebral",
+      "Ajustes gerais",
+      "Ginástica Laboral"
+    ],
+    "experiencia_anos": 11,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Choro"
+    ],
+    "score_comunicativo": 0.88,
+    "score_foco": 0.6
+  },
+  {
+    "id_profissional": "PROF125",
+    "nome": "Dra. Laura Carvalho",
+    "especialidade": [
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco",
+      "Mobilidade articular"
+    ],
+    "experiencia_anos": 14,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Samba",
+      "Sertanejo",
+      "Indie",
+      "Funk"
+    ],
+    "score_comunicativo": 0.57,
+    "score_foco": 0.62
+  },
+  {
+    "id_profissional": "PROF126",
+    "nome": "Dr. Fernando Melo",
+    "especialidade": [
+      "Dermatofuncional",
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Estética",
+      "Prevenção de Lesões"
+    ],
+    "experiencia_anos": 3,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Choro",
+      "Indie"
+    ],
+    "score_comunicativo": 0.54,
+    "score_foco": 0.58
+  },
+  {
+    "id_profissional": "PROF127",
+    "nome": "Dra. Júlia Oliveira",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Coluna",
+      "Reabilitação Cardíaca",
+      "Reabilitação Pulmonar"
+    ],
+    "experiencia_anos": 22,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Eletrônica",
+      "Instrumental"
+    ],
+    "score_comunicativo": 0.53,
+    "score_foco": 0.78
+  },
+  {
+    "id_profissional": "PROF128",
+    "nome": "Dr. Bernardo Martins",
+    "especialidade": [
+      "Osteopatia",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Desenvolvimento Motor",
+      "Hérnia de Disco",
+      "Paralisia Cerebral"
+    ],
+    "experiencia_anos": 7,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Clássica",
+      "Blues",
+      "Rock"
+    ],
+    "score_comunicativo": 0.93,
+    "score_foco": 0.69
+  },
+  {
+    "id_profissional": "PROF129",
+    "nome": "Dra. Isabela Costa",
+    "especialidade": [
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Paralisia Cerebral"
+    ],
+    "experiencia_anos": 9,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Funk",
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.8,
+    "score_foco": 0.61
+  },
+  {
+    "id_profissional": "PROF130",
+    "nome": "Dr. Guilherme Martins",
+    "especialidade": [
+      "Osteopatia",
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "Mobilidade articular",
+      "Reabilitação Pós-AVC"
+    ],
+    "experiencia_anos": 23,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pagode",
+      "Clássica",
+      "Eletrônica"
+    ],
+    "score_comunicativo": 0.61,
+    "score_foco": 0.8
+  },
+  {
+    "id_profissional": "PROF131",
+    "nome": "Dra. Valentina Ramos",
+    "especialidade": [
+      "Fisioterapia Ortopédica",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Quadril",
+      "Insônia"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Reggae",
+      "Metal",
+      "Choro",
+      "Instrumental"
+    ],
+    "score_comunicativo": 0.84,
+    "score_foco": 0.69
+  },
+  {
+    "id_profissional": "PROF132",
+    "nome": "Dra. Laura Ribeiro",
+    "especialidade": [
+      "Fisioterapia Geriátrica",
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Fortalecimento",
+      "Atraso motor",
+      "Alzheimer"
+    ],
+    "experiencia_anos": 22,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Clássica",
+      "Rock",
+      "Forró"
+    ],
+    "score_comunicativo": 0.5,
+    "score_foco": 0.67
+  },
+  {
+    "id_profissional": "PROF133",
+    "nome": "Dra. Amanda Rocha",
+    "especialidade": [
+      "Fisioterapia Cardiorrespiratória",
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "DPOC",
+      "Lesão Medular",
+      "Parkinson"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Eletrônica"
+    ],
+    "score_comunicativo": 0.87,
+    "score_foco": 0.91
+  },
+  {
+    "id_profissional": "PROF134",
+    "nome": "Dra. Amanda Dias",
+    "especialidade": [
+      "Fisioterapia Pediátrica"
+    ],
+    "foco_areas": [
+      "Desenvolvimento Motor"
+    ],
+    "experiencia_anos": 14,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Hip Hop"
+    ],
+    "score_comunicativo": 0.71,
+    "score_foco": 0.81
+  },
+  {
+    "id_profissional": "PROF135",
+    "nome": "Dra. Clara Moreira",
+    "especialidade": [
+      "Dermatofuncional",
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco",
+      "Pós-operatório",
+      "Mobilidade articular"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Hip Hop",
+      "Metal"
+    ],
+    "score_comunicativo": 0.97,
+    "score_foco": 0.69
+  },
+  {
+    "id_profissional": "PROF136",
+    "nome": "Dra. Alice Santos",
+    "especialidade": [
+      "Fisioterapia Neurológica",
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Futebol",
+      "Vôlei",
+      "Parkinson"
+    ],
+    "experiencia_anos": 9,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Hip Hop",
+      "Folk",
+      "Rock"
+    ],
+    "score_comunicativo": 0.53,
+    "score_foco": 0.65
+  },
+  {
+    "id_profissional": "PROF137",
+    "nome": "Dra. Patrícia Carvalho",
+    "especialidade": [
+      "Quiropraxia"
+    ],
+    "foco_areas": [
+      "Dor ciática",
+      "Ajustes gerais"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Bossa Nova"
+    ],
+    "score_comunicativo": 0.76,
+    "score_foco": 0.78
+  },
+  {
+    "id_profissional": "PROF138",
+    "nome": "Dr. Mateus Costa",
+    "especialidade": [
+      "Fisioterapia Ortopédica"
+    ],
+    "foco_areas": [
+      "Tornozelo"
+    ],
+    "experiencia_anos": 25,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Bossa Nova",
+      "Pagode",
+      "Folk",
+      "Infantil"
+    ],
+    "score_comunicativo": 0.89,
+    "score_foco": 0.6
+  },
+  {
+    "id_profissional": "PROF139",
+    "nome": "Dr. Lucas Rocha",
+    "especialidade": [
+      "Fisioterapia do Trabalho",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Ergonomia",
+      "Incontinência Urinária",
+      "Saúde da Mulher"
+    ],
+    "experiencia_anos": 8,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Eletrônica"
+    ],
+    "score_comunicativo": 0.56,
+    "score_foco": 0.7
+  },
+  {
+    "id_profissional": "PROF140",
+    "nome": "Dra. Júlia Oliveira",
+    "especialidade": [
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Incontinência Urinária",
+      "Saúde da Mulher"
+    ],
+    "experiencia_anos": 13,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pagode",
+      "Reggae"
+    ],
+    "score_comunicativo": 0.54,
+    "score_foco": 0.69
+  },
+  {
+    "id_profissional": "PROF141",
+    "nome": "Dr. Enzo Pinto",
+    "especialidade": [
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Saúde da Mulher"
+    ],
+    "experiencia_anos": 22,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Funk",
+      "Folk"
+    ],
+    "score_comunicativo": 0.92,
+    "score_foco": 0.78
+  },
+  {
+    "id_profissional": "PROF142",
+    "nome": "Dra. Yasmin Rocha",
+    "especialidade": [
+      "Fisioterapia Esportiva",
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Corrida",
+      "Dor crônica"
+    ],
+    "experiencia_anos": 22,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Eletrônica",
+      "MPB",
+      "Reggae"
+    ],
+    "score_comunicativo": 0.87,
+    "score_foco": 0.6
+  },
+  {
+    "id_profissional": "PROF143",
+    "nome": "Dr. Miguel Barbosa",
+    "especialidade": [
+      "Quiropraxia",
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Cefaleia Tensional",
+      "Dores musculoesqueléticas",
+      "Coluna Vertebral"
+    ],
+    "experiencia_anos": 23,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Eletrônica"
+    ],
+    "score_comunicativo": 0.89,
+    "score_foco": 0.92
+  },
+  {
+    "id_profissional": "PROF144",
+    "nome": "Dr. Davi Barros",
+    "especialidade": [
+      "Osteopatia"
+    ],
+    "foco_areas": [
+      "Hérnia de Disco",
+      "Dores musculoesqueléticas"
+    ],
+    "experiencia_anos": 5,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Metal",
+      "Sertanejo",
+      "Funk"
+    ],
+    "score_comunicativo": 0.72,
+    "score_foco": 0.99
+  },
+  {
+    "id_profissional": "PROF145",
+    "nome": "Dr. Rafael Ramos",
+    "especialidade": [
+      "Acupuntura"
+    ],
+    "foco_areas": [
+      "Ansiedade"
+    ],
+    "experiencia_anos": 14,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Infantil"
+    ],
+    "score_comunicativo": 0.65,
+    "score_foco": 0.93
+  },
+  {
+    "id_profissional": "PROF146",
+    "nome": "Dr. Enzo Dias",
+    "especialidade": [
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Artes Marciais"
+    ],
+    "experiencia_anos": 6,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Jazz",
+      "Hip Hop",
+      "Blues"
+    ],
+    "score_comunicativo": 0.78,
+    "score_foco": 0.85
+  },
+  {
+    "id_profissional": "PROF147",
+    "nome": "Dra. Valentina Nogueira",
+    "especialidade": [
+      "Fisioterapia Geriátrica",
+      "Fisioterapia Pélvica"
+    ],
+    "foco_areas": [
+      "Incontinência Urinária",
+      "Saúde da Mulher",
+      "Equilíbrio"
+    ],
+    "experiencia_anos": 24,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Pop",
+      "Clássica"
+    ],
+    "score_comunicativo": 0.73,
+    "score_foco": 0.9
+  },
+  {
+    "id_profissional": "PROF148",
+    "nome": "Dr. Lucas Oliveira",
+    "especialidade": [
+      "Fisioterapia Esportiva"
+    ],
+    "foco_areas": [
+      "Prevenção de Lesões"
+    ],
+    "experiencia_anos": 17,
+    "estilo_comunicacao": "focado",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Samba",
+      "Jazz",
+      "Hip Hop",
+      "Indie"
+    ],
+    "score_comunicativo": 0.85,
+    "score_foco": 0.52
+  },
+  {
+    "id_profissional": "PROF149",
+    "nome": "Dra. Juliana Rocha",
+    "especialidade": [
+      "Fisioterapia do Trabalho"
+    ],
+    "foco_areas": [
+      "Ginástica Laboral"
+    ],
+    "experiencia_anos": 13,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "senior",
+    "genero_musical_afinidade": [
+      "Sertanejo",
+      "Choro",
+      "Reggae"
+    ],
+    "score_comunicativo": 0.71,
+    "score_foco": 0.79
+  },
+  {
+    "id_profissional": "PROF150",
+    "nome": "Dra. Beatriz Mendes",
+    "especialidade": [
+      "Fisioterapia Neurológica"
+    ],
+    "foco_areas": [
+      "Parkinson",
+      "Reabilitação Pós-AVC"
+    ],
+    "experiencia_anos": 3,
+    "estilo_comunicacao": "comunicativo",
+    "perfil_idade": "jovem",
+    "genero_musical_afinidade": [
+      "Hip Hop",
+      "Sertanejo"
+    ],
+    "score_comunicativo": 0.69,
+    "score_foco": 0.97
+  }
+]

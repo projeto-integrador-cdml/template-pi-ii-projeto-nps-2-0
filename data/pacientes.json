@@ -1,0 +1,98 @@
+{
+    "CONSULTA-VXUWH3": {
+        "paciente_id": "web_1762176730662_i6yyag33q",
+        "paciente_nome": "Usuário Web",
+        "id_profissional": "PROF065",
+        "profissional_nome": "Dr. Bernardo Dias",
+        "data_hora_agendamento": "2025-11-17T14:00:00",
+        "perfil_buscado": {
+            "especialidade": "osteopatia",
+            "estilo_comunicacao": "focado",
+            "perfil_idade": "jovem",
+            "genero_musical": "pop"
+        }
+    },
+    "CONSULTA-7KL7EC": {
+        "paciente_id": "web_1762176730662_i6yyag33q",
+        "paciente_nome": "Francisco Assis",
+        "id_profissional": "PROF116",
+        "profissional_nome": "Dr. Fernando Costa",
+        "data_hora_agendamento": "2025-12-24T20:00:00",
+        "perfil_buscado": {
+            "paciente_nome": "Francisco Assis",
+            "especialidade": "acupuntura",
+            "estilo_comunicacao": "comunicativo",
+            "perfil_idade": "senior",
+            "genero_musical": "mpb"
+        }
+    },
+    "CONSULTA-ROFJKW": {
+        "paciente_id": "1434955195758022697",
+        "paciente_nome": "Usuário Anônimo",
+        "id_profissional": "PROF046",
+        "profissional_nome": "Dra. Valentina Dias",
+        "data_hora_agendamento": "2025-12-27T10:00:00",
+        "perfil_buscado": {
+            "especialidade": "acupuntura",
+            "estilo_comunicacao": "focado",
+            "perfil_idade": "jovem",
+            "genero_musical": "pop"
+        }
+    },
+    "CONSULTA-WT1IG1": {
+        "paciente_id": "web_1762176730662_i6yyag33q",
+        "paciente_nome": "Dan",
+        "id_profissional": "PROF136",
+        "profissional_nome": "Dra. Alice Santos",
+        "data_hora_agendamento": "2025-11-05T09:00:00",
+        "perfil_buscado": {
+            "paciente_nome": "Dan",
+            "especialidade": "fisioterapia esportiva",
+            "estilo_comunicacao": "focado",
+            "perfil_idade": "jovem",
+            "genero_musical": "rock"
+        }
+    },
+    "CONSULTA-T2ILBJ": {
+        "paciente_id": "web_1762176730662_i6yyag33q",
+        "paciente_nome": "Antonio",
+        "id_profissional": "PROF080",
+        "profissional_nome": "Dra. Camila Pires",
+        "data_hora_agendamento": "2025-11-25T07:00:00",
+        "perfil_buscado": {
+            "paciente_nome": "Antonio",
+            "especialidade": "fisioterapia esportiva",
+            "estilo_comunicacao": "comunicativo",
+            "perfil_idade": "senior",
+            "genero_musical": "rock"
+        }
+    },
+    "CONSULTA-V5IGJN": {
+        "paciente_id": "web_1762522663064_gdho2rihy",
+        "paciente_nome": "A",
+        "id_profissional": "PROF142",
+        "profissional_nome": "Dra. Yasmin Rocha",
+        "data_hora_agendamento": "2025-11-30T15:00:00",
+        "perfil_buscado": {
+            "paciente_nome": "A",
+            "especialidade": "fisioterapia esportiva",
+            "estilo_comunicacao": "focado",
+            "perfil_idade": "senior",
+            "genero_musical": "rap"
+        }
+    },
+    "CONSULTA-JHKMF3": {
+        "paciente_id": "web_1775823654289_eq5wke6k0",
+        "paciente_nome": "Jo",
+        "id_profissional": "PROF080",
+        "profissional_nome": "Dra. Camila Pires",
+        "data_hora_agendamento": "2026-12-25T20:00:00",
+        "perfil_buscado": {
+            "paciente_nome": "Jo",
+            "especialidade": "fisioterapia esportiva",
+            "estilo_comunicacao": "comunicativo",
+            "perfil_idade": "senior",
+            "genero_musical": "mpb"
+        }
+    }
+}
