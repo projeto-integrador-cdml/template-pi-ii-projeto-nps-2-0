@@ -1,58 +1,116 @@
 [![Open in Codespaces](https://classroom.github.com/assets/launch-codespace-2972f46106e565e64193e422d61a12cf1da4916b45550586e14ef0a7c637dd04.svg)](https://classroom.github.com/open-in-codespaces?assignment_repo_id=23312106)
-# Projeto Integrador III – Base do Repositório
 
-Este repositório é o ponto de partida para os grupos da disciplina **Projeto Integrador III – 2025.1**, do curso de Ciência de Dados e Machine Learning – CEUB.
+# teste-TCC-
+# NPS 2.0 com Inteligência Artificial
 
----
-
-## Estrutura recomendada
-
-- `src/`: scripts, funções e pipelines
-- `notebooks/`: análises exploratórias, testes e protótipos
-- `data/`: arquivos de dados brutos e tratados
-- `docs/`: relatórios, apresentações e artefatos finais
-- `README.md`: esta documentação inicial
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow" />
+  <img src="https://img.shields.io/badge/Área-Data%20Science-blue" />
+  <img src="https://img.shields.io/badge/Foco-Machine%20Learning-green" />
+  <img src="https://img.shields.io/badge/Projeto-Acadêmico-purple" />
+</p>
 
 ---
 
-## Informações obrigatórias a preencher
+## Sobre o Projeto
 
-- **Título do Projeto:**  
-- **Integrantes do Grupo:**  
-- **Problema que será resolvido:**  
-- **Fonte dos dados (link ou descrição):**  
-- **Etapa atual do projeto:** (ex: coleta, EDA, modelagem, etc.)
+O **NPS 2.0 com IA** é um projeto que transforma o modelo tradicional de Net Promoter Score em um sistema **preditivo e inteligente**, capaz de antecipar a insatisfação de pacientes em clínicas de fisioterapia.
+
+ Em vez de apenas medir satisfação, o sistema busca **prever comportamentos** e **sugerir ações automáticas**.
+
+---
+## Membros do projeto 
+-Osmar
+-Matheus Nery
+-Vitor
+-Gabriel
+-Gustavo
+
+
+##  Problemas
+
+O NPS tradicional é **reativo**, ou seja:
+- Mede a satisfação depois que o problema já aconteceu
+- Não evita cancelamentos
+- Não identifica riscos antecipadamente
+
+ Resultado: perda de pacientes e baixa retenção.
 
 ---
 
-## Etapas do Projeto
+##  Objetivo
 
-- [ ] Definição do problema  
-- [ ] Obtenção e coleta dos dados  
-- [ ] Tratamento e limpeza  
-- [ ] Análise exploratória  
-- [ ] Modelagem  
-- [ ] Comunicação de resultados
+Desenvolver um sistema com **Machine Learning** capaz de:
 
----
-
-## Checklist inicial
-
-- [ ] Estrutura mínima criada (src/, notebooks/, data/, docs/)  
-- [ ] README.md preenchido  
-- [ ] Professor adicionado como colaborador: `@Professor-Weslley`  
-- [ ] Primeiro commit realizado com as pastas organizadas
+- Prever pacientes com risco de churn  
+-  Analisar sentimentos em feedbacks (NLP)  
+-  Sugerir ações automáticas (Next Best Action)  
+-  Múltiplos dados (perfil 360° cliente)  
 
 ---
 
-## Observações
+##  Solução Proposta
 
-- Versione o código com **commits frequentes e mensagens claras**
-- Utilize `issues` para registrar dúvidas e decisões
-- Não compartilhe dados sensíveis nos repositórios
-- O repositório será **a fonte oficial de avaliação e acompanhamento do grupo**
+###  NPS 2.0 (Coleta Inteligente)
+- Coleta multicanal (voz + texto)
+- Transcrição automática com IA
+- Análise de sentimento
 
 ---
 
-**Prof. MSc. Weslley Rodrigues**  
-_Ciência de Dados e Machine Learning – CEUB_
+###  Cliente 360°
+Integração dos dados:
+
+-  Demográficos  
+-  Comportamentais  
+-  Financeiros  $$$
+-  Feedbacks  
+
+---
+
+###  Modelo Preditivo
+
+Algoritmos utilizados:
+- Random Forest  
+- XGBoost   
+- Redes Neurais   
+
+ Objetivo: prever churn e detratores.
+
+---
+
+###  Next Best Action (NBA)
+
+Ações automáticas baseadas em risco:
+
+| Situação | Ação |
+|--------|------|
+| Baixa assiduidade | Contato para reagendamento |
+| Sentimento negativo | Reavaliação com profissional |
+| Reclamação de demora | Ajuste de agenda |
+
+---
+
+##  Fonte de Dados
+
+- Dados simulados 
+- Estrutura baseada em clínicas reais:
+  - Histórico de pacientes
+  - NPS
+  - Feedbacks qualitativos
+  - Frequência e faltas
+
+---
+
+## Status do Projeto
+
+```diff
++ Definição do problema ok
++ Estrutura do projeto ok
++ Coleta inicial ok
+- Tratamento de dados (...)
+- Análise exploratória (...)
+- Modelagem (...)
+- Deploy (...)
+
+
