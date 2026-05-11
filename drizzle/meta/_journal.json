@@ -22,6 +22,13 @@
       "when": 1775311350167,
       "tag": "0002_fat_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1778498324991,
+      "tag": "0003_unknown_mauler",
+      "breakpoints": true
     }
   ]
 }

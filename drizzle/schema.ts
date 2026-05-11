@@ -181,3 +181,143 @@ export const settings = mysqlTable("settings", {
 
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof settings.$inferInsert;
+
+// ─── Mídias de Áudio (Biblioteca de áudios pré-gravados) ───
+export const mediaAudios = mysqlTable("mediaAudios", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: varchar("fileKey", { length: 500 }).notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).default("audio/mpeg").notNull(),
+  duration: int("duration"),
+  fileSize: int("fileSize"),
+  sendAsForwarded: boolean("sendAsForwarded").default(false).notNull(),
+  sendAsViewOnce: boolean("sendAsViewOnce").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MediaAudio = typeof mediaAudios.$inferSelect;
+export type InsertMediaAudio = typeof mediaAudios.$inferInsert;
+
+// ─── Mídias de Arquivo (Imagens/Vídeos) ───
+export const mediaFiles = mysqlTable("mediaFiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: varchar("fileKey", { length: 500 }).notNull(),
+  fileType: mysqlEnum("fileType", ["image", "video"]).notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  fileSize: int("fileSize"),
+  sendAsViewOnce: boolean("sendAsViewOnce").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MediaFile = typeof mediaFiles.$inferSelect;
+export type InsertMediaFile = typeof mediaFiles.$inferInsert;
+
+// ─── Documentos ───
+export const mediaDocuments = mysqlTable("mediaDocuments", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: varchar("fileKey", { length: 500 }).notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  fileSize: int("fileSize"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MediaDocument = typeof mediaDocuments.$inferSelect;
+export type InsertMediaDocument = typeof mediaDocuments.$inferInsert;
+
+// ─── Mensagens de Texto Pré-definidas ───
+export const mediaTexts = mysqlTable("mediaTexts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MediaText = typeof mediaTexts.$inferSelect;
+export type InsertMediaText = typeof mediaTexts.$inferInsert;
+
+// ─── Etiquetas (Labels) ───
+export const labels = mysqlTable("labels", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  color: varchar("color", { length: 7 }).default("#3B82F6").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Label = typeof labels.$inferSelect;
+export type InsertLabel = typeof labels.$inferInsert;
+
+// ─── Etiquetas por Contato ───
+export const contactLabels = mysqlTable("contactLabels", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: int("clientId").notNull(),
+  labelId: int("labelId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContactLabel = typeof contactLabels.$inferSelect;
+export type InsertContactLabel = typeof contactLabels.$inferInsert;
+
+// ─── Fluxos de Automação ───
+export const flows = mysqlTable("flows", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  triggerType: mysqlEnum("triggerType", ["message_contains", "message_equals", "message_starts_with", "message_ends_with", "keyword"]).notNull(),
+  triggerValue: text("triggerValue").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Flow = typeof flows.$inferSelect;
+export type InsertFlow = typeof flows.$inferInsert;
+
+// ─── Passos do Fluxo ───
+export const flowSteps = mysqlTable("flowSteps", {
+  id: int("id").autoincrement().primaryKey(),
+  flowId: int("flowId").notNull(),
+  stepType: mysqlEnum("stepType", ["delay", "wait_response", "randomizer", "audio", "contact", "document", "media", "text"]).notNull(),
+  stepOrder: int("stepOrder").notNull(),
+  delaySeconds: int("delaySeconds"),
+  mediaAudioId: int("mediaAudioId"),
+  mediaFileId: int("mediaFileId"),
+  mediaDocumentId: int("mediaDocumentId"),
+  mediaTextId: int("mediaTextId"),
+  randomOptions: text("randomOptions"), // JSON array de opções
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FlowStep = typeof flowSteps.$inferSelect;
+export type InsertFlowStep = typeof flowSteps.$inferInsert;
+
+// ─── Contadores de Envio ───
+export const sendCounters = mysqlTable("sendCounters", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  counterType: mysqlEnum("counterType", ["audios", "medias", "documents", "messages", "funnis", "flows"]).notNull(),
+  count: int("count").default(0).notNull(),
+  maxLimit: int("maxLimit").default(20).notNull(),
+  resetDate: timestamp("resetDate").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SendCounter = typeof sendCounters.$inferSelect;
+export type InsertSendCounter = typeof sendCounters.$inferInsert;

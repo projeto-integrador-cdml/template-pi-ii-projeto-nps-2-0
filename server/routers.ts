@@ -553,6 +553,241 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       }),
   }),
 
+  // ─── Mídias: Áudios, Imagens, Documentos, Textos ───
+  mediaAudios: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.listMediaAudios(ctx.user.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        audioBase64: z.string(),
+        mimeType: z.string().optional(),
+        sendAsForwarded: z.boolean().optional(),
+        sendAsViewOnce: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const audioBuffer = Buffer.from(input.audioBase64, "base64");
+        const audioKey = `audio/${ctx.user.id}/${nanoid()}.mp3`;
+        const { url } = await storagePut(audioKey, audioBuffer, input.mimeType || "audio/mpeg");
+        const result = await db.createMediaAudio({
+          userId: ctx.user.id,
+          name: input.name,
+          url,
+          sendAsForwarded: input.sendAsForwarded || false,
+          sendAsViewOnce: input.sendAsViewOnce || false,
+        });
+        await db.incrementSendCounter(ctx.user.id, "audios");
+        return result;
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteMediaAudio(input.id, ctx.user.id);
+        return { success: true };
+      }),
+  }),
+
+  mediaFiles: router({
+    list: protectedProcedure
+      .input(z.object({ fileType: z.string().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        return db.listMediaFiles(ctx.user.id, input?.fileType);
+      }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        fileBase64: z.string(),
+        fileType: z.enum(["image", "video"]),
+        mimeType: z.string().default("image/jpeg"),
+        sendAsViewOnce: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const fileBuffer = Buffer.from(input.fileBase64, "base64");
+        const fileKey = `media/${ctx.user.id}/${nanoid()}-${input.name}`;
+        const { url } = await storagePut(fileKey, fileBuffer, input.mimeType);
+        const result = await db.createMediaFile({
+          userId: ctx.user.id,
+          name: input.name,
+          url,
+          fileType: input.fileType,
+          mimeType: input.mimeType,
+          sendAsViewOnce: input.sendAsViewOnce || false,
+        });
+        await db.incrementSendCounter(ctx.user.id, "medias");
+        return result;
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteMediaFile(input.id, ctx.user.id);
+        return { success: true };
+      }),
+  }),
+
+  mediaDocuments: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.listMediaDocuments(ctx.user.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        fileBase64: z.string(),
+        mimeType: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const fileBuffer = Buffer.from(input.fileBase64, "base64");
+        const fileKey = `docs/${ctx.user.id}/${nanoid()}-${input.name}`;
+        const { url } = await storagePut(fileKey, fileBuffer, input.mimeType);
+        const result = await db.createMediaDocument({
+          userId: ctx.user.id,
+          name: input.name,
+          url,
+          mimeType: input.mimeType,
+        });
+        await db.incrementSendCounter(ctx.user.id, "documents");
+        return result;
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteMediaDocument(input.id, ctx.user.id);
+        return { success: true };
+      }),
+  }),
+
+  mediaTexts: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.listMediaTexts(ctx.user.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        content: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return db.createMediaText({
+          userId: ctx.user.id,
+          name: input.name,
+          content: input.content,
+        });
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteMediaText(input.id, ctx.user.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Etiquetas ───
+  labels: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.listLabels(ctx.user.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        color: z.string().regex(/^#[0-9A-F]{6}$/i),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return db.createLabel({
+          userId: ctx.user.id,
+          name: input.name,
+          color: input.color,
+        });
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteLabel(input.id, ctx.user.id);
+        return { success: true };
+      }),
+    addToClient: protectedProcedure
+      .input(z.object({ clientId: z.number(), labelId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.addLabelToClient(input.clientId, input.labelId);
+        return { success: true };
+      }),
+    removeFromClient: protectedProcedure
+      .input(z.object({ clientId: z.number(), labelId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.removeLabelFromClient(input.clientId, input.labelId);
+        return { success: true };
+      }),
+    getClientLabels: protectedProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getClientLabels(input.clientId);
+      }),
+  }),
+
+  // ─── Fluxos de Automação ───
+  flows: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.listFlows(ctx.user.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        triggerType: z.enum(["message_contains", "message_equals", "message_starts_with", "message_not_contains"]),
+        triggerKeywords: z.string().optional(),
+        triggerSchedule: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await db.createFlow({
+          userId: ctx.user.id,
+          name: input.name,
+          triggerType: input.triggerType,
+          triggerKeywords: input.triggerKeywords,
+          triggerSchedule: input.triggerSchedule,
+          isActive: true,
+        });
+        await db.incrementSendCounter(ctx.user.id, "flows");
+        return result;
+      }),
+    toggleActive: protectedProcedure
+      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.toggleFlowActive(input.id, ctx.user.id, input.isActive);
+        return { success: true };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteFlow(input.id, ctx.user.id);
+        return { success: true };
+      }),
+    addStep: protectedProcedure
+      .input(z.object({
+        flowId: z.number(),
+        stepType: z.enum(["delay", "wait_response", "randomizer", "audio", "contact", "document", "media", "text"]),
+        stepOrder: z.number(),
+        config: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        return db.createFlowStep({
+          flowId: input.flowId,
+          stepType: input.stepType,
+          stepOrder: input.stepOrder,
+          config: input.config,
+        });
+      }),
+    deleteStep: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteFlowStep(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Contadores de Envio ───
+  counters: router({
+    get: protectedProcedure.query(async ({ ctx }) => {
+      return db.getSendCounters(ctx.user.id);
+    }),
+  }),
+
   // ─── Dashboard ───
   dashboard: router({
     stats: protectedProcedure.query(async ({ ctx }) => {

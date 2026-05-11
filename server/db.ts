@@ -11,6 +11,15 @@ import {
   InsertSetting, settings,
   InsertAttendant, attendants,
   InsertActiveSession, activeSessions,
+  mediaAudios,
+  mediaFiles,
+  mediaDocuments,
+  mediaTexts,
+  labels,
+  contactLabels,
+  flows,
+  flowSteps,
+  sendCounters,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -425,4 +434,234 @@ export async function deleteSessionsByAttendant(attendantId: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(activeSessions).where(eq(activeSessions.attendantId, attendantId));
+}
+
+
+// ─── Media Audios ───
+export async function listMediaAudios(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(mediaAudios).where(eq(mediaAudios.userId, userId));
+}
+
+export async function createMediaAudio(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(mediaAudios).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function deleteMediaAudio(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(mediaAudios).where(and(eq(mediaAudios.id, id), eq(mediaAudios.userId, userId)));
+}
+
+// ─── Media Files ───
+export async function listMediaFiles(userId: number, fileType?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (fileType) {
+    return db.select().from(mediaFiles).where(and(eq(mediaFiles.userId, userId), eq(mediaFiles.fileType, fileType as any)));
+  }
+  return db.select().from(mediaFiles).where(eq(mediaFiles.userId, userId));
+}
+
+export async function createMediaFile(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(mediaFiles).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function deleteMediaFile(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(mediaFiles).where(and(eq(mediaFiles.id, id), eq(mediaFiles.userId, userId)));
+}
+
+// ─── Media Documents ───
+export async function listMediaDocuments(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(mediaDocuments).where(eq(mediaDocuments.userId, userId));
+}
+
+export async function createMediaDocument(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(mediaDocuments).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function deleteMediaDocument(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(mediaDocuments).where(and(eq(mediaDocuments.id, id), eq(mediaDocuments.userId, userId)));
+}
+
+// ─── Media Texts ───
+export async function listMediaTexts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(mediaTexts).where(eq(mediaTexts.userId, userId));
+}
+
+export async function createMediaText(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(mediaTexts).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function deleteMediaText(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(mediaTexts).where(and(eq(mediaTexts.id, id), eq(mediaTexts.userId, userId)));
+}
+
+// ─── Labels ───
+export async function listLabels(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(labels).where(eq(labels.userId, userId));
+}
+
+export async function createLabel(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(labels).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function updateLabel(id: number, userId: number, data: any) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(labels).set(data).where(and(eq(labels.id, id), eq(labels.userId, userId)));
+}
+
+export async function deleteLabel(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(labels).where(and(eq(labels.id, id), eq(labels.userId, userId)));
+}
+
+export async function addLabelToClient(clientId: number, labelId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(contactLabels).values({ clientId, labelId });
+}
+
+export async function removeLabelFromClient(clientId: number, labelId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(contactLabels).where(and(eq(contactLabels.clientId, clientId), eq(contactLabels.labelId, labelId)));
+}
+
+export async function getClientLabels(clientId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(contactLabels).where(eq(contactLabels.clientId, clientId));
+}
+
+// ─── Flows ───
+export async function listFlows(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(flows).where(eq(flows.userId, userId));
+}
+
+export async function createFlow(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(flows).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function updateFlow(id: number, userId: number, data: any) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(flows).set(data).where(and(eq(flows.id, id), eq(flows.userId, userId)));
+}
+
+export async function deleteFlow(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(flows).where(and(eq(flows.id, id), eq(flows.userId, userId)));
+}
+
+export async function getFlowById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(flows).where(and(eq(flows.id, id), eq(flows.userId, userId))).limit(1);
+  return result[0];
+}
+
+export async function toggleFlowActive(id: number, userId: number, isActive: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(flows).set({ isActive }).where(and(eq(flows.id, id), eq(flows.userId, userId)));
+}
+
+// ─── Flow Steps ───
+export async function createFlowStep(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(flowSteps).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function updateFlowStep(id: number, data: any) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(flowSteps).set(data).where(eq(flowSteps.id, id));
+}
+
+export async function deleteFlowStep(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(flowSteps).where(eq(flowSteps.id, id));
+}
+
+export async function listFlowSteps(flowId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(flowSteps).where(eq(flowSteps.flowId, flowId));
+}
+
+export async function reorderFlowSteps(flowId: number, stepIds: number[]) {
+  const db = await getDb();
+  if (!db) return;
+  for (let i = 0; i < stepIds.length; i++) {
+    await db.update(flowSteps).set({ stepOrder: i + 1 }).where(eq(flowSteps.id, stepIds[i]));
+  }
+}
+
+// ─── Send Counters ───
+export async function getSendCounters(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(sendCounters).where(eq(sendCounters.userId, userId));
+}
+
+export async function upsertSendCounter(userId: number, counterType: "audios" | "medias" | "documents" | "messages" | "funnis" | "flows", count: number, maxLimit: number) {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await db.select().from(sendCounters).where(and(eq(sendCounters.userId, userId), eq(sendCounters.counterType, counterType))).limit(1);
+  if (existing.length > 0) {
+    await db.update(sendCounters).set({ count, maxLimit }).where(and(eq(sendCounters.userId, userId), eq(sendCounters.counterType, counterType)));
+  } else {
+    await db.insert(sendCounters).values({ userId, counterType, count, maxLimit });
+  }
+}
+
+export async function incrementSendCounter(userId: number, counterType: "audios" | "medias" | "documents" | "messages" | "funnis" | "flows") {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await db.select().from(sendCounters).where(and(eq(sendCounters.userId, userId), eq(sendCounters.counterType, counterType))).limit(1);
+  if (existing.length > 0) {
+    await db.update(sendCounters).set({ count: existing[0].count + 1 }).where(and(eq(sendCounters.userId, userId), eq(sendCounters.counterType, counterType)));
+  } else {
+    await db.insert(sendCounters).values({ userId, counterType, count: 1, maxLimit: 20 });
+  }
 }
