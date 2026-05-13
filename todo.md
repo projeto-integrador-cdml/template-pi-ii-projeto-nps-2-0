@@ -62,3 +62,27 @@
 - [x] Painel da empresa para gerenciar seus atendentes
 - [x] Admin pode desativar empresa inteira ou atendentes individuais
 - [x] Testes para o sistema de atendentes (44 testes passando)
+
+## Sistema ZapVoice - Automação de Fluxos
+- [x] Tabelas de banco de dados (mediaAudios, mediaFiles, mediaDocuments, mediaTexts, labels, contactLabels, flows, flowSteps, sendCounters, flowExecutions, flowResponses, flowAnalytics)
+- [x] Procedures tRPC para gerenciamento de fluxos (criar, listar, atualizar, deletar)
+- [x] Procedures tRPC para gerenciamento de mídias (audios, arquivos, documentos, textos)
+- [x] Procedures tRPC para gerenciamento de labels e etiquetas de contatos
+- [x] Procedures tRPC para gerenciamento de gatilhos (triggers)
+- [x] Procedures tRPC para análise de fluxos (estatísticas, respostas)
+- [ ] Frontend - Página de Fluxos (criar, editar, deletar, visualizar fluxos)
+- [ ] Frontend - Página de Mídias (upload, gerenciar biblioteca de mídias)
+- [ ] Frontend - Página de Gatilhos (criar e configurar triggers)
+- [ ] Frontend - Builder visual de fluxos (drag-and-drop)
+- [ ] Frontend - Visualização de estatísticas de fluxos em tempo real
+
+## Relatórios & Analytics
+- [x] Schema de banco de dados para relatórios (flowExecutions, flowResponses, flowAnalytics)
+- [x] Procedures tRPC para estatísticas de fluxos (execução, respostas, tempo médio)
+- [x] Procedures tRPC para fluxos mais executados
+- [x] Frontend - Página de Relatórios (ReportsPage.tsx criada)
+- [x] Integração de ReportsPage no App.tsx
+- [x] Link de Relatórios no menu lateral (DashboardLayout)
+- [x] Testes unitários para procedures de relatórios (44 testes passando)
+- [x] Refinamento visual da página de Relatórios
+- [ ] Exportação de relatórios em PDF/CSV

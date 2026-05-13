@@ -321,3 +321,55 @@ export const sendCounters = mysqlTable("sendCounters", {
 
 export type SendCounter = typeof sendCounters.$inferSelect;
 export type InsertSendCounter = typeof sendCounters.$inferInsert;
+
+// ─── Execução de Fluxos ───
+export const flowExecutions = mysqlTable("flowExecutions", {
+  id: int("id").autoincrement().primaryKey(),
+  flowId: int("flowId").notNull(),
+  clientId: int("clientId").notNull(),
+  status: mysqlEnum("executionStatus", ["started", "in_progress", "completed", "failed"]).default("started").notNull(),
+  totalSteps: int("totalSteps").notNull(),
+  completedSteps: int("completedSteps").default(0).notNull(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FlowExecution = typeof flowExecutions.$inferSelect;
+export type InsertFlowExecution = typeof flowExecutions.$inferInsert;
+
+// ─── Respostas de Clientes (para fluxos com wait_response) ───
+export const flowResponses = mysqlTable("flowResponses", {
+  id: int("id").autoincrement().primaryKey(),
+  flowExecutionId: int("flowExecutionId").notNull(),
+  flowStepId: int("flowStepId").notNull(),
+  clientId: int("clientId").notNull(),
+  responseText: text("responseText"),
+  responseTime: int("responseTime"), // em segundos
+  respondedAt: timestamp("respondedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FlowResponse = typeof flowResponses.$inferSelect;
+export type InsertFlowResponse = typeof flowResponses.$inferInsert;
+
+// ─── Análise de Fluxos (métricas agregadas) ───
+export const flowAnalytics = mysqlTable("flowAnalytics", {
+  id: int("id").autoincrement().primaryKey(),
+  flowId: int("flowId").notNull(),
+  userId: int("userId").notNull(),
+  totalExecutions: int("totalExecutions").default(0).notNull(),
+  successfulExecutions: int("successfulExecutions").default(0).notNull(),
+  failedExecutions: int("failedExecutions").default(0).notNull(),
+  totalResponses: int("totalResponses").default(0).notNull(),
+  responseRate: int("responseRate").default(0).notNull(), // percentual 0-100
+  avgResponseTime: int("avgResponseTime").default(0).notNull(), // em segundos
+  avgCompletionTime: int("avgCompletionTime").default(0).notNull(), // em segundos
+  lastExecutedAt: timestamp("lastExecutedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FlowAnalytics = typeof flowAnalytics.$inferSelect;
+export type InsertFlowAnalytics = typeof flowAnalytics.$inferInsert;

@@ -35,6 +35,7 @@ import {
   Shield,
   MessageCircle,
   UserCheck,
+  BarChart3,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -49,6 +50,7 @@ const menuItems = [
   { icon: Bot, label: "Assistente IA", path: "/ai" },
   { icon: Mic, label: "Gravações", path: "/recordings" },
   { icon: MessageCircle, label: "WhatsApp", path: "/whatsapp" },
+  { icon: BarChart3, label: "Relatórios", path: "/reports" },
 ];
 
 const adminMenuItems = [

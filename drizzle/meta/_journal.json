@@ -29,6 +29,13 @@
       "when": 1778498324991,
       "tag": "0003_unknown_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1778618217637,
+      "tag": "0004_shocking_caretaker",
+      "breakpoints": true
     }
   ]
 }

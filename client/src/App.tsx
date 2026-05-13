@@ -15,6 +15,7 @@ import AdminUsersPage from "./pages/AdminUsersPage";
 import AttendantsPage from "./pages/AttendantsPage";
 import SettingsPage from "./pages/SettingsPage";
 import WhatsAppPage from "./pages/WhatsAppPage";
+import ReportsPage from "./pages/ReportsPage";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
         <Route path="/ai" component={AIAssistantPage} />
         <Route path="/recordings" component={RecordingsPage} />
         <Route path="/whatsapp" component={WhatsAppPage} />
+        <Route path="/reports" component={ReportsPage} />
         <Route path="/admin/users" component={AdminUsersPage} />
         <Route path="/admin/attendants" component={AttendantsPage} />
         <Route path="/settings" component={SettingsPage} />

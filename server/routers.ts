@@ -802,6 +802,51 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       return db.getOpportunitiesByStage(ctx.user.id);
     }),
   }),
+
+  reports: router({
+    flowExecutionStats: protectedProcedure
+      .input(z.object({ flowId: z.number(), startDate: z.date().optional(), endDate: z.date().optional() }))
+      .query(async ({ input }) => {
+        return db.getFlowExecutionStats(input.flowId, input.startDate, input.endDate);
+      }),
+    
+    flowResponseCount: protectedProcedure
+      .input(z.object({ flowId: z.number(), startDate: z.date().optional(), endDate: z.date().optional() }))
+      .query(async ({ input }) => {
+        return db.countFlowResponses(input.flowId, input.startDate, input.endDate);
+      }),
+    
+    averageResponseTime: protectedProcedure
+      .input(z.object({ flowId: z.number(), startDate: z.date().optional(), endDate: z.date().optional() }))
+      .query(async ({ input }) => {
+        return db.getAverageResponseTime(input.flowId, input.startDate, input.endDate);
+      }),
+    
+    executionsByDateRange: protectedProcedure
+      .input(z.object({ userId: z.number(), startDate: z.date(), endDate: z.date() }))
+      .query(async ({ input }) => {
+        return db.getFlowExecutionsByDateRange(input.userId, input.startDate, input.endDate);
+      }),
+    
+    topFlows: protectedProcedure
+      .input(z.object({ userId: z.number(), limit: z.number().min(1).max(20).optional() }))
+      .query(async ({ input }) => {
+        return db.getTopFlowsByExecutions(input.userId, input.limit);
+      }),
+    
+    flowAnalytics: protectedProcedure
+      .input(z.object({ flowId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getFlowAnalytics(input.flowId, ctx.user.id);
+      }),
+    
+    updateFlowAnalytics: protectedProcedure
+      .input(z.object({ flowId: z.number(), data: z.any() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.createOrUpdateFlowAnalytics(input.flowId, ctx.user.id, input.data);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

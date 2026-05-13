@@ -20,6 +20,9 @@ import {
   flows,
   flowSteps,
   sendCounters,
+  flowExecutions,
+  flowResponses,
+  flowAnalytics,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -664,4 +667,188 @@ export async function incrementSendCounter(userId: number, counterType: "audios"
   } else {
     await db.insert(sendCounters).values({ userId, counterType, count: 1, maxLimit: 20 });
   }
+}
+
+
+// ─── Flow Executions (Relatórios) ───
+export async function createFlowExecution(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(flowExecutions).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function updateFlowExecution(id: number, data: any) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(flowExecutions).set(data).where(eq(flowExecutions.id, id));
+}
+
+export async function getFlowExecution(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(flowExecutions).where(eq(flowExecutions.id, id)).limit(1);
+  return result[0];
+}
+
+export async function listFlowExecutions(flowId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(flowExecutions).where(eq(flowExecutions.flowId, flowId)).orderBy(desc(flowExecutions.createdAt)).limit(limit);
+}
+
+// ─── Flow Responses (Respostas de clientes) ───
+export async function createFlowResponse(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(flowResponses).values(data);
+  return { id: result[0].insertId, ...data };
+}
+
+export async function getFlowResponses(flowExecutionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(flowResponses).where(eq(flowResponses.flowExecutionId, flowExecutionId));
+}
+
+export async function countFlowResponses(flowId: number, startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) return 0;
+  
+  let conditions: any[] = [eq(flowExecutions.flowId, flowId)];
+  
+  if (startDate && endDate) {
+    conditions.push(gte(flowExecutions.createdAt, startDate));
+    conditions.push(lte(flowExecutions.createdAt, endDate));
+  }
+  
+  const result = await db.select({ count: sql`COUNT(*)`.mapWith(Number) }).from(flowResponses)
+    .innerJoin(flowExecutions, eq(flowResponses.flowExecutionId, flowExecutions.id))
+    .where(and(...conditions));
+  
+  return result[0]?.count || 0;
+}
+
+export async function getAverageResponseTime(flowId: number, startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) return 0;
+  
+  let conditions: any[] = [eq(flowExecutions.flowId, flowId)];
+  
+  if (startDate && endDate) {
+    conditions.push(gte(flowExecutions.createdAt, startDate));
+    conditions.push(lte(flowExecutions.createdAt, endDate));
+  }
+  
+  const result = await db.select({ avgTime: sql`AVG(${flowResponses.responseTime})`.mapWith(Number) }).from(flowResponses)
+    .innerJoin(flowExecutions, eq(flowResponses.flowExecutionId, flowExecutions.id))
+    .where(and(...conditions));
+  
+  return Math.round(result[0]?.avgTime || 0);
+}
+
+// ─── Flow Analytics (Métricas agregadas) ───
+export async function getFlowAnalytics(flowId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(flowAnalytics).where(and(eq(flowAnalytics.flowId, flowId), eq(flowAnalytics.userId, userId))).limit(1);
+  return result[0];
+}
+
+export async function createOrUpdateFlowAnalytics(flowId: number, userId: number, data: any) {
+  const db = await getDb();
+  if (!db) return;
+  
+  const existing = await db.select().from(flowAnalytics).where(and(eq(flowAnalytics.flowId, flowId), eq(flowAnalytics.userId, userId))).limit(1);
+  
+  if (existing.length > 0) {
+    await db.update(flowAnalytics).set(data).where(and(eq(flowAnalytics.flowId, flowId), eq(flowAnalytics.userId, userId)));
+  } else {
+    await db.insert(flowAnalytics).values({ flowId, userId, ...data });
+  }
+}
+
+export async function listFlowAnalytics(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(flowAnalytics).where(eq(flowAnalytics.userId, userId));
+}
+
+export async function getFlowExecutionStats(flowId: number, startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) return { total: 0, successful: 0, failed: 0, successRate: 0 };
+  
+  let conditions: any[] = [eq(flowExecutions.flowId, flowId)];
+  
+  if (startDate && endDate) {
+    conditions.push(gte(flowExecutions.createdAt, startDate));
+    conditions.push(lte(flowExecutions.createdAt, endDate));
+  }
+  
+  const result = await db.select({
+    total: sql`COUNT(*)`.mapWith(Number),
+    successful: sql`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`.mapWith(Number),
+    failed: sql`SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END)`.mapWith(Number),
+  }).from(flowExecutions).where(and(...conditions));
+  
+  const total = result[0]?.total || 0;
+  const successful = result[0]?.successful || 0;
+  const failed = result[0]?.failed || 0;
+  const successRate = total > 0 ? Math.round((successful / total) * 100) : 0;
+  
+  return { total, successful, failed, successRate };
+}
+
+export async function getFlowExecutionsByDateRange(userId: number, startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select({
+    date: sql`DATE(${flowExecutions.createdAt})`,
+    count: sql`COUNT(*)`,
+  }).from(flowExecutions)
+    .innerJoin(flows, eq(flowExecutions.flowId, flows.id))
+    .where(and(
+      eq(flows.userId, userId),
+      gte(flowExecutions.createdAt, startDate),
+      lte(flowExecutions.createdAt, endDate)
+    ))
+    .groupBy(sql`DATE(${flowExecutions.createdAt})`)
+    .orderBy(sql`DATE(${flowExecutions.createdAt})`);
+}
+
+export async function getFlowResponseRateByFlow(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select({
+    flowId: flows.id,
+    flowName: flows.name,
+    totalExecutions: sql`COUNT(DISTINCT ${flowExecutions.id})`,
+    totalResponses: sql`COUNT(DISTINCT ${flowResponses.id})`,
+    responseRate: sql`ROUND((COUNT(DISTINCT ${flowResponses.id}) / COUNT(DISTINCT ${flowExecutions.id})) * 100)`,
+  }).from(flows)
+    .leftJoin(flowExecutions, eq(flows.id, flowExecutions.flowId))
+    .leftJoin(flowResponses, eq(flowExecutions.id, flowResponses.flowExecutionId))
+    .where(eq(flows.userId, userId))
+    .groupBy(flows.id, flows.name);
+}
+
+
+export async function getTopFlowsByExecutions(userId: number, limit: number = 10) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select({
+    flowId: flows.id,
+    flowName: flows.name,
+    totalExecutions: sql`COUNT(${flowExecutions.id})`.mapWith(Number),
+    successfulExecutions: sql`SUM(CASE WHEN ${flowExecutions.status} = 'completed' THEN 1 ELSE 0 END)`.mapWith(Number),
+  })
+  .from(flows)
+  .leftJoin(flowExecutions, eq(flows.id, flowExecutions.flowId))
+  .where(eq(flows.userId, userId))
+  .groupBy(flows.id, flows.name)
+  .orderBy(desc(sql`COUNT(${flowExecutions.id})`))
+  .limit(limit);
 }
