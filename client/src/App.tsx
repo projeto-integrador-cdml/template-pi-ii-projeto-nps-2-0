@@ -4,6 +4,13 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import DashboardLayout from "./components/DashboardLayout";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import LandingPage from "./pages/LandingPage";
+import AuthPage from "./pages/AuthPage";
+import PlansPage from "./pages/PlansPage";
+import ContactPage from "./pages/ContactPage";
+import HelpCenterPage from "./pages/HelpCenterPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfUsePage from "./pages/TermsOfUsePage";
 import Home from "./pages/Home";
 import ClientsPage from "./pages/ClientsPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
@@ -20,31 +27,87 @@ import NotFound from "./pages/NotFound";
 
 function Router() {
   return (
-    <DashboardLayout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/clients" component={ClientsPage} />
-        <Route path="/clients/:id" component={ClientDetailPage} />
-        <Route path="/pipeline" component={PipelinePage} />
-        <Route path="/tasks" component={TasksPage} />
-        <Route path="/ai" component={AIAssistantPage} />
-        <Route path="/recordings" component={RecordingsPage} />
-        <Route path="/whatsapp" component={WhatsAppPage} />
-        <Route path="/reports" component={ReportsPage} />
-        <Route path="/admin/users" component={AdminUsersPage} />
-        <Route path="/admin/attendants" component={AttendantsPage} />
-        <Route path="/settings" component={SettingsPage} />
-        <Route path="/404" component={NotFound} />
-        <Route component={NotFound} />
-      </Switch>
-    </DashboardLayout>
+    <Switch>
+      {/* Public routes */}
+      <Route path="/" component={LandingPage} />
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/planos" component={PlansPage} />
+      <Route path="/contato" component={ContactPage} />
+      <Route path="/ajuda" component={HelpCenterPage} />
+      <Route path="/politica-de-privacidade" component={PrivacyPolicyPage} />
+      <Route path="/termos-de-uso" component={TermsOfUsePage} />
+
+      {/* Protected routes wrapped in DashboardLayout */}
+      <Route path="/dashboard">
+        <DashboardLayout>
+          <Home />
+        </DashboardLayout>
+      </Route>
+      <Route path="/clients">
+        <DashboardLayout>
+          <ClientsPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/clients/:id">
+        <DashboardLayout>
+          <ClientDetailPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/pipeline">
+        <DashboardLayout>
+          <PipelinePage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/tasks">
+        <DashboardLayout>
+          <TasksPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/ai">
+        <DashboardLayout>
+          <AIAssistantPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/recordings">
+        <DashboardLayout>
+          <RecordingsPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/whatsapp">
+        <DashboardLayout>
+          <WhatsAppPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/reports">
+        <DashboardLayout>
+          <ReportsPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/users">
+        <DashboardLayout>
+          <AdminUsersPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/attendants">
+        <DashboardLayout>
+          <AttendantsPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/settings">
+        <DashboardLayout>
+          <SettingsPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/404" component={NotFound} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider>
         <TooltipProvider>
           <Toaster />
           <Router />

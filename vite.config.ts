@@ -150,7 +150,14 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const isManusEnv = !!(process.env.BUILT_IN_FORGE_API_KEY || process.env.MANUS_VM);
+
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  ...(isManusEnv ? [vitePluginManusRuntime(), vitePluginManusDebugCollector()] : [])
+];
 
 export default defineConfig({
   plugins,

@@ -25,26 +25,41 @@ import {
   flowAnalytics,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import bcrypt from "bcryptjs";
+import { nanoid } from "nanoid";
+import * as jsonDb from "./dbJson";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+export let useJsonDb = false;
 
 export async function getDb() {
+  if (useJsonDb) return null;
   if (!_db && process.env.DATABASE_URL) {
     try {
       _db = drizzle(process.env.DATABASE_URL);
+      // Test the connection with a quick query
+      await _db.execute(sql`SELECT 1`);
+      console.log("[Database] Connected successfully to MySQL!");
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.warn("[Database] Failed to connect to MySQL, falling back to JSON database.");
       _db = null;
+      useJsonDb = true;
     }
+  }
+  if (!_db && !useJsonDb) {
+    console.warn("[Database] DATABASE_URL not set, falling back to JSON database.");
+    useJsonDb = true;
   }
   return _db;
 }
 
 // ─── Users ───
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
+  if (useJsonDb) return jsonDb.upsertUser(user);
   if (!db) return;
+
+  if (!user.openId) throw new Error("User openId is required for upsert");
 
   const values: InsertUser = { openId: user.openId };
   const updateSet: Record<string, unknown> = {};
@@ -75,6 +90,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getUserByOpenId(openId);
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
@@ -82,6 +98,7 @@ export async function getUserByOpenId(openId: string) {
 
 export async function getUserById(id: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getUserById(id);
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return result.length > 0 ? result[0] : undefined;
@@ -89,6 +106,7 @@ export async function getUserById(id: number) {
 
 export async function getUserByEmail(email: string) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getUserByEmail(email);
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
   return result.length > 0 ? result[0] : undefined;
@@ -96,25 +114,37 @@ export async function getUserByEmail(email: string) {
 
 export async function listUsers() {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listUsers();
   if (!db) return [];
   return db.select().from(users).orderBy(desc(users.createdAt));
 }
 
 export async function updateUserActive(id: number, isActive: boolean) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateUserActive(id, isActive);
   if (!db) return;
   await db.update(users).set({ isActive }).where(eq(users.id, id));
 }
 
 export async function updateUserRole(id: number, role: "user" | "admin") {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateUserRole(id, role);
   if (!db) return;
   await db.update(users).set({ role }).where(eq(users.id, id));
 }
 
+export async function updateUserPreferences(id: number, preferences: string) {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateUserPreferences(id, preferences);
+  if (!db) return;
+  await db.update(users).set({ preferences } as any).where(eq(users.id, id));
+}
+
+
 // ─── Clients ───
 export async function createClient(data: InsertClient) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createClient(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(clients).values(data);
   return { id: result[0].insertId };
@@ -122,18 +152,21 @@ export async function createClient(data: InsertClient) {
 
 export async function updateClient(id: number, userId: number, data: Partial<InsertClient>) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateClient(id, userId, data);
   if (!db) return;
   await db.update(clients).set(data).where(and(eq(clients.id, id), eq(clients.userId, userId)));
 }
 
 export async function deleteClient(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteClient(id, userId);
   if (!db) return;
   await db.delete(clients).where(and(eq(clients.id, id), eq(clients.userId, userId)));
 }
 
 export async function getClientById(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getClientById(id, userId);
   if (!db) return undefined;
   const result = await db.select().from(clients).where(and(eq(clients.id, id), eq(clients.userId, userId))).limit(1);
   return result[0];
@@ -141,6 +174,7 @@ export async function getClientById(id: number, userId: number) {
 
 export async function listClients(userId: number, opts?: { search?: string; status?: string; limit?: number; offset?: number }) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listClients(userId, opts);
   if (!db) return { data: [], total: 0 };
 
   const conditions = [eq(clients.userId, userId)];
@@ -168,6 +202,7 @@ export async function listClients(userId: number, opts?: { search?: string; stat
 // ─── Opportunities ───
 export async function createOpportunity(data: InsertOpportunity) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createOpportunity(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(opportunities).values(data);
   return { id: result[0].insertId };
@@ -175,18 +210,21 @@ export async function createOpportunity(data: InsertOpportunity) {
 
 export async function updateOpportunity(id: number, userId: number, data: Partial<InsertOpportunity>) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateOpportunity(id, userId, data);
   if (!db) return;
   await db.update(opportunities).set(data).where(and(eq(opportunities.id, id), eq(opportunities.userId, userId)));
 }
 
 export async function deleteOpportunity(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteOpportunity(id, userId);
   if (!db) return;
   await db.delete(opportunities).where(and(eq(opportunities.id, id), eq(opportunities.userId, userId)));
 }
 
 export async function getOpportunityById(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getOpportunityById(id, userId);
   if (!db) return undefined;
   const result = await db.select().from(opportunities).where(and(eq(opportunities.id, id), eq(opportunities.userId, userId))).limit(1);
   return result[0];
@@ -194,6 +232,7 @@ export async function getOpportunityById(id: number, userId: number) {
 
 export async function listOpportunities(userId: number, opts?: { stage?: string; clientId?: number }) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listOpportunities(userId, opts);
   if (!db) return [];
   const conditions = [eq(opportunities.userId, userId)];
   if (opts?.stage) conditions.push(eq(opportunities.stage, opts.stage as any));
@@ -204,6 +243,7 @@ export async function listOpportunities(userId: number, opts?: { stage?: string;
 // ─── Tasks ───
 export async function createTask(data: InsertTask) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createTask(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(tasks).values(data);
   return { id: result[0].insertId };
@@ -211,18 +251,21 @@ export async function createTask(data: InsertTask) {
 
 export async function updateTask(id: number, userId: number, data: Partial<InsertTask>) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateTask(id, userId, data);
   if (!db) return;
   await db.update(tasks).set(data).where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
 }
 
 export async function deleteTask(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteTask(id, userId);
   if (!db) return;
   await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
 }
 
 export async function listTasks(userId: number, opts?: { clientId?: number; completed?: boolean; upcoming?: boolean }) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listTasks(userId, opts);
   if (!db) return [];
   const conditions = [eq(tasks.userId, userId)];
   if (opts?.clientId) conditions.push(eq(tasks.clientId, opts.clientId));
@@ -233,6 +276,7 @@ export async function listTasks(userId: number, opts?: { clientId?: number; comp
 
 export async function getOverdueTasks(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getOverdueTasks(userId);
   if (!db) return [];
   return db.select().from(tasks).where(
     and(eq(tasks.userId, userId), eq(tasks.completed, false), lte(tasks.dueDate, new Date()))
@@ -242,6 +286,7 @@ export async function getOverdueTasks(userId: number) {
 // ─── Interactions ───
 export async function createInteraction(data: InsertInteraction) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createInteraction(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(interactions).values(data);
   return { id: result[0].insertId };
@@ -249,6 +294,7 @@ export async function createInteraction(data: InsertInteraction) {
 
 export async function listInteractions(userId: number, clientId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listInteractions(userId, clientId);
   if (!db) return [];
   return db.select().from(interactions).where(and(eq(interactions.userId, userId), eq(interactions.clientId, clientId))).orderBy(desc(interactions.createdAt));
 }
@@ -256,6 +302,7 @@ export async function listInteractions(userId: number, clientId: number) {
 // ─── Audio Recordings ───
 export async function createAudioRecording(data: InsertAudioRecording) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createAudioRecording(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(audioRecordings).values(data);
   return { id: result[0].insertId };
@@ -263,12 +310,14 @@ export async function createAudioRecording(data: InsertAudioRecording) {
 
 export async function updateAudioRecording(id: number, userId: number, data: Partial<InsertAudioRecording>) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateAudioRecording(id, userId, data);
   if (!db) return;
   await db.update(audioRecordings).set(data).where(and(eq(audioRecordings.id, id), eq(audioRecordings.userId, userId)));
 }
 
 export async function listAudioRecordings(userId: number, clientId?: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listAudioRecordings(userId, clientId);
   if (!db) return [];
   const conditions = [eq(audioRecordings.userId, userId)];
   if (clientId) conditions.push(eq(audioRecordings.clientId, clientId));
@@ -278,6 +327,7 @@ export async function listAudioRecordings(userId: number, clientId?: number) {
 // ─── Dashboard Stats ───
 export async function getDashboardStats(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getDashboardStats(userId);
   if (!db) return { totalClients: 0, activeClients: 0, totalOpportunities: 0, totalValue: 0, pendingTasks: 0, overdueTasks: 0, wonDeals: 0, wonValue: 0 };
 
   const [clientStats, oppStats, taskStats, wonStats] = await Promise.all([
@@ -313,12 +363,14 @@ export async function getDashboardStats(userId: number) {
 
 export async function getRecentActivities(userId: number, limit = 10) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getRecentActivities(userId, limit);
   if (!db) return [];
   return db.select().from(interactions).where(eq(interactions.userId, userId)).orderBy(desc(interactions.createdAt)).limit(limit);
 }
 
 export async function getOpportunitiesByStage(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getOpportunitiesByStage(userId);
   if (!db) return [];
   return db.select({
     stage: opportunities.stage,
@@ -330,6 +382,7 @@ export async function getOpportunitiesByStage(userId: number) {
 // ─── Attendants (Atendentes) ───
 export async function createAttendant(data: InsertAttendant) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createAttendant(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(attendants).values(data);
   return { id: result[0].insertId };
@@ -337,18 +390,21 @@ export async function createAttendant(data: InsertAttendant) {
 
 export async function updateAttendant(id: number, clientId: number, data: Partial<InsertAttendant>) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateAttendant(id, clientId, data);
   if (!db) return;
   await db.update(attendants).set(data).where(and(eq(attendants.id, id), eq(attendants.clientId, clientId)));
 }
 
 export async function deleteAttendant(id: number, clientId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteAttendant(id, clientId);
   if (!db) return;
   await db.delete(attendants).where(and(eq(attendants.id, id), eq(attendants.clientId, clientId)));
 }
 
 export async function getAttendantById(id: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getAttendantById(id);
   if (!db) return undefined;
   const result = await db.select().from(attendants).where(eq(attendants.id, id)).limit(1);
   return result[0];
@@ -356,6 +412,7 @@ export async function getAttendantById(id: number) {
 
 export async function getAttendantByEmail(email: string) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getAttendantByEmail(email);
   if (!db) return undefined;
   const result = await db.select().from(attendants).where(eq(attendants.email, email)).limit(1);
   return result[0];
@@ -363,12 +420,14 @@ export async function getAttendantByEmail(email: string) {
 
 export async function listAttendantsByClient(clientId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listAttendantsByClient(clientId);
   if (!db) return [];
   return db.select().from(attendants).where(eq(attendants.clientId, clientId)).orderBy(desc(attendants.createdAt));
 }
 
 export async function countAttendantsByClient(clientId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.countAttendantsByClient(clientId);
   if (!db) return 0;
   const result = await db.select({ count: sql<number>`count(*)` }).from(attendants).where(eq(attendants.clientId, clientId));
   return result[0]?.count ?? 0;
@@ -376,6 +435,7 @@ export async function countAttendantsByClient(clientId: number) {
 
 export async function updateAttendantSession(id: number, sessionToken: string, ip: string, device: string) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateAttendantSession(id, sessionToken, ip, device);
   if (!db) return;
   await db.update(attendants).set({
     sessionToken,
@@ -387,12 +447,14 @@ export async function updateAttendantSession(id: number, sessionToken: string, i
 
 export async function clearAttendantSession(id: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.clearAttendantSession(id);
   if (!db) return;
   await db.update(attendants).set({ sessionToken: null }).where(eq(attendants.id, id));
 }
 
 export async function listAllAttendants() {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listAllAttendants();
   if (!db) return [];
   return db.select({
     id: attendants.id,
@@ -412,6 +474,7 @@ export async function listAllAttendants() {
 
 export async function toggleAttendantActive(id: number, isActive: boolean) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.toggleAttendantActive(id, isActive);
   if (!db) return;
   await db.update(attendants).set({ isActive, sessionToken: isActive ? undefined : null }).where(eq(attendants.id, id));
 }
@@ -419,8 +482,9 @@ export async function toggleAttendantActive(id: number, isActive: boolean) {
 // ─── Active Sessions ───
 export async function createActiveSession(data: InsertActiveSession) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createActiveSession(data);
   if (!db) throw new Error("DB not available");
-  // Remove old sessions for this attendant (sessão única)
+  // Remove old sessions for this attendant
   await db.delete(activeSessions).where(eq(activeSessions.attendantId, data.attendantId));
   const result = await db.insert(activeSessions).values(data);
   return { id: result[0].insertId };
@@ -428,6 +492,7 @@ export async function createActiveSession(data: InsertActiveSession) {
 
 export async function getActiveSessionByToken(token: string) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getActiveSessionByToken(token);
   if (!db) return undefined;
   const result = await db.select().from(activeSessions).where(eq(activeSessions.sessionToken, token)).limit(1);
   return result[0];
@@ -435,20 +500,22 @@ export async function getActiveSessionByToken(token: string) {
 
 export async function deleteSessionsByAttendant(attendantId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteSessionsByAttendant(attendantId);
   if (!db) return;
   await db.delete(activeSessions).where(eq(activeSessions.attendantId, attendantId));
 }
 
-
 // ─── Media Audios ───
 export async function listMediaAudios(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listMediaAudios(userId);
   if (!db) return [];
   return db.select().from(mediaAudios).where(eq(mediaAudios.userId, userId));
 }
 
 export async function createMediaAudio(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createMediaAudio(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(mediaAudios).values(data);
   return { id: result[0].insertId, ...data };
@@ -456,6 +523,7 @@ export async function createMediaAudio(data: any) {
 
 export async function deleteMediaAudio(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteMediaAudio(id, userId);
   if (!db) return;
   await db.delete(mediaAudios).where(and(eq(mediaAudios.id, id), eq(mediaAudios.userId, userId)));
 }
@@ -463,6 +531,7 @@ export async function deleteMediaAudio(id: number, userId: number) {
 // ─── Media Files ───
 export async function listMediaFiles(userId: number, fileType?: string) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listMediaFiles(userId, fileType);
   if (!db) return [];
   if (fileType) {
     return db.select().from(mediaFiles).where(and(eq(mediaFiles.userId, userId), eq(mediaFiles.fileType, fileType as any)));
@@ -472,6 +541,7 @@ export async function listMediaFiles(userId: number, fileType?: string) {
 
 export async function createMediaFile(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createMediaFile(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(mediaFiles).values(data);
   return { id: result[0].insertId, ...data };
@@ -479,6 +549,7 @@ export async function createMediaFile(data: any) {
 
 export async function deleteMediaFile(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteMediaFile(id, userId);
   if (!db) return;
   await db.delete(mediaFiles).where(and(eq(mediaFiles.id, id), eq(mediaFiles.userId, userId)));
 }
@@ -486,12 +557,14 @@ export async function deleteMediaFile(id: number, userId: number) {
 // ─── Media Documents ───
 export async function listMediaDocuments(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listMediaDocuments(userId);
   if (!db) return [];
   return db.select().from(mediaDocuments).where(eq(mediaDocuments.userId, userId));
 }
 
 export async function createMediaDocument(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createMediaDocument(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(mediaDocuments).values(data);
   return { id: result[0].insertId, ...data };
@@ -499,6 +572,7 @@ export async function createMediaDocument(data: any) {
 
 export async function deleteMediaDocument(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteMediaDocument(id, userId);
   if (!db) return;
   await db.delete(mediaDocuments).where(and(eq(mediaDocuments.id, id), eq(mediaDocuments.userId, userId)));
 }
@@ -506,12 +580,14 @@ export async function deleteMediaDocument(id: number, userId: number) {
 // ─── Media Texts ───
 export async function listMediaTexts(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listMediaTexts(userId);
   if (!db) return [];
   return db.select().from(mediaTexts).where(eq(mediaTexts.userId, userId));
 }
 
 export async function createMediaText(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createMediaText(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(mediaTexts).values(data);
   return { id: result[0].insertId, ...data };
@@ -519,6 +595,7 @@ export async function createMediaText(data: any) {
 
 export async function deleteMediaText(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteMediaText(id, userId);
   if (!db) return;
   await db.delete(mediaTexts).where(and(eq(mediaTexts.id, id), eq(mediaTexts.userId, userId)));
 }
@@ -526,12 +603,14 @@ export async function deleteMediaText(id: number, userId: number) {
 // ─── Labels ───
 export async function listLabels(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listLabels(userId);
   if (!db) return [];
   return db.select().from(labels).where(eq(labels.userId, userId));
 }
 
 export async function createLabel(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createLabel(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(labels).values(data);
   return { id: result[0].insertId, ...data };
@@ -539,30 +618,35 @@ export async function createLabel(data: any) {
 
 export async function updateLabel(id: number, userId: number, data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateLabel(id, userId, data);
   if (!db) return;
   await db.update(labels).set(data).where(and(eq(labels.id, id), eq(labels.userId, userId)));
 }
 
 export async function deleteLabel(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteLabel(id, userId);
   if (!db) return;
   await db.delete(labels).where(and(eq(labels.id, id), eq(labels.userId, userId)));
 }
 
 export async function addLabelToClient(clientId: number, labelId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.addLabelToClient(clientId, labelId);
   if (!db) return;
   await db.insert(contactLabels).values({ clientId, labelId });
 }
 
 export async function removeLabelFromClient(clientId: number, labelId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.removeLabelFromClient(clientId, labelId);
   if (!db) return;
   await db.delete(contactLabels).where(and(eq(contactLabels.clientId, clientId), eq(contactLabels.labelId, labelId)));
 }
 
 export async function getClientLabels(clientId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getClientLabels(clientId);
   if (!db) return [];
   return db.select().from(contactLabels).where(eq(contactLabels.clientId, clientId));
 }
@@ -570,12 +654,14 @@ export async function getClientLabels(clientId: number) {
 // ─── Flows ───
 export async function listFlows(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listFlows(userId);
   if (!db) return [];
   return db.select().from(flows).where(eq(flows.userId, userId));
 }
 
 export async function createFlow(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createFlow(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(flows).values(data);
   return { id: result[0].insertId, ...data };
@@ -583,18 +669,21 @@ export async function createFlow(data: any) {
 
 export async function updateFlow(id: number, userId: number, data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateFlow(id, userId, data);
   if (!db) return;
   await db.update(flows).set(data).where(and(eq(flows.id, id), eq(flows.userId, userId)));
 }
 
 export async function deleteFlow(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteFlow(id, userId);
   if (!db) return;
   await db.delete(flows).where(and(eq(flows.id, id), eq(flows.userId, userId)));
 }
 
 export async function getFlowById(id: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getFlowById(id, userId);
   if (!db) return undefined;
   const result = await db.select().from(flows).where(and(eq(flows.id, id), eq(flows.userId, userId))).limit(1);
   return result[0];
@@ -602,6 +691,7 @@ export async function getFlowById(id: number, userId: number) {
 
 export async function toggleFlowActive(id: number, userId: number, isActive: boolean) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.toggleFlowActive(id, userId, isActive);
   if (!db) return;
   await db.update(flows).set({ isActive }).where(and(eq(flows.id, id), eq(flows.userId, userId)));
 }
@@ -609,6 +699,7 @@ export async function toggleFlowActive(id: number, userId: number, isActive: boo
 // ─── Flow Steps ───
 export async function createFlowStep(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createFlowStep(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(flowSteps).values(data);
   return { id: result[0].insertId, ...data };
@@ -616,24 +707,28 @@ export async function createFlowStep(data: any) {
 
 export async function updateFlowStep(id: number, data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateFlowStep(id, data);
   if (!db) return;
   await db.update(flowSteps).set(data).where(eq(flowSteps.id, id));
 }
 
 export async function deleteFlowStep(id: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.deleteFlowStep(id);
   if (!db) return;
   await db.delete(flowSteps).where(eq(flowSteps.id, id));
 }
 
 export async function listFlowSteps(flowId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listFlowSteps(flowId);
   if (!db) return [];
   return db.select().from(flowSteps).where(eq(flowSteps.flowId, flowId));
 }
 
 export async function reorderFlowSteps(flowId: number, stepIds: number[]) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.reorderFlowSteps(flowId, stepIds);
   if (!db) return;
   for (let i = 0; i < stepIds.length; i++) {
     await db.update(flowSteps).set({ stepOrder: i + 1 }).where(eq(flowSteps.id, stepIds[i]));
@@ -643,12 +738,14 @@ export async function reorderFlowSteps(flowId: number, stepIds: number[]) {
 // ─── Send Counters ───
 export async function getSendCounters(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getSendCounters(userId);
   if (!db) return [];
   return db.select().from(sendCounters).where(eq(sendCounters.userId, userId));
 }
 
 export async function upsertSendCounter(userId: number, counterType: "audios" | "medias" | "documents" | "messages" | "funnis" | "flows", count: number, maxLimit: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.upsertSendCounter(userId, counterType, count, maxLimit);
   if (!db) return;
   const existing = await db.select().from(sendCounters).where(and(eq(sendCounters.userId, userId), eq(sendCounters.counterType, counterType))).limit(1);
   if (existing.length > 0) {
@@ -660,6 +757,7 @@ export async function upsertSendCounter(userId: number, counterType: "audios" | 
 
 export async function incrementSendCounter(userId: number, counterType: "audios" | "medias" | "documents" | "messages" | "funnis" | "flows") {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.incrementSendCounter(userId, counterType);
   if (!db) return;
   const existing = await db.select().from(sendCounters).where(and(eq(sendCounters.userId, userId), eq(sendCounters.counterType, counterType))).limit(1);
   if (existing.length > 0) {
@@ -669,10 +767,10 @@ export async function incrementSendCounter(userId: number, counterType: "audios"
   }
 }
 
-
-// ─── Flow Executions (Relatórios) ───
+// ─── Flow Executions ───
 export async function createFlowExecution(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createFlowExecution(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(flowExecutions).values(data);
   return { id: result[0].insertId, ...data };
@@ -680,12 +778,14 @@ export async function createFlowExecution(data: any) {
 
 export async function updateFlowExecution(id: number, data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.updateFlowExecution(id, data);
   if (!db) return;
   await db.update(flowExecutions).set(data).where(eq(flowExecutions.id, id));
 }
 
 export async function getFlowExecution(id: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getFlowExecution(id);
   if (!db) return undefined;
   const result = await db.select().from(flowExecutions).where(eq(flowExecutions.id, id)).limit(1);
   return result[0];
@@ -693,13 +793,15 @@ export async function getFlowExecution(id: number) {
 
 export async function listFlowExecutions(flowId: number, limit: number = 50) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listFlowExecutions(flowId, limit);
   if (!db) return [];
   return db.select().from(flowExecutions).where(eq(flowExecutions.flowId, flowId)).orderBy(desc(flowExecutions.createdAt)).limit(limit);
 }
 
-// ─── Flow Responses (Respostas de clientes) ───
+// ─── Flow Responses ───
 export async function createFlowResponse(data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createFlowResponse(data);
   if (!db) throw new Error("DB not available");
   const result = await db.insert(flowResponses).values(data);
   return { id: result[0].insertId, ...data };
@@ -707,16 +809,17 @@ export async function createFlowResponse(data: any) {
 
 export async function getFlowResponses(flowExecutionId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getFlowResponses(flowExecutionId);
   if (!db) return [];
   return db.select().from(flowResponses).where(eq(flowResponses.flowExecutionId, flowExecutionId));
 }
 
 export async function countFlowResponses(flowId: number, startDate?: Date, endDate?: Date) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.countFlowResponses(flowId, startDate, endDate);
   if (!db) return 0;
   
   let conditions: any[] = [eq(flowExecutions.flowId, flowId)];
-  
   if (startDate && endDate) {
     conditions.push(gte(flowExecutions.createdAt, startDate));
     conditions.push(lte(flowExecutions.createdAt, endDate));
@@ -731,10 +834,10 @@ export async function countFlowResponses(flowId: number, startDate?: Date, endDa
 
 export async function getAverageResponseTime(flowId: number, startDate?: Date, endDate?: Date) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getAverageResponseTime(flowId, startDate, endDate);
   if (!db) return 0;
   
   let conditions: any[] = [eq(flowExecutions.flowId, flowId)];
-  
   if (startDate && endDate) {
     conditions.push(gte(flowExecutions.createdAt, startDate));
     conditions.push(lte(flowExecutions.createdAt, endDate));
@@ -747,9 +850,10 @@ export async function getAverageResponseTime(flowId: number, startDate?: Date, e
   return Math.round(result[0]?.avgTime || 0);
 }
 
-// ─── Flow Analytics (Métricas agregadas) ───
+// ─── Flow Analytics ───
 export async function getFlowAnalytics(flowId: number, userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getFlowAnalytics(flowId, userId);
   if (!db) return undefined;
   const result = await db.select().from(flowAnalytics).where(and(eq(flowAnalytics.flowId, flowId), eq(flowAnalytics.userId, userId))).limit(1);
   return result[0];
@@ -757,10 +861,10 @@ export async function getFlowAnalytics(flowId: number, userId: number) {
 
 export async function createOrUpdateFlowAnalytics(flowId: number, userId: number, data: any) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.createOrUpdateFlowAnalytics(flowId, userId, data);
   if (!db) return;
   
   const existing = await db.select().from(flowAnalytics).where(and(eq(flowAnalytics.flowId, flowId), eq(flowAnalytics.userId, userId))).limit(1);
-  
   if (existing.length > 0) {
     await db.update(flowAnalytics).set(data).where(and(eq(flowAnalytics.flowId, flowId), eq(flowAnalytics.userId, userId)));
   } else {
@@ -770,16 +874,17 @@ export async function createOrUpdateFlowAnalytics(flowId: number, userId: number
 
 export async function listFlowAnalytics(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.listFlowAnalytics(userId);
   if (!db) return [];
   return db.select().from(flowAnalytics).where(eq(flowAnalytics.userId, userId));
 }
 
 export async function getFlowExecutionStats(flowId: number, startDate?: Date, endDate?: Date) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getFlowExecutionStats(flowId, startDate, endDate);
   if (!db) return { total: 0, successful: 0, failed: 0, successRate: 0 };
   
   let conditions: any[] = [eq(flowExecutions.flowId, flowId)];
-  
   if (startDate && endDate) {
     conditions.push(gte(flowExecutions.createdAt, startDate));
     conditions.push(lte(flowExecutions.createdAt, endDate));
@@ -801,6 +906,7 @@ export async function getFlowExecutionStats(flowId: number, startDate?: Date, en
 
 export async function getFlowExecutionsByDateRange(userId: number, startDate: Date, endDate: Date) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getFlowExecutionsByDateRange(userId, startDate, endDate);
   if (!db) return [];
   
   return db.select({
@@ -819,6 +925,7 @@ export async function getFlowExecutionsByDateRange(userId: number, startDate: Da
 
 export async function getFlowResponseRateByFlow(userId: number) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getFlowResponseRateByFlow(userId);
   if (!db) return [];
   
   return db.select({
@@ -834,9 +941,9 @@ export async function getFlowResponseRateByFlow(userId: number) {
     .groupBy(flows.id, flows.name);
 }
 
-
 export async function getTopFlowsByExecutions(userId: number, limit: number = 10) {
   const db = await getDb();
+  if (useJsonDb) return jsonDb.getTopFlowsByExecutions(userId, limit);
   if (!db) return [];
   
   return db.select({
@@ -851,4 +958,51 @@ export async function getTopFlowsByExecutions(userId: number, limit: number = 10
   .groupBy(flows.id, flows.name)
   .orderBy(desc(sql`COUNT(${flowExecutions.id})`))
   .limit(limit);
+}
+
+export async function seedTestUser() {
+  const db = await getDb();
+  // seedTestUser operates on getDb(), which routes to MySQL if active, or JSON DB otherwise!
+  if (useJsonDb) {
+    console.log("[Seed] Testing JSON database auto-seed...");
+    const email = "exemplo@gmail.com";
+    const existing = await jsonDb.getUserByEmail(email);
+    if (!existing) {
+      console.log(`[Seed] Test user ${email} not found in JSON DB. Creating...`);
+      const hashedPassword = await bcrypt.hash("exemplo", 10);
+      const openId = `local-${nanoid()}`;
+      await jsonDb.upsertUser({
+        openId,
+        name: "Exemplo",
+        email,
+        password: hashedPassword,
+        role: "admin",
+        isActive: true,
+      });
+      console.log(`[Seed] Test user ${email} created successfully in JSON DB!`);
+    } else {
+      console.log(`[Seed] Test user ${email} already exists in JSON DB.`);
+    }
+    return;
+  }
+
+  if (!db) return;
+  const email = "exemplo@gmail.com";
+  const existing = await getUserByEmail(email);
+  if (!existing) {
+    console.log(`[Seed] Test user ${email} not found in MySQL. Creating...`);
+    const hashedPassword = await bcrypt.hash("exemplo", 10);
+    const openId = `local-${nanoid()}`;
+    await upsertUser({
+      openId,
+      name: "Exemplo",
+      email,
+      password: hashedPassword,
+      role: "admin",
+      isActive: true,
+    });
+    console.log(`[Seed] Test user ${email} created successfully in MySQL!`);
+  } else {
+    console.log(`[Seed] Test user ${email} already exists in MySQL.`);
+  }
 }

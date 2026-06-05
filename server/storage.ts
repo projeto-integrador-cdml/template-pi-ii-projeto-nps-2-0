@@ -1,6 +1,8 @@
 // Preconfigured storage helpers for Manus WebDev templates
 // Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
 
+import fs from "node:fs";
+import path from "node:path";
 import { ENV } from './_core/env';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
@@ -72,8 +74,21 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
-  const { baseUrl, apiKey } = getStorageConfig();
+  const isLocal = !ENV.forgeApiKey || !ENV.forgeApiUrl;
   const key = normalizeKey(relKey);
+
+  if (isLocal) {
+    const localPath = path.join(process.cwd(), "uploads", key);
+    const dir = path.dirname(localPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
+    await fs.promises.writeFile(localPath, buffer);
+    return { key, url: `/uploads/${key}` };
+  }
+
+  const { baseUrl, apiKey } = getStorageConfig();
   const uploadUrl = buildUploadUrl(baseUrl, key);
   const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
   const response = await fetch(uploadUrl, {
@@ -93,8 +108,14 @@ export async function storagePut(
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
-  const { baseUrl, apiKey } = getStorageConfig();
+  const isLocal = !ENV.forgeApiKey || !ENV.forgeApiUrl;
   const key = normalizeKey(relKey);
+
+  if (isLocal) {
+    return { key, url: `/uploads/${key}` };
+  }
+
+  const { baseUrl, apiKey } = getStorageConfig();
   return {
     key,
     url: await buildDownloadUrl(baseUrl, key, apiKey),

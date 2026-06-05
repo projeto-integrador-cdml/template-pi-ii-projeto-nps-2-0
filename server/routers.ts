@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -11,6 +11,7 @@ import * as db from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
+import { sdk } from "./_core/sdk";
 
 export const appRouter = router({
   system: systemRouter,
@@ -22,11 +23,88 @@ export const appRouter = router({
       }
       return opts.ctx.user;
     }),
+    register: publicProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        password: z.string().min(6),
+        phone: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const existing = await db.getUserByEmail(input.email);
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "Este email já está cadastrado" });
+        }
+
+        const hashedPassword = await bcrypt.hash(input.password, 10);
+        const openId = `local-${nanoid()}`;
+
+        await db.upsertUser({
+          openId,
+          name: input.name,
+          email: input.email,
+          password: hashedPassword,
+          phone: input.phone || null,
+          role: "user",
+          isActive: true,
+        });
+
+        // Sign session token and set cookie
+        const sessionToken = await sdk.createSessionToken(openId, {
+          name: input.name,
+          expiresInMs: ONE_YEAR_MS,
+        });
+
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        const user = await db.getUserByOpenId(openId);
+        return { success: true, user };
+      }),
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user || !user.password) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha incorretos" });
+        }
+
+        const validPassword = await bcrypt.compare(input.password, user.password);
+        if (!validPassword) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha incorretos" });
+        }
+
+        if (!user.isActive) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sua conta está desativada" });
+        }
+
+        // Sign session token and set cookie
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        return { success: true, user };
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    updatePreferences: protectedProcedure
+      .input(z.object({
+        preferences: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserPreferences(ctx.user.id, input.preferences);
+        return { success: true };
+      }),
   }),
 
   // ─── Admin: Gestão de Usuários ───

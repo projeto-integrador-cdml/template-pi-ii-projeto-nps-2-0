@@ -12,6 +12,7 @@ export const users = mysqlTable("users", {
   isActive: boolean("isActive").default(true).notNull(),
   phone: varchar("phone", { length: 32 }),
   avatarUrl: text("avatarUrl"),
+  preferences: text("preferences"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
