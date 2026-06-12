@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `interactions` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`clientId` int NOT NULL,\n\t`opportunityId` int,\n\t`interactionType` enum('call','email','meeting','note','whatsapp','audio') NOT NULL DEFAULT 'note',\n\t`subject` varchar(255),\n\t`content` text,\n\t`audioUrl` text,\n\t`transcription` text,\n\t`duration` int,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `interactions_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user nNqap5HtYXzWQds.root --database hyXaqab6YPyEP7JcHa8Xzi --execute CREATE TABLE `interactions` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`clientId` int NOT NULL,\n\t`opportunityId` int,\n\t`interactionType` enum('call','email','meeting','note','whatsapp','audio') NOT NULL DEFAULT 'note',\n\t`subject` varchar(255),\n\t`content` text,\n\t`audioUrl` text,\n\t`transcription` text,\n\t`duration` int,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `interactions_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 105
+}

@@ -1,0 +1,39 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "openId": "local-KXmd1eW7CLx_QR8auqEJO",
+      "name": "Exemplo",
+      "email": "exemplo@gmail.com",
+      "password": "$2b$10$2uF1Otieni6r3BRJ0H65IOdLXm7/7cjheL2MWOnlPpydNSuLSGuyq",
+      "loginMethod": null,
+      "role": "admin",
+      "isActive": true,
+      "phone": null,
+      "avatarUrl": null,
+      "createdAt": "2026-06-01T18:47:38.395Z",
+      "updatedAt": "2026-06-09T21:49:54.128Z",
+      "lastSignedIn": "2026-06-09T21:49:54.127Z",
+      "preferences": "{\"theme\":\"dark\",\"palette\":\"orange\",\"sidebarSide\":\"left\",\"buttonPosition\":{\"x\":1440.3874998092651,\"y\":658},\"widgetOrder\":[\"metrics\",\"pipeline\",\"activities\",\"overdue\"]}"
+    }
+  ],
+  "clients": [],
+  "opportunities": [],
+  "tasks": [],
+  "interactions": [],
+  "audioRecordings": [],
+  "attendants": [],
+  "activeSessions": [],
+  "mediaAudios": [],
+  "mediaFiles": [],
+  "mediaDocuments": [],
+  "mediaTexts": [],
+  "labels": [],
+  "contactLabels": [],
+  "flows": [],
+  "flowSteps": [],
+  "sendCounters": [],
+  "flowExecutions": [],
+  "flowResponses": [],
+  "flowAnalytics": []
+}
