@@ -61,12 +61,19 @@ export default function AttendantsPage() {
     if (!form.clientId) { toast.error("Selecione uma empresa"); return; }
 
     if (editingAttendant) {
-      const data: any = { id: editingAttendant.id, clientId: form.clientId, name: form.name, email: form.email, phone: form.phone, position: form.position };
+      const data: any = { id: editingAttendant.id, companyId: form.clientId, name: form.name, email: form.email, phone: form.phone, position: form.position };
       if (form.password) data.password = form.password;
       updateMutation.mutate(data);
     } else {
       if (!form.password || form.password.length < 6) { toast.error("Senha deve ter no mínimo 6 caracteres"); return; }
-      createMutation.mutate(form);
+      createMutation.mutate({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone || undefined,
+        position: form.position || undefined,
+        companyId: form.clientId,
+      });
     }
   };
 
@@ -229,7 +236,7 @@ export default function AttendantsPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => { if (confirm("Tem certeza que deseja excluir este atendente?")) deleteMutation.mutate({ id: att.id, clientId }); }}
+                            onClick={() => { if (confirm("Tem certeza que deseja excluir este atendente?")) deleteMutation.mutate({ id: att.id, companyId: clientId }); }}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

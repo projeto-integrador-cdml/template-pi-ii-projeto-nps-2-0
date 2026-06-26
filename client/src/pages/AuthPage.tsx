@@ -33,23 +33,23 @@ export default function AuthPage() {
   const selectedPlanId = queryParams.get("plan") || "";
   const selectedPlan = plans[selectedPlanId];
 
+  const [loginRole, setLoginRole] = useState<"admin" | "attendant">("admin");
   const [isLogin, setIsLogin] = useState<boolean>(!selectedPlan);
   const [loading, setLoading] = useState<boolean>(false);
-  const [checkoutStep, setCheckoutStep] = useState<number>(0); // 0 = cadastro, 1 = pagamento, 2 = sucesso
+  const [checkoutStep, setCheckoutStep] = useState<number>(0);
 
-  // Form Fields
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  
-  // Payment Form Fields (Mock)
+
   const [cardHolder, setCardHolder] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
 
   const loginMutation = trpc.auth.login.useMutation();
+  const loginAttendantMutation = trpc.attendants.login.useMutation();
   const registerMutation = trpc.auth.register.useMutation();
 
   // Redireciona se o usuário já estiver logado
@@ -69,11 +69,30 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      const res = await loginMutation.mutateAsync({ email, password });
-      if (res.success) {
-        toast.success(`Bem-vindo de volta, ${res.user?.name || "Usuário"}!`);
-        utils.auth.me.setData(undefined, res.user as any);
-        setLocation("/dashboard");
+      if (loginRole === "admin") {
+        const res = await loginMutation.mutateAsync({ email, password });
+        if (res.success) {
+          localStorage.removeItem("attendant_token");
+          toast.success(`Bem-vindo de volta, ${res.user?.name || "Usuário"}!`);
+          utils.auth.me.setData(undefined, res.user as any);
+          setLocation("/dashboard");
+        }
+      } else {
+        const res = await loginAttendantMutation.mutateAsync({ email, password });
+        if (res.token) {
+          localStorage.setItem("attendant_token", res.token);
+          toast.success(`Bem-vindo de volta, ${res.attendant?.name || "Atendente"}!`);
+          utils.auth.me.setData(undefined, {
+            id: res.attendant.id,
+            openId: `attendant-${res.attendant.id}`,
+            name: res.attendant.name,
+            email: res.attendant.email,
+            role: "attendant" as any,
+            companyId: res.attendant.companyId,
+            isActive: true,
+          } as any);
+          setLocation("/dashboard");
+        }
       }
     } catch (err: any) {
       toast.error(err.message || "Email ou senha incorretos.");
@@ -176,6 +195,30 @@ export default function AuthPage() {
               <CardDescription className="text-xs">Digite suas credenciais para entrar no GM CRM</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-muted/20 border border-border/10 rounded-lg mb-4">
+                <button
+                  type="button"
+                  onClick={() => setLoginRole("admin")}
+                  className={`py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    loginRole === "admin"
+                      ? "bg-primary text-primary-foreground shadow"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/10"
+                  }`}
+                >
+                  Administrador
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginRole("attendant")}
+                  className={`py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    loginRole === "attendant"
+                      ? "bg-primary text-primary-foreground shadow"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/10"
+                  }`}
+                >
+                  Atendente
+                </button>
+              </div>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-xs">Email</Label>

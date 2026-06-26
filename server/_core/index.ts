@@ -6,7 +6,7 @@ import path from "node:path";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
-import { seedTestUser } from "../db";
+import * as db from "../db";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
@@ -53,6 +53,59 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // Webhook da API Oficial do WhatsApp
+  app.get("/api/whatsapp/webhook", (req, res) => {
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || "crm_whatsapp_verify_token";
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+
+    if (mode === "subscribe" && token === verifyToken) {
+      console.log("[WhatsApp Webhook] Webhook verificado com sucesso!");
+      return res.status(200).send(challenge);
+    }
+    console.warn("[WhatsApp Webhook] Falha ao verificar token do Webhook.");
+    return res.sendStatus(403);
+  });
+
+  app.post("/api/whatsapp/webhook", async (req, res) => {
+    try {
+      const body = req.body;
+      if (body.object === "whatsapp_business_account") {
+        const entry = body.entry?.[0];
+        const change = entry?.changes?.[0];
+        const value = change?.value;
+        const metadata = value?.metadata;
+        const phoneNumberId = metadata?.phone_number_id;
+
+        if (phoneNumberId && value?.messages) {
+          // Busca o usuário proprietário pelo phone_number_id (armazenado em whatsappApiUrl)
+          const usersList = await db.listUsers();
+          const user = usersList.find(u => u.whatsappApiUrl === phoneNumberId);
+          if (user) {
+            for (const msg of value.messages) {
+              if (msg.type === "text" && msg.text?.body) {
+                const fromNumber = "+" + msg.from;
+                const contact = value.contacts?.find((c: any) => c.wa_id === msg.from);
+                const name = contact?.profile?.name || "Contato WhatsApp";
+                
+                console.log(`[WhatsApp Webhook] Mensagem recebida de ${name} (${fromNumber}) para empresa ID ${user.id}: ${msg.text.body}`);
+                await db.routeIncomingWhatsappMessage(user.id, fromNumber, name, msg.text.body);
+              }
+            }
+          } else {
+            console.warn(`[WhatsApp Webhook] Nenhuma empresa encontrada com o Phone Number ID: ${phoneNumberId}`);
+          }
+        }
+      }
+      return res.sendStatus(200);
+    } catch (err) {
+      console.error("[WhatsApp Webhook] Erro ao processar payload:", err);
+      return res.sendStatus(500);
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
@@ -78,9 +131,10 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     // Auto-seed test user in background
-    seedTestUser().catch(err => {
+    db.seedTestUser().catch(err => {
       console.warn("[Seed] Failed to auto-seed test user:", err);
     });
+    console.log("[WhatsApp] Webhook pronto para receber eventos da API Oficial.");
   });
 }
 

@@ -17,6 +17,7 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
+  localStorage.removeItem("attendant_token");
   window.location.href = "/auth";
 };
 
@@ -42,8 +43,14 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        const headers = new Headers(init?.headers);
+        const attendantToken = localStorage.getItem("attendant_token");
+        if (attendantToken) {
+          headers.set("Authorization", `Bearer ${attendantToken}`);
+        }
         return globalThis.fetch(input, {
           ...(init ?? {}),
+          headers,
           credentials: "include",
         });
       },

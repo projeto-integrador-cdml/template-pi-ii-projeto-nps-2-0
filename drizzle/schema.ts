@@ -13,6 +13,13 @@ export const users = mysqlTable("users", {
   phone: varchar("phone", { length: 32 }),
   avatarUrl: text("avatarUrl"),
   preferences: text("preferences"),
+  companyName: varchar("companyName", { length: 255 }),
+  maxAttendants: int("maxAttendants").default(5).notNull(),
+  whatsappStatus: varchar("whatsappStatus", { length: 32 }).default("disconnected").notNull(),
+  whatsappNumber: varchar("whatsappNumber", { length: 32 }),
+  whatsappApiUrl: text("whatsappApiUrl"),
+  whatsappApiKey: text("whatsappApiKey"),
+  whatsappQrCode: text("whatsappQrCode"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -35,7 +42,7 @@ export const clients = mysqlTable("clients", {
   tags: text("tags"),
   source: varchar("source", { length: 100 }),
   status: mysqlEnum("clientStatus", ["active", "inactive", "prospect"]).default("prospect").notNull(),
-  maxAttendants: int("maxAttendants").default(1).notNull(), // limite de atendentes por empresa
+  assignedAttendantId: int("assignedAttendantId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -46,7 +53,8 @@ export type InsertClient = typeof clients.$inferInsert;
 // ─── Atendentes (vinculados a empresas/clientes) ───
 export const attendants = mysqlTable("attendants", {
   id: int("id").autoincrement().primaryKey(),
-  clientId: int("clientId").notNull(), // empresa a que pertence
+  companyId: int("companyId").notNull(), // ID do Administrador da Empresa (users.id)
+  status: varchar("status", { length: 32 }).default("available").notNull(), // available, busy, offline
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
   password: varchar("password", { length: 255 }).notNull(),
@@ -159,6 +167,7 @@ export const whatsappMessages = mysqlTable("whatsappMessages", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   clientId: int("clientId"),
+  attendantId: int("attendantId"),
   direction: mysqlEnum("direction", ["inbound", "outbound"]).notNull(),
   message: text("message"),
   mediaUrl: text("mediaUrl"),

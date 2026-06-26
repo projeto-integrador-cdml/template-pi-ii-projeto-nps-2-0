@@ -35,6 +35,7 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      localStorage.removeItem("attendant_token");
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }

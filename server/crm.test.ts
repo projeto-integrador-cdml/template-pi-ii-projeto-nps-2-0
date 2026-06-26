@@ -54,6 +54,14 @@ vi.mock("./db", () => ({
     { id: 1, name: "Admin", email: "admin@test.com", role: "admin", isActive: true, openId: "admin-1", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
     { id: 2, name: "User", email: "user@test.com", role: "user", isActive: true, openId: "user-2", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
   ]),
+  getUserById: vi.fn().mockResolvedValue({
+    id: 1,
+    name: "Admin",
+    email: "admin@test.com",
+    role: "admin",
+    isActive: true,
+    maxAttendants: 5,
+  }),
   updateUserActive: vi.fn().mockResolvedValue(undefined),
   updateUserRole: vi.fn().mockResolvedValue(undefined),
   listClients: vi.fn().mockResolvedValue({ data: [
@@ -103,15 +111,19 @@ vi.mock("./db", () => ({
   updateAudioRecording: vi.fn().mockResolvedValue(undefined),
   // Attendants
   getAttendantByEmail: vi.fn().mockResolvedValue(null),
-  getAttendantById: vi.fn().mockResolvedValue({ id: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, sessionToken: "token-123", phone: "11999999999", position: "Vendedor" }),
+  getAttendantById: vi.fn().mockResolvedValue({ id: 1, companyId: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, sessionToken: "token-123", phone: "11999999999", position: "Vendedor" }),
   listAttendantsByClient: vi.fn().mockResolvedValue([
-    { id: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, phone: "11999999999", position: "Vendedor", lastLoginAt: new Date(), lastIp: "127.0.0.1" },
+    { id: 1, companyId: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, phone: "11999999999", position: "Vendedor", lastLoginAt: new Date(), lastIp: "127.0.0.1" },
+  ]),
+  listAttendantsByCompany: vi.fn().mockResolvedValue([
+    { id: 1, companyId: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, phone: "11999999999", position: "Vendedor", lastLoginAt: new Date(), lastIp: "127.0.0.1" },
   ]),
   listAllAttendants: vi.fn().mockResolvedValue([
-    { id: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, phone: "11999999999", position: "Vendedor", lastLoginAt: new Date(), lastIp: "127.0.0.1" },
-    { id: 2, clientId: 1, name: "Atendente 2", email: "att2@empresa.com", isActive: false, phone: null, position: null, lastLoginAt: null, lastIp: null },
+    { id: 1, companyId: 1, clientId: 1, name: "Atendente 1", email: "att@empresa.com", isActive: true, phone: "11999999999", position: "Vendedor", lastLoginAt: new Date(), lastIp: "127.0.0.1" },
+    { id: 2, companyId: 1, clientId: 1, name: "Atendente 2", email: "att2@empresa.com", isActive: false, phone: null, position: null, lastLoginAt: null, lastIp: null },
   ]),
   countAttendantsByClient: vi.fn().mockResolvedValue(1),
+  countAttendantsByCompany: vi.fn().mockResolvedValue(1),
   createAttendant: vi.fn().mockResolvedValue({ id: 3 }),
   updateAttendant: vi.fn().mockResolvedValue(undefined),
   deleteAttendant: vi.fn().mockResolvedValue(undefined),
@@ -439,7 +451,7 @@ describe("attendants", () => {
     const ctx = createAuthContext({ role: "admin" });
     const caller = appRouter.createCaller(ctx);
     const result = await caller.attendants.create({
-      clientId: 1,
+      companyId: 1,
       name: "Novo Atendente",
       email: "novo@empresa.com",
       password: "senha123",
@@ -456,12 +468,12 @@ describe("attendants", () => {
     const caller = appRouter.createCaller(ctx);
     await expect(
       caller.attendants.create({
-        clientId: 1,
+        companyId: 1,
         name: "Duplicado",
         email: "att@empresa.com",
         password: "senha123",
       })
-    ).rejects.toThrow("J\u00e1 existe um atendente com este email");
+    ).rejects.toThrow("Já existe um atendente com este email");
   });
 
   it("updates an attendant as admin", async () => {
@@ -469,7 +481,7 @@ describe("attendants", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.attendants.update({
       id: 1,
-      clientId: 1,
+      companyId: 1,
       name: "Atendente Atualizado",
     });
     expect(result).toEqual({ success: true });
@@ -478,7 +490,7 @@ describe("attendants", () => {
   it("deletes an attendant as admin", async () => {
     const ctx = createAuthContext({ role: "admin" });
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.attendants.delete({ id: 1, clientId: 1 });
+    const result = await caller.attendants.delete({ id: 1, companyId: 1 });
     expect(result).toEqual({ success: true });
   });
 
@@ -490,17 +502,27 @@ describe("attendants", () => {
   });
 
   it("rejects non-admin from listing all attendants", async () => {
-    const ctx = createAuthContext({ role: "user" });
+    const ctx = {
+      user: null,
+      attendant: { id: 1, companyId: 1, name: "Att" } as any,
+      req: { protocol: "https", headers: {} } as any,
+      res: { clearCookie: vi.fn() } as any,
+    };
     const caller = appRouter.createCaller(ctx);
     await expect(caller.attendants.listAll()).rejects.toThrow();
   });
 
   it("rejects non-admin from creating attendants", async () => {
-    const ctx = createAuthContext({ role: "user" });
+    const ctx = {
+      user: null,
+      attendant: { id: 1, companyId: 1, name: "Att" } as any,
+      req: { protocol: "https", headers: {} } as any,
+      res: { clearCookie: vi.fn() } as any,
+    };
     const caller = appRouter.createCaller(ctx);
     await expect(
       caller.attendants.create({
-        clientId: 1,
+        companyId: 1,
         name: "Teste",
         email: "test@test.com",
         password: "senha123",

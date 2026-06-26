@@ -141,7 +141,18 @@ function DashboardLayoutContent({
   const [isResizing, setIsResizing] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const allItems = [...menuItems, ...(user?.role === "admin" ? adminMenuItems : [])];
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (user?.role === "attendant" && item.path === "/reports") return false;
+    return true;
+  });
+
+  const visibleAdminMenuItems = adminMenuItems.filter((item) => {
+    if (user?.role === "attendant") return false;
+    if (user?.role === "user" && item.path === "/admin/users") return false;
+    return true;
+  });
+
+  const allItems = [...visibleMenuItems, ...visibleAdminMenuItems];
   const activeMenuItem = allItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
 
@@ -304,7 +315,7 @@ function DashboardLayoutContent({
 
         <SidebarContent className="gap-0 pt-2">
           <SidebarMenu className="px-2 py-1 space-y-0.5">
-            {menuItems.map((item) => {
+            {visibleMenuItems.map((item) => {
               const isActive = location === item.path;
               return (
                 <SidebarMenuItem key={item.path}>
@@ -322,7 +333,7 @@ function DashboardLayoutContent({
             })}
           </SidebarMenu>
 
-          {user?.role === "admin" && (
+          {visibleAdminMenuItems.length > 0 && (
             <>
               <div className="px-4 py-3">
                 <div className="h-px bg-sidebar-border" />
@@ -335,7 +346,7 @@ function DashboardLayoutContent({
                 </div>
               )}
               <SidebarMenu className="px-2 py-1 space-y-0.5">
-                {adminMenuItems.map((item) => {
+                {visibleAdminMenuItems.map((item) => {
                   const isActive = location === item.path;
                   return (
                     <SidebarMenuItem key={item.path}>
@@ -370,7 +381,7 @@ function DashboardLayoutContent({
                     {user?.name || "-"}
                   </p>
                   <p className="text-xs text-sidebar-foreground/50 truncate mt-1.5">
-                    {user?.role === "admin" ? "Administrador" : "Usuário"}
+                    {user?.role === "admin" ? "Super Admin" : user?.role === "user" ? "Administrador" : "Atendente"}
                   </p>
                 </div>
               </button>
@@ -380,10 +391,12 @@ function DashboardLayoutContent({
                 <Paintbrush className="mr-2 h-4 w-4" />
                 <span>Personalizar</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation("/settings")} className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Configurações</span>
-              </DropdownMenuItem>
+              {user?.role !== "attendant" && (
+                <DropdownMenuItem onClick={() => setLocation("/settings")} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Configurações</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={logout}

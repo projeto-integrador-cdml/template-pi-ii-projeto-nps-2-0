@@ -1,0 +1,14 @@
+2026/06/17-15:03:57.204 1140 Creating DB C:\Users\jobal\Documents\crm gabriel\.wwebjs_auth\session-company-1\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
+2026/06/17-15:03:57.222 1140 Reusing MANIFEST C:\Users\jobal\Documents\crm gabriel\.wwebjs_auth\session-company-1\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/17-16:31:56.541 95f0 Level-0 table #5: started
+2026/06/17-16:31:56.579 95f0 Level-0 table #5: 1024684 bytes OK
+2026/06/17-16:31:56.582 95f0 Delete type=0 #3
+2026/06/17-17:26:55.409 95f0 Level-0 table #7: started
+2026/06/17-17:26:55.436 95f0 Level-0 table #7: 819361 bytes OK
+2026/06/17-17:26:55.439 95f0 Delete type=0 #4
+2026/06/17-17:29:31.159 1140 Compacting 1@1 + 1@2 files
+2026/06/17-17:29:31.196 1140 Generated table #8@1: 10530 keys, 799752 bytes
+2026/06/17-17:29:31.196 1140 Compacted 1@1 + 1@2 files => 799752 bytes
+2026/06/17-17:29:31.197 1140 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/17-17:29:31.198 1140 Delete type=2 #5
+2026/06/17-17:29:31.199 1140 Delete type=2 #7

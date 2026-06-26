@@ -34,6 +34,7 @@ interface JsonDbData {
   flowExecutions: any[];
   flowResponses: any[];
   flowAnalytics: any[];
+  whatsappMessages: any[];
 }
 
 const emptyData = (): JsonDbData => ({
@@ -57,6 +58,7 @@ const emptyData = (): JsonDbData => ({
   flowExecutions: [],
   flowResponses: [],
   flowAnalytics: [],
+  whatsappMessages: [],
 });
 
 function readJsonDb(): JsonDbData {
@@ -99,6 +101,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       role: user.role ?? existing.role,
       isActive: user.isActive ?? existing.isActive,
       preferences: user.preferences !== undefined ? user.preferences : existing.preferences,
+      companyName: user.companyName !== undefined ? user.companyName : existing.companyName,
+      maxAttendants: user.maxAttendants !== undefined ? user.maxAttendants : existing.maxAttendants,
+      whatsappStatus: user.whatsappStatus !== undefined ? user.whatsappStatus : existing.whatsappStatus,
+      whatsappNumber: user.whatsappNumber !== undefined ? user.whatsappNumber : existing.whatsappNumber,
+      whatsappApiUrl: user.whatsappApiUrl !== undefined ? user.whatsappApiUrl : existing.whatsappApiUrl,
+      whatsappApiKey: user.whatsappApiKey !== undefined ? user.whatsappApiKey : existing.whatsappApiKey,
+      whatsappQrCode: user.whatsappQrCode !== undefined ? user.whatsappQrCode : existing.whatsappQrCode,
       updatedAt: now,
       lastSignedIn: user.lastSignedIn ? new Date(user.lastSignedIn) : existing.lastSignedIn,
     } as User;
@@ -116,6 +125,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       phone: user.phone ?? null,
       avatarUrl: user.avatarUrl ?? null,
       preferences: user.preferences ?? null,
+      companyName: user.companyName ?? null,
+      maxAttendants: user.maxAttendants ?? 5,
+      whatsappStatus: user.whatsappStatus ?? "disconnected",
+      whatsappNumber: user.whatsappNumber ?? null,
+      whatsappApiUrl: user.whatsappApiUrl ?? null,
+      whatsappApiKey: user.whatsappApiKey ?? null,
+      whatsappQrCode: user.whatsappQrCode ?? null,
       createdAt: now,
       updatedAt: now,
       lastSignedIn: user.lastSignedIn ? new Date(user.lastSignedIn) : now,
@@ -175,6 +191,17 @@ export async function updateUserPreferences(id: number, preferences: string): Pr
   }
 }
 
+export async function updateUserCota(id: number, companyName: string, maxAttendants: number): Promise<void> {
+  const db = readJsonDb();
+  const user = db.users.find(u => u.id === id);
+  if (user) {
+    user.companyName = companyName;
+    user.maxAttendants = maxAttendants;
+    user.updatedAt = new Date();
+    writeJsonDb(db);
+  }
+}
+
 // ─── Clients ───
 export async function createClient(data: InsertClient): Promise<{ id: number }> {
   const db = readJsonDb();
@@ -193,7 +220,7 @@ export async function createClient(data: InsertClient): Promise<{ id: number }> 
     tags: data.tags ?? null,
     source: data.source ?? null,
     status: data.status ?? "prospect",
-    maxAttendants: data.maxAttendants ?? 1,
+    assignedAttendantId: (data as any).assignedAttendantId ?? null,
     createdAt: now,
     updatedAt: now,
   };
@@ -233,13 +260,16 @@ export async function getClientById(id: number, userId: number): Promise<Client 
 
 export async function listClients(
   userId: number,
-  opts?: { search?: string; status?: string; limit?: number; offset?: number }
+  opts?: { search?: string; status?: string; limit?: number; offset?: number; assignedAttendantId?: number }
 ): Promise<{ data: Client[]; total: number }> {
   const db = readJsonDb();
   let list = db.clients.filter(c => userId === 0 || c.userId === userId);
 
   if (opts?.status) {
     list = list.filter(c => c.status === opts.status);
+  }
+  if (opts?.assignedAttendantId !== undefined) {
+    list = list.filter(c => c.assignedAttendantId === opts.assignedAttendantId);
   }
   if (opts?.search) {
     const q = opts.search.toLowerCase();
@@ -319,7 +349,7 @@ export async function getOpportunityById(id: number, userId: number): Promise<Op
 
 export async function listOpportunities(userId: number, opts?: { stage?: string; clientId?: number }): Promise<Opportunity[]> {
   const db = readJsonDb();
-  let list = db.opportunities.filter(o => o.userId === userId);
+  let list = db.opportunities.filter(o => userId === 0 || o.userId === userId);
   if (opts?.stage) {
     list = list.filter(o => o.stage === opts.stage);
   }
@@ -376,7 +406,7 @@ export async function deleteTask(id: number, userId: number): Promise<void> {
 
 export async function listTasks(userId: number, opts?: { clientId?: number; completed?: boolean; upcoming?: boolean }): Promise<Task[]> {
   const db = readJsonDb();
-  let list = db.tasks.filter(t => t.userId === userId);
+  let list = db.tasks.filter(t => userId === 0 || t.userId === userId);
   if (opts?.clientId) {
     list = list.filter(t => t.clientId === opts.clientId);
   }
@@ -398,7 +428,7 @@ export async function getOverdueTasks(userId: number): Promise<Task[]> {
   const db = readJsonDb();
   const now = new Date();
   return db.tasks
-    .filter(t => t.userId === userId && !t.completed && t.dueDate && new Date(t.dueDate) < now)
+    .filter(t => (userId === 0 || t.userId === userId) && !t.completed && t.dueDate && new Date(t.dueDate) < now)
     .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
 }
 
@@ -427,7 +457,7 @@ export async function createInteraction(data: InsertInteraction): Promise<{ id: 
 export async function listInteractions(userId: number, clientId: number): Promise<Interaction[]> {
   const db = readJsonDb();
   return db.interactions
-    .filter(i => i.userId === userId && i.clientId === clientId)
+    .filter(i => (userId === 0 || i.userId === userId) && i.clientId === clientId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -471,7 +501,7 @@ export async function updateAudioRecording(id: number, userId: number, data: Par
 
 export async function listAudioRecordings(userId: number, clientId?: number): Promise<AudioRecording[]> {
   const db = readJsonDb();
-  let list = db.audioRecordings.filter(r => r.userId === userId);
+  let list = db.audioRecordings.filter(r => userId === 0 || r.userId === userId);
   if (clientId) {
     list = list.filter(r => r.clientId === clientId);
   }
@@ -485,7 +515,8 @@ export async function createAttendant(data: InsertAttendant): Promise<{ id: numb
   const now = new Date();
   const newAtt: Attendant = {
     id,
-    clientId: data.clientId!,
+    companyId: (data as any).companyId ?? (data as any).clientId ?? 0,
+    status: (data as any).status ?? "available",
     name: data.name!,
     email: data.email!,
     password: data.password!,
@@ -504,24 +535,24 @@ export async function createAttendant(data: InsertAttendant): Promise<{ id: numb
   return { id };
 }
 
-export async function updateAttendant(id: number, clientId: number, data: Partial<InsertAttendant>): Promise<void> {
+export async function updateAttendant(id: number, companyId: number, data: Partial<InsertAttendant>): Promise<void> {
   const db = readJsonDb();
-  const index = db.attendants.findIndex(a => a.id === id && (clientId === 0 || a.clientId === clientId));
+  const index = db.attendants.findIndex(a => a.id === id && (companyId === 0 || a.companyId === companyId || (a as any).clientId === companyId));
   if (index > -1) {
     db.attendants[index] = {
       ...db.attendants[index],
       ...data,
       id,
-      clientId: db.attendants[index].clientId,
+      companyId: db.attendants[index].companyId ?? (db.attendants[index] as any).clientId,
       updatedAt: new Date(),
     } as Attendant;
     writeJsonDb(db);
   }
 }
 
-export async function deleteAttendant(id: number, clientId: number): Promise<void> {
+export async function deleteAttendant(id: number, companyId: number): Promise<void> {
   const db = readJsonDb();
-  db.attendants = db.attendants.filter(a => !(a.id === id && (clientId === 0 || a.clientId === clientId)));
+  db.attendants = db.attendants.filter(a => !(a.id === id && (companyId === 0 || a.companyId === companyId || (a as any).clientId === companyId)));
   writeJsonDb(db);
 }
 
@@ -535,14 +566,23 @@ export async function getAttendantByEmail(email: string): Promise<Attendant | un
   return db.attendants.find(a => a.email.toLowerCase() === email.toLowerCase());
 }
 
-export async function listAttendantsByClient(clientId: number): Promise<Attendant[]> {
+export async function listAttendantsByCompany(companyId: number): Promise<Attendant[]> {
   const db = readJsonDb();
-  return db.attendants.filter(a => a.clientId === clientId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return db.attendants.filter(a => a.companyId === companyId || (a as any).clientId === companyId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export async function countAttendantsByCompany(companyId: number): Promise<number> {
+  const db = readJsonDb();
+  return db.attendants.filter(a => a.companyId === companyId || (a as any).clientId === companyId).length;
+}
+
+// Retrocompatibilidade
+export async function listAttendantsByClient(clientId: number): Promise<Attendant[]> {
+  return listAttendantsByCompany(clientId);
 }
 
 export async function countAttendantsByClient(clientId: number): Promise<number> {
-  const db = readJsonDb();
-  return db.attendants.filter(a => a.clientId === clientId).length;
+  return countAttendantsByCompany(clientId);
 }
 
 export async function updateAttendantSession(id: number, sessionToken: string, ip: string, device: string): Promise<void> {
@@ -617,9 +657,9 @@ export async function deleteSessionsByAttendant(attendantId: number): Promise<vo
 // ─── Dashboard Stats ───
 export async function getDashboardStats(userId: number): Promise<any> {
   const db = readJsonDb();
-  const cList = db.clients.filter(c => c.userId === userId);
-  const oList = db.opportunities.filter(o => o.userId === userId);
-  const tList = db.tasks.filter(t => t.userId === userId);
+  const cList = db.clients.filter(c => userId === 0 || c.userId === userId);
+  const oList = db.opportunities.filter(o => userId === 0 || o.userId === userId);
+  const tList = db.tasks.filter(t => userId === 0 || t.userId === userId);
 
   const totalClients = cList.length;
   const activeClients = cList.filter(c => c.status === "active").length;
@@ -651,14 +691,14 @@ export async function getDashboardStats(userId: number): Promise<any> {
 export async function getRecentActivities(userId: number, limit = 10): Promise<Interaction[]> {
   const db = readJsonDb();
   return db.interactions
-    .filter(i => i.userId === userId)
+    .filter(i => userId === 0 || i.userId === userId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limit);
 }
 
 export async function getOpportunitiesByStage(userId: number): Promise<any[]> {
   const db = readJsonDb();
-  const opps = db.opportunities.filter(o => o.userId === userId);
+  const opps = db.opportunities.filter(o => userId === 0 || o.userId === userId);
   const groups: Record<string, { count: number; totalValue: number }> = {};
   for (const o of opps) {
     if (!groups[o.stage]) {
@@ -1110,3 +1150,105 @@ export async function getTopFlowsByExecutions(userId: number, limit = 10): Promi
   }
   return result.sort((a, b) => b.totalExecutions - a.totalExecutions).slice(0, limit);
 }
+
+// ─── WhatsApp & Client-Routing Helpers (JSON DB) ───
+
+export async function getClientByPhone(userId: number, phone: string): Promise<Client | undefined> {
+  const db = readJsonDb();
+  // Busca por telefone exato ou formatado
+  const cleanPhone = phone.replace(/\D/g, "");
+  return db.clients.find(c => {
+    if (c.userId !== userId) return false;
+    if (!c.phone) return false;
+    const cClean = c.phone.replace(/\D/g, "");
+    return cClean === cleanPhone || cClean.endsWith(cleanPhone) || cleanPhone.endsWith(cClean);
+  });
+}
+
+export async function updateClientAttendant(clientId: number, attendantId: number | null): Promise<void> {
+  const db = readJsonDb();
+  const index = db.clients.findIndex(c => c.id === clientId);
+  if (index > -1) {
+    db.clients[index].assignedAttendantId = attendantId;
+    db.clients[index].updatedAt = new Date();
+    writeJsonDb(db);
+  }
+}
+
+export async function countAssignedClients(attendantId: number): Promise<number> {
+  const db = readJsonDb();
+  return db.clients.filter(c => c.assignedAttendantId === attendantId).length;
+}
+
+export async function createWhatsappMessage(data: any): Promise<any> {
+  const db = readJsonDb();
+  if (!db.whatsappMessages) db.whatsappMessages = [];
+  const id = nextId(db.whatsappMessages);
+  const newMessage = {
+    id,
+    userId: data.userId,
+    clientId: data.clientId || null,
+    attendantId: data.attendantId || null,
+    direction: data.direction,
+    message: data.message || null,
+    mediaUrl: data.mediaUrl || null,
+    status: data.status || "sent",
+    externalId: data.externalId || null,
+    createdAt: new Date(),
+  };
+  db.whatsappMessages.push(newMessage);
+  writeJsonDb(db);
+  return newMessage;
+}
+
+export async function listWhatsappMessages(userId: number, clientId: number): Promise<any[]> {
+  const db = readJsonDb();
+  if (!db.whatsappMessages) return [];
+  return db.whatsappMessages
+    .filter((m: any) => m.userId === userId && m.clientId === clientId)
+    .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+export async function updateUserWhatsappConfig(
+  userId: number,
+  data: {
+    whatsappStatus?: string;
+    whatsappNumber?: string | null;
+    whatsappApiUrl?: string | null;
+    whatsappApiKey?: string | null;
+    whatsappQrCode?: string | null;
+  }
+): Promise<void> {
+  const db = readJsonDb();
+  const user = db.users.find(u => u.id === userId);
+  if (user) {
+    if (data.whatsappStatus !== undefined) user.whatsappStatus = data.whatsappStatus;
+    if (data.whatsappNumber !== undefined) user.whatsappNumber = data.whatsappNumber;
+    if (data.whatsappApiUrl !== undefined) user.whatsappApiUrl = data.whatsappApiUrl;
+    if (data.whatsappApiKey !== undefined) user.whatsappApiKey = data.whatsappApiKey;
+    if (data.whatsappQrCode !== undefined) user.whatsappQrCode = data.whatsappQrCode;
+    user.updatedAt = new Date();
+    writeJsonDb(db);
+  }
+}
+
+export async function updateAttendantStatus(id: number, status: string): Promise<void> {
+  const db = readJsonDb();
+  const attendant = db.attendants.find(a => a.id === id);
+  if (attendant) {
+    attendant.status = status;
+    attendant.updatedAt = new Date();
+    writeJsonDb(db);
+  }
+}
+
+export async function listAllClients(): Promise<Client[]> {
+  const db = readJsonDb();
+  return db.clients;
+}
+
+export async function listAllWhatsappMessages(): Promise<any[]> {
+  const db = readJsonDb();
+  return db.whatsappMessages || [];
+}
+

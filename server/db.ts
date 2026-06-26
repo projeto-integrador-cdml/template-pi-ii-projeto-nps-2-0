@@ -2,7 +2,7 @@ import { and, desc, eq, like, or, sql, asc, gte, lte, isNull } from "drizzle-orm
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
-  InsertClient, clients,
+  InsertClient, clients, Client,
   InsertOpportunity, opportunities,
   InsertTask, tasks,
   InsertInteraction, interactions,
@@ -31,27 +31,40 @@ import * as jsonDb from "./dbJson";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 export let useJsonDb = false;
+let connectionPromise: Promise<ReturnType<typeof drizzle> | null> | null = null;
 
 export async function getDb() {
   if (useJsonDb) return null;
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-      // Test the connection with a quick query
-      await _db.execute(sql`SELECT 1`);
-      console.log("[Database] Connected successfully to MySQL!");
-    } catch (error) {
-      console.warn("[Database] Failed to connect to MySQL, falling back to JSON database.");
-      _db = null;
+  if (_db) return _db;
+  
+  if (connectionPromise) {
+    return connectionPromise;
+  }
+  
+  connectionPromise = (async () => {
+    if (process.env.DATABASE_URL) {
+      try {
+        const tempDb = drizzle(process.env.DATABASE_URL);
+        // Test connection with SELECT 1
+        await tempDb.execute(sql`SELECT 1`);
+        console.log("[Database] Connected successfully to MySQL!");
+        _db = tempDb;
+        return _db;
+      } catch (error) {
+        console.warn("[Database] Failed to connect to MySQL, falling back to JSON database.");
+        useJsonDb = true;
+        return null;
+      }
+    } else {
+      console.warn("[Database] DATABASE_URL not set, falling back to JSON database.");
       useJsonDb = true;
+      return null;
     }
-  }
-  if (!_db && !useJsonDb) {
-    console.warn("[Database] DATABASE_URL not set, falling back to JSON database.");
-    useJsonDb = true;
-  }
-  return _db;
+  })();
+  
+  return connectionPromise;
 }
+
 
 // ─── Users ───
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -81,6 +94,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (user.lastSignedIn !== undefined) { values.lastSignedIn = user.lastSignedIn; updateSet.lastSignedIn = user.lastSignedIn; }
   if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; }
   else if (user.openId === ENV.ownerOpenId) { values.role = 'admin'; updateSet.role = 'admin'; }
+  if (user.companyName !== undefined) { values.companyName = user.companyName; updateSet.companyName = user.companyName; }
+  if (user.maxAttendants !== undefined) { values.maxAttendants = user.maxAttendants; updateSet.maxAttendants = user.maxAttendants; }
 
   if (!values.lastSignedIn) values.lastSignedIn = new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
@@ -133,6 +148,13 @@ export async function updateUserRole(id: number, role: "user" | "admin") {
   await db.update(users).set({ role }).where(eq(users.id, id));
 }
 
+export async function updateUserCota(id: number, companyName: string, maxAttendants: number) {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateUserCota(id, companyName, maxAttendants);
+  if (!db) return;
+  await db.update(users).set({ companyName, maxAttendants, updatedAt: new Date() }).where(eq(users.id, id));
+}
+
 export async function updateUserPreferences(id: number, preferences: string) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.updateUserPreferences(id, preferences);
@@ -154,31 +176,41 @@ export async function updateClient(id: number, userId: number, data: Partial<Ins
   const db = await getDb();
   if (useJsonDb) return jsonDb.updateClient(id, userId, data);
   if (!db) return;
-  await db.update(clients).set(data).where(and(eq(clients.id, id), eq(clients.userId, userId)));
+  const conditions = [eq(clients.id, id)];
+  if (userId !== 0) conditions.push(eq(clients.userId, userId));
+  await db.update(clients).set(data).where(and(...conditions));
 }
 
 export async function deleteClient(id: number, userId: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.deleteClient(id, userId);
   if (!db) return;
-  await db.delete(clients).where(and(eq(clients.id, id), eq(clients.userId, userId)));
+  const conditions = [eq(clients.id, id)];
+  if (userId !== 0) conditions.push(eq(clients.userId, userId));
+  await db.delete(clients).where(and(...conditions));
 }
 
 export async function getClientById(id: number, userId: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.getClientById(id, userId);
   if (!db) return undefined;
-  const result = await db.select().from(clients).where(and(eq(clients.id, id), eq(clients.userId, userId))).limit(1);
+  const conditions = [eq(clients.id, id)];
+  if (userId !== 0) conditions.push(eq(clients.userId, userId));
+  const result = await db.select().from(clients).where(and(...conditions)).limit(1);
   return result[0];
 }
 
-export async function listClients(userId: number, opts?: { search?: string; status?: string; limit?: number; offset?: number }) {
+export async function listClients(userId: number, opts?: { search?: string; status?: string; limit?: number; offset?: number; assignedAttendantId?: number }) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.listClients(userId, opts);
   if (!db) return { data: [], total: 0 };
 
-  const conditions = [eq(clients.userId, userId)];
+  const conditions = [];
+  if (userId !== 0) conditions.push(eq(clients.userId, userId));
   if (opts?.status) conditions.push(eq(clients.status, opts.status as any));
+  if (opts?.assignedAttendantId !== undefined) {
+    conditions.push(eq(clients.assignedAttendantId, opts.assignedAttendantId));
+  }
   if (opts?.search) {
     conditions.push(
       or(
@@ -190,7 +222,7 @@ export async function listClients(userId: number, opts?: { search?: string; stat
     );
   }
 
-  const where = and(...conditions);
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
   const [data, countResult] = await Promise.all([
     db.select().from(clients).where(where).orderBy(desc(clients.updatedAt)).limit(opts?.limit ?? 50).offset(opts?.offset ?? 0),
     db.select({ count: sql<number>`count(*)` }).from(clients).where(where),
@@ -212,21 +244,27 @@ export async function updateOpportunity(id: number, userId: number, data: Partia
   const db = await getDb();
   if (useJsonDb) return jsonDb.updateOpportunity(id, userId, data);
   if (!db) return;
-  await db.update(opportunities).set(data).where(and(eq(opportunities.id, id), eq(opportunities.userId, userId)));
+  const conditions = [eq(opportunities.id, id)];
+  if (userId !== 0) conditions.push(eq(opportunities.userId, userId));
+  await db.update(opportunities).set(data).where(and(...conditions));
 }
 
 export async function deleteOpportunity(id: number, userId: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.deleteOpportunity(id, userId);
   if (!db) return;
-  await db.delete(opportunities).where(and(eq(opportunities.id, id), eq(opportunities.userId, userId)));
+  const conditions = [eq(opportunities.id, id)];
+  if (userId !== 0) conditions.push(eq(opportunities.userId, userId));
+  await db.delete(opportunities).where(and(...conditions));
 }
 
 export async function getOpportunityById(id: number, userId: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.getOpportunityById(id, userId);
   if (!db) return undefined;
-  const result = await db.select().from(opportunities).where(and(eq(opportunities.id, id), eq(opportunities.userId, userId))).limit(1);
+  const conditions = [eq(opportunities.id, id)];
+  if (userId !== 0) conditions.push(eq(opportunities.userId, userId));
+  const result = await db.select().from(opportunities).where(and(...conditions)).limit(1);
   return result[0];
 }
 
@@ -234,10 +272,11 @@ export async function listOpportunities(userId: number, opts?: { stage?: string;
   const db = await getDb();
   if (useJsonDb) return jsonDb.listOpportunities(userId, opts);
   if (!db) return [];
-  const conditions = [eq(opportunities.userId, userId)];
+  const conditions = [];
+  if (userId !== 0) conditions.push(eq(opportunities.userId, userId));
   if (opts?.stage) conditions.push(eq(opportunities.stage, opts.stage as any));
   if (opts?.clientId) conditions.push(eq(opportunities.clientId, opts.clientId));
-  return db.select().from(opportunities).where(and(...conditions)).orderBy(desc(opportunities.updatedAt));
+  return db.select().from(opportunities).where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(desc(opportunities.updatedAt));
 }
 
 // ─── Tasks ───
@@ -253,34 +292,39 @@ export async function updateTask(id: number, userId: number, data: Partial<Inser
   const db = await getDb();
   if (useJsonDb) return jsonDb.updateTask(id, userId, data);
   if (!db) return;
-  await db.update(tasks).set(data).where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
+  const conditions = [eq(tasks.id, id)];
+  if (userId !== 0) conditions.push(eq(tasks.userId, userId));
+  await db.update(tasks).set(data).where(and(...conditions));
 }
 
 export async function deleteTask(id: number, userId: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.deleteTask(id, userId);
   if (!db) return;
-  await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
+  const conditions = [eq(tasks.id, id)];
+  if (userId !== 0) conditions.push(eq(tasks.userId, userId));
+  await db.delete(tasks).where(and(...conditions));
 }
 
 export async function listTasks(userId: number, opts?: { clientId?: number; completed?: boolean; upcoming?: boolean }) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.listTasks(userId, opts);
   if (!db) return [];
-  const conditions = [eq(tasks.userId, userId)];
+  const conditions = [];
+  if (userId !== 0) conditions.push(eq(tasks.userId, userId));
   if (opts?.clientId) conditions.push(eq(tasks.clientId, opts.clientId));
   if (opts?.completed !== undefined) conditions.push(eq(tasks.completed, opts.completed));
   if (opts?.upcoming) conditions.push(gte(tasks.dueDate, new Date()));
-  return db.select().from(tasks).where(and(...conditions)).orderBy(asc(tasks.dueDate));
+  return db.select().from(tasks).where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(asc(tasks.dueDate));
 }
 
 export async function getOverdueTasks(userId: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.getOverdueTasks(userId);
   if (!db) return [];
-  return db.select().from(tasks).where(
-    and(eq(tasks.userId, userId), eq(tasks.completed, false), lte(tasks.dueDate, new Date()))
-  ).orderBy(asc(tasks.dueDate));
+  const conditions = [eq(tasks.completed, false), lte(tasks.dueDate, new Date())];
+  if (userId !== 0) conditions.push(eq(tasks.userId, userId));
+  return db.select().from(tasks).where(and(...conditions)).orderBy(asc(tasks.dueDate));
 }
 
 // ─── Interactions ───
@@ -296,7 +340,9 @@ export async function listInteractions(userId: number, clientId: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.listInteractions(userId, clientId);
   if (!db) return [];
-  return db.select().from(interactions).where(and(eq(interactions.userId, userId), eq(interactions.clientId, clientId))).orderBy(desc(interactions.createdAt));
+  const conditions = [eq(interactions.clientId, clientId)];
+  if (userId !== 0) conditions.push(eq(interactions.userId, userId));
+  return db.select().from(interactions).where(and(...conditions)).orderBy(desc(interactions.createdAt));
 }
 
 // ─── Audio Recordings ───
@@ -312,16 +358,19 @@ export async function updateAudioRecording(id: number, userId: number, data: Par
   const db = await getDb();
   if (useJsonDb) return jsonDb.updateAudioRecording(id, userId, data);
   if (!db) return;
-  await db.update(audioRecordings).set(data).where(and(eq(audioRecordings.id, id), eq(audioRecordings.userId, userId)));
+  const conditions = [eq(audioRecordings.id, id)];
+  if (userId !== 0) conditions.push(eq(audioRecordings.userId, userId));
+  await db.update(audioRecordings).set(data).where(and(...conditions));
 }
 
 export async function listAudioRecordings(userId: number, clientId?: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.listAudioRecordings(userId, clientId);
   if (!db) return [];
-  const conditions = [eq(audioRecordings.userId, userId)];
+  const conditions = [];
+  if (userId !== 0) conditions.push(eq(audioRecordings.userId, userId));
   if (clientId) conditions.push(eq(audioRecordings.clientId, clientId));
-  return db.select().from(audioRecordings).where(and(...conditions)).orderBy(desc(audioRecordings.createdAt));
+  return db.select().from(audioRecordings).where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(desc(audioRecordings.createdAt));
 }
 
 // ─── Dashboard Stats ───
@@ -330,23 +379,35 @@ export async function getDashboardStats(userId: number) {
   if (useJsonDb) return jsonDb.getDashboardStats(userId);
   if (!db) return { totalClients: 0, activeClients: 0, totalOpportunities: 0, totalValue: 0, pendingTasks: 0, overdueTasks: 0, wonDeals: 0, wonValue: 0 };
 
+  const clientConditions = [];
+  if (userId !== 0) clientConditions.push(eq(clients.userId, userId));
+  
+  const oppConditions = [sql`stage NOT IN ('closed_won', 'closed_lost')`];
+  if (userId !== 0) oppConditions.push(eq(opportunities.userId, userId));
+  
+  const taskConditions = [];
+  if (userId !== 0) taskConditions.push(eq(tasks.userId, userId));
+  
+  const wonConditions = [eq(opportunities.stage, "closed_won")];
+  if (userId !== 0) wonConditions.push(eq(opportunities.userId, userId));
+
   const [clientStats, oppStats, taskStats, wonStats] = await Promise.all([
     db.select({
       total: sql<number>`count(*)`,
       active: sql<number>`sum(case when clientStatus = 'active' then 1 else 0 end)`,
-    }).from(clients).where(eq(clients.userId, userId)),
+    }).from(clients).where(clientConditions.length > 0 ? and(...clientConditions) : undefined),
     db.select({
       total: sql<number>`count(*)`,
       totalValue: sql<number>`coalesce(sum(value), 0)`,
-    }).from(opportunities).where(and(eq(opportunities.userId, userId), sql`stage NOT IN ('closed_won', 'closed_lost')`)),
+    }).from(opportunities).where(and(...oppConditions)),
     db.select({
       pending: sql<number>`sum(case when completed = false then 1 else 0 end)`,
       overdue: sql<number>`sum(case when completed = false and dueDate < now() then 1 else 0 end)`,
-    }).from(tasks).where(eq(tasks.userId, userId)),
+    }).from(tasks).where(taskConditions.length > 0 ? and(...taskConditions) : undefined),
     db.select({
       count: sql<number>`count(*)`,
       value: sql<number>`coalesce(sum(value), 0)`,
-    }).from(opportunities).where(and(eq(opportunities.userId, userId), eq(opportunities.stage, "closed_won"))),
+    }).from(opportunities).where(and(...wonConditions)),
   ]);
 
   return {
@@ -365,18 +426,22 @@ export async function getRecentActivities(userId: number, limit = 10) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.getRecentActivities(userId, limit);
   if (!db) return [];
-  return db.select().from(interactions).where(eq(interactions.userId, userId)).orderBy(desc(interactions.createdAt)).limit(limit);
+  const conditions = [];
+  if (userId !== 0) conditions.push(eq(interactions.userId, userId));
+  return db.select().from(interactions).where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(desc(interactions.createdAt)).limit(limit);
 }
 
 export async function getOpportunitiesByStage(userId: number) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.getOpportunitiesByStage(userId);
   if (!db) return [];
+  const conditions = [];
+  if (userId !== 0) conditions.push(eq(opportunities.userId, userId));
   return db.select({
     stage: opportunities.stage,
     count: sql<number>`count(*)`,
     totalValue: sql<number>`coalesce(sum(value), 0)`,
-  }).from(opportunities).where(eq(opportunities.userId, userId)).groupBy(opportunities.stage);
+  }).from(opportunities).where(conditions.length > 0 ? and(...conditions) : undefined).groupBy(opportunities.stage);
 }
 
 // ─── Attendants (Atendentes) ───
@@ -388,18 +453,18 @@ export async function createAttendant(data: InsertAttendant) {
   return { id: result[0].insertId };
 }
 
-export async function updateAttendant(id: number, clientId: number, data: Partial<InsertAttendant>) {
+export async function updateAttendant(id: number, companyId: number, data: Partial<InsertAttendant>) {
   const db = await getDb();
-  if (useJsonDb) return jsonDb.updateAttendant(id, clientId, data);
+  if (useJsonDb) return jsonDb.updateAttendant(id, companyId, data);
   if (!db) return;
-  await db.update(attendants).set(data).where(and(eq(attendants.id, id), eq(attendants.clientId, clientId)));
+  await db.update(attendants).set(data).where(and(eq(attendants.id, id), or(eq(attendants.companyId, companyId), eq((attendants as any).clientId, companyId))));
 }
 
-export async function deleteAttendant(id: number, clientId: number) {
+export async function deleteAttendant(id: number, companyId: number) {
   const db = await getDb();
-  if (useJsonDb) return jsonDb.deleteAttendant(id, clientId);
+  if (useJsonDb) return jsonDb.deleteAttendant(id, companyId);
   if (!db) return;
-  await db.delete(attendants).where(and(eq(attendants.id, id), eq(attendants.clientId, clientId)));
+  await db.delete(attendants).where(and(eq(attendants.id, id), or(eq(attendants.companyId, companyId), eq((attendants as any).clientId, companyId))));
 }
 
 export async function getAttendantById(id: number) {
@@ -418,19 +483,28 @@ export async function getAttendantByEmail(email: string) {
   return result[0];
 }
 
-export async function listAttendantsByClient(clientId: number) {
+export async function listAttendantsByCompany(companyId: number) {
   const db = await getDb();
-  if (useJsonDb) return jsonDb.listAttendantsByClient(clientId);
+  if (useJsonDb) return jsonDb.listAttendantsByCompany(companyId);
   if (!db) return [];
-  return db.select().from(attendants).where(eq(attendants.clientId, clientId)).orderBy(desc(attendants.createdAt));
+  return db.select().from(attendants).where(or(eq(attendants.companyId, companyId), eq((attendants as any).clientId, companyId))).orderBy(desc(attendants.createdAt));
+}
+
+export async function countAttendantsByCompany(companyId: number) {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.countAttendantsByCompany(companyId);
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(attendants).where(or(eq(attendants.companyId, companyId), eq((attendants as any).clientId, companyId)));
+  return result[0]?.count ?? 0;
+}
+
+// Retrocompatibilidade
+export async function listAttendantsByClient(clientId: number) {
+  return listAttendantsByCompany(clientId);
 }
 
 export async function countAttendantsByClient(clientId: number) {
-  const db = await getDb();
-  if (useJsonDb) return jsonDb.countAttendantsByClient(clientId);
-  if (!db) return 0;
-  const result = await db.select({ count: sql<number>`count(*)` }).from(attendants).where(eq(attendants.clientId, clientId));
-  return result[0]?.count ?? 0;
+  return countAttendantsByCompany(clientId);
 }
 
 export async function updateAttendantSession(id: number, sessionToken: string, ip: string, device: string) {
@@ -458,7 +532,8 @@ export async function listAllAttendants() {
   if (!db) return [];
   return db.select({
     id: attendants.id,
-    clientId: attendants.clientId,
+    companyId: attendants.companyId,
+    status: attendants.status,
     name: attendants.name,
     email: attendants.email,
     phone: attendants.phone,
@@ -1005,4 +1080,159 @@ export async function seedTestUser() {
   } else {
     console.log(`[Seed] Test user ${email} already exists in MySQL.`);
   }
+}
+
+export async function updateClientAttendant(clientId: number, attendantId: number | null) {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateClientAttendant(clientId, attendantId);
+  if (!db) return;
+  await db.update(clients).set({ assignedAttendantId: attendantId, updatedAt: new Date() }).where(eq(clients.id, clientId));
+}
+
+export async function countAssignedClients(attendantId: number): Promise<number> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.countAssignedClients(attendantId);
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(clients).where(eq(clients.assignedAttendantId, attendantId));
+  return result[0]?.count ?? 0;
+}
+
+export async function createWhatsappMessage(data: any): Promise<any> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.createWhatsappMessage(data);
+  if (!db) throw new Error("DB not available");
+  
+  const values = {
+    userId: data.userId,
+    clientId: data.clientId || null,
+    attendantId: data.attendantId || null,
+    direction: data.direction,
+    message: data.message || null,
+    mediaUrl: data.mediaUrl || null,
+    status: data.status || "sent",
+    externalId: data.externalId || null,
+  };
+  
+  const result = await db.insert(whatsappMessages).values(values as any);
+  return { id: result[0].insertId, ...values, createdAt: new Date() };
+}
+
+export async function listWhatsappMessages(userId: number, clientId: number): Promise<any[]> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.listWhatsappMessages(userId, clientId);
+  if (!db) return [];
+  return db.select().from(whatsappMessages)
+    .where(and(eq(whatsappMessages.userId, userId), eq(whatsappMessages.clientId, clientId)))
+    .orderBy(asc(whatsappMessages.createdAt));
+}
+
+export async function updateUserWhatsappConfig(
+  userId: number,
+  data: {
+    whatsappStatus?: string;
+    whatsappNumber?: string | null;
+    whatsappApiUrl?: string | null;
+    whatsappApiKey?: string | null;
+    whatsappQrCode?: string | null;
+  }
+): Promise<void> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateUserWhatsappConfig(userId, data);
+  if (!db) return;
+  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+export async function updateAttendantStatus(id: number, status: string): Promise<void> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateAttendantStatus(id, status);
+  if (!db) return;
+  await db.update(attendants).set({ status }).where(eq(attendants.id, id));
+}
+
+export async function listAllClients(): Promise<Client[]> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.listAllClients();
+  if (!db) return [];
+  return db.select().from(clients);
+}
+
+export async function listAllWhatsappMessages(): Promise<any[]> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.listAllWhatsappMessages();
+  if (!db) return [];
+  return db.select().from(whatsappMessages);
+}
+
+export async function routeIncomingWhatsappMessage(
+  companyId: number,
+  phone: string,
+  name: string,
+  message: string
+): Promise<{ msg: any; assignedAttendantId: number | null }> {
+  const allClients = await listAllClients();
+  let client = allClients.find(c => c.userId === companyId && c.phone === phone);
+  
+  if (!client) {
+    const newClientRes = await createClient({
+      userId: companyId,
+      name: name,
+      phone: phone,
+      status: "prospect",
+    } as any);
+    client = await getClientById(newClientRes.id, companyId);
+  }
+  
+  if (!client) throw new Error("Erro ao criar ou buscar cliente no CRM");
+  
+  let assignedId = client.assignedAttendantId;
+  if (assignedId) {
+    const att = await getAttendantById(assignedId);
+    if (!att || !att.isActive || att.status !== "available") {
+      assignedId = null;
+    }
+  }
+  
+  if (!assignedId) {
+    const companyAttendants = await listAttendantsByCompany(companyId);
+    const availableAttendants = companyAttendants.filter(a => a.isActive && a.status === "available");
+    
+    if (availableAttendants.length > 0) {
+      let bestAttendant = null;
+      let minCount = Infinity;
+      
+      for (const att of availableAttendants) {
+        const count = await countAssignedClients(att.id);
+        if (count < minCount) {
+          minCount = count;
+          bestAttendant = att;
+        }
+      }
+      
+      if (bestAttendant) {
+        assignedId = bestAttendant.id;
+        await updateClientAttendant(client.id, assignedId);
+      }
+    } else {
+      assignedId = null;
+      await updateClientAttendant(client.id, null);
+    }
+  }
+  
+  const msg = await createWhatsappMessage({
+    userId: companyId,
+    clientId: client.id,
+    direction: "inbound",
+    message: message,
+    status: "read",
+  });
+  
+  await createInteraction({
+    userId: companyId,
+    clientId: client.id,
+    type: "whatsapp",
+    subject: "Mensagem de WhatsApp recebida",
+    content: message,
+  });
+  
+  return { msg, assignedAttendantId: assignedId };
 }

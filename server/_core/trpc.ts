@@ -13,7 +13,7 @@ export const publicProcedure = t.procedure;
 const requireUser = t.middleware(async opts => {
   const { ctx, next } = opts;
 
-  if (!ctx.user) {
+  if (!ctx.user && !ctx.attendant) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 
@@ -21,6 +21,7 @@ const requireUser = t.middleware(async opts => {
     ctx: {
       ...ctx,
       user: ctx.user,
+      attendant: ctx.attendant,
     },
   });
 });
