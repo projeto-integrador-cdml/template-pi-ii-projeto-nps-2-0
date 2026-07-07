@@ -35,6 +35,7 @@ interface JsonDbData {
   flowResponses: any[];
   flowAnalytics: any[];
   whatsappMessages: any[];
+  settings: any[];
 }
 
 const emptyData = (): JsonDbData => ({
@@ -59,6 +60,7 @@ const emptyData = (): JsonDbData => ({
   flowResponses: [],
   flowAnalytics: [],
   whatsappMessages: [],
+  settings: [],
 });
 
 function readJsonDb(): JsonDbData {
@@ -1194,6 +1196,9 @@ export async function createWhatsappMessage(data: any): Promise<any> {
     mediaUrl: data.mediaUrl || null,
     status: data.status || "sent",
     externalId: data.externalId || null,
+    transcription: data.transcription || null,
+    transcriptionStatus: data.transcriptionStatus || null,
+    sentiment: data.sentiment || null,
     createdAt: new Date(),
   };
   db.whatsappMessages.push(newMessage);
@@ -1232,6 +1237,16 @@ export async function updateUserWhatsappConfig(
   }
 }
 
+export async function updateWhatsappMessageStatus(externalId: string, status: string): Promise<void> {
+  const db = readJsonDb();
+  if (!db.whatsappMessages) return;
+  const msg = db.whatsappMessages.find((m: any) => m.externalId === externalId);
+  if (msg) {
+    msg.status = status as any;
+    writeJsonDb(db);
+  }
+}
+
 export async function updateAttendantStatus(id: number, status: string): Promise<void> {
   const db = readJsonDb();
   const attendant = db.attendants.find(a => a.id === id);
@@ -1250,5 +1265,33 @@ export async function listAllClients(): Promise<Client[]> {
 export async function listAllWhatsappMessages(): Promise<any[]> {
   const db = readJsonDb();
   return db.whatsappMessages || [];
+}
+
+export async function getSetting(userId: number, settingKey: string): Promise<any> {
+  const db = readJsonDb();
+  if (!db.settings) db.settings = [];
+  return db.settings.find((s: any) => s.userId === userId && s.settingKey === settingKey) || null;
+}
+
+export async function upsertSetting(userId: number, settingKey: string, settingValue: string): Promise<void> {
+  const db = readJsonDb();
+  if (!db.settings) db.settings = [];
+  const existing = db.settings.find((s: any) => s.userId === userId && s.settingKey === settingKey);
+  const now = new Date();
+  if (existing) {
+    existing.settingValue = settingValue;
+    existing.updatedAt = now;
+  } else {
+    const id = nextId(db.settings);
+    db.settings.push({
+      id,
+      userId,
+      settingKey,
+      settingValue,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+  writeJsonDb(db);
 }
 

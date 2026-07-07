@@ -4,70 +4,79 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, MessageCircle, Bell, Database, LogOut, CheckCircle, Loader2, Save, Info, Link, Copy } from "lucide-react";
+import { Settings, Bell, Database, CheckCircle, Loader2, Save, Link, Plus, Trash2, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
-  const utils = trpc.useUtils();
-  const { data: config, refetch, isLoading } = trpc.whatsapp.getConnectionConfig.useQuery();
-
-  const [whatsappNumber, setWhatsappNumber] = useState("");
-  const [whatsappApiUrl, setWhatsappApiUrl] = useState("");
-  const [whatsappApiKey, setWhatsappApiKey] = useState("");
+  const { data: serverTemplates, refetch: refetchTemplates, isLoading: isLoadingTemplates } = trpc.whatsapp.listTemplates.useQuery();
+  const [localTemplates, setLocalTemplates] = useState<any[]>([]);
 
   useEffect(() => {
-    if (config) {
-      setWhatsappNumber(config.whatsappNumber || "");
-      setWhatsappApiUrl(config.whatsappApiUrl || "");
-      setWhatsappApiKey(config.whatsappApiKey || "");
+    if (serverTemplates) {
+      setLocalTemplates(serverTemplates);
     }
-  }, [config]);
+  }, [serverTemplates]);
 
-  const saveMutation = trpc.whatsapp.updateConnectionConfig.useMutation({
+  const saveTemplatesMutation = trpc.whatsapp.saveTemplates.useMutation({
     onSuccess: () => {
-      refetch();
-      toast.success("Configurações do WhatsApp salvas com sucesso!");
+      refetchTemplates();
+      toast.success("Modelos de mensagem salvos com sucesso!");
     },
     onError: (err) => {
-      toast.error(err.message || "Erro ao salvar configurações");
+      toast.error(err.message || "Erro ao salvar modelos");
     }
   });
 
-  const disconnectMutation = trpc.whatsapp.disconnect.useMutation({
-    onSuccess: () => {
-      refetch();
-      toast.success("WhatsApp desconectado e credenciais limpas!");
-    },
-    onError: (err) => {
-      toast.error(err.message || "Erro ao limpar configurações");
+  const handleAddTemplate = () => {
+    setLocalTemplates([
+      ...localTemplates,
+      {
+        name: `novo_modelo_${localTemplates.length + 1}`,
+        language: "pt_BR",
+        category: "UTILITY",
+        bodyText: "Olá {{1}}, obrigado pelo contato! Como podemos ajudar?"
+      }
+    ]);
+  };
+
+  const handleRemoveTemplate = (index: number) => {
+    const updated = [...localTemplates];
+    updated.splice(index, 1);
+    setLocalTemplates(updated);
+  };
+
+  const handleUpdateTemplateField = (index: number, field: string, value: string) => {
+    const updated = [...localTemplates];
+    updated[index] = {
+      ...updated[index],
+      [field]: value
+    };
+    setLocalTemplates(updated);
+  };
+
+  const handleSaveTemplates = () => {
+    for (const t of localTemplates) {
+      if (!t.name.trim()) {
+        toast.error("O nome do modelo não pode ser vazio.");
+        return;
+      }
+      if (!/^[a-z0-9_]+$/.test(t.name)) {
+        toast.error(`O nome do modelo "${t.name}" deve conter apenas letras minúsculas, números e sublinhados (_)`);
+        return;
+      }
+      if (!t.bodyText.trim()) {
+        toast.error(`O texto do corpo do modelo "${t.name}" não pode ser vazio.`);
+        return;
+      }
     }
-  });
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!whatsappNumber.trim() || !whatsappApiUrl.trim() || !whatsappApiKey.trim()) {
-      toast.error("Por favor, preencha todos os campos para conectar a API Oficial.");
-      return;
-    }
-    saveMutation.mutate({
-      whatsappNumber: whatsappNumber.trim(),
-      whatsappApiUrl: whatsappApiUrl.trim(),
-      whatsappApiKey: whatsappApiKey.trim(),
-    });
+    saveTemplatesMutation.mutate(localTemplates.map(t => ({
+      name: t.name.trim(),
+      language: t.language.trim(),
+      category: t.category,
+      bodyText: t.bodyText.trim()
+    })));
   };
-
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copiado para a área de transferência!`);
-  };
-
-  const handleClear = () => {
-    disconnectMutation.mutate();
-  };
-
-  const webhookUrl = `${window.location.origin}/api/whatsapp/webhook`;
-  const verifyToken = "crm_whatsapp_verify_token";
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -81,154 +90,126 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* WHATSAPP OFFICIAL CLOUD API CONNECTION CARD */}
+      {/* WHATSAPP MESSAGE TEMPLATES CARD */}
       <Card className="glass-card border border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-emerald-500" />
-              <CardTitle className="text-base">Integração WhatsApp API Oficial</CardTitle>
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <CardTitle className="text-base">Modelos de Mensagens (Templates)</CardTitle>
             </div>
-            {config?.whatsappStatus === "connected" ? (
-              <Badge className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-500 border border-emerald-500/25 text-[10px] px-2 py-0.5 font-bold">
-                CONECTADO
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-[10px] px-2 py-0.5">
-                INATIVO
-              </Badge>
-            )}
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAddTemplate}
+              className="h-8 text-xs gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar Modelo
+            </Button>
           </div>
           <CardDescription>
-            Conecte o seu número de WhatsApp corporativo usando a Cloud API oficial da Meta Graph API para comunicações rápidas e estáveis.
+            Configure os modelos de mensagens oficiais homologados pela Meta para iniciar atendimentos.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {isLoading ? (
-            <div className="flex justify-center py-8">
+        <CardContent className="space-y-4">
+          {isLoadingTemplates ? (
+            <div className="flex justify-center py-6">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : localTemplates.length === 0 ? (
+            <div className="text-center py-8 border border-dashed border-border rounded-xl">
+              <p className="text-xs text-muted-foreground">Nenhum modelo cadastrado.</p>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAddTemplate}
+                className="mt-3 text-xs"
+              >
+                Criar Primeiro Modelo
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-6">
-              {/* STATUS CARD OR FORM */}
-              <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="whatsappNumber" className="text-xs font-semibold">Número do WhatsApp (com DDI)</Label>
-                    <Input
-                      id="whatsappNumber"
-                      placeholder="Ex: +5511999999999"
-                      value={whatsappNumber}
-                      onChange={(e) => setWhatsappNumber(e.target.value)}
-                      className="h-10 text-sm bg-accent/10 border-border"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="whatsappApiUrl" className="text-xs font-semibold">ID do Número (Phone Number ID)</Label>
-                    <Input
-                      id="whatsappApiUrl"
-                      placeholder="Ex: 105432987654321"
-                      value={whatsappApiUrl}
-                      onChange={(e) => setWhatsappApiUrl(e.target.value)}
-                      className="h-10 text-sm bg-accent/10 border-border"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="whatsappApiKey" className="text-xs font-semibold">Token de Acesso Permanente (Meta)</Label>
-                  <Input
-                    id="whatsappApiKey"
-                    type="password"
-                    placeholder="Token Bearer da Meta (EAA...)"
-                    value={whatsappApiKey}
-                    onChange={(e) => setWhatsappApiKey(e.target.value)}
-                    className="h-10 text-sm bg-accent/10 border-border font-mono"
-                  />
-                </div>
-
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Button
-                    type="submit"
-                    disabled={saveMutation.isPending}
-                    size="sm"
-                    className="h-9 text-xs gap-1.5 px-4 font-medium"
+            <div className="space-y-4">
+              {localTemplates.map((template, idx) => (
+                <div key={idx} className="p-4 rounded-xl border border-border bg-accent/5 space-y-3 relative group">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTemplate(idx)}
+                    className="absolute top-4 right-4 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-lg border border-border/40 transition-colors"
+                    title="Excluir Modelo"
                   >
-                    {saveMutation.isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Save className="h-3.5 w-3.5" />
-                    )}
-                    Salvar Configurações
-                  </Button>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
 
-                  {config?.whatsappStatus === "connected" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleClear}
-                      disabled={disconnectMutation.isPending}
-                      size="sm"
-                      className="h-9 text-xs text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20 gap-1.5"
-                    >
-                      {disconnectMutation.isPending ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <LogOut className="h-3.5 w-3.5" />
-                      )}
-                      Limpar Credenciais
-                    </Button>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pr-8">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Nome do Modelo</Label>
+                      <Input
+                        value={template.name}
+                        onChange={(e) => handleUpdateTemplateField(idx, "name", e.target.value)}
+                        placeholder="ex: boas_vindas"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Idioma</Label>
+                      <Input
+                        value={template.language}
+                        onChange={(e) => handleUpdateTemplateField(idx, "language", e.target.value)}
+                        placeholder="ex: pt_BR"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Categoria</Label>
+                      <select
+                        value={template.category}
+                        onChange={(e) => handleUpdateTemplateField(idx, "category", e.target.value)}
+                        className="w-full h-8 text-xs bg-muted border border-border rounded-md px-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value="UTILITY">Utilidade (UTILITY)</option>
+                        <option value="MARKETING">Marketing (MARKETING)</option>
+                        <option value="AUTHENTICATION">Autenticação (AUTHENTICATION)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Texto do Corpo (Body)</Label>
+                      <span className="text-[9px] text-muted-foreground font-semibold">
+                        Use {'{{1}}'}, {'{{2}}'}, etc. para variáveis
+                      </span>
+                    </div>
+                    <textarea
+                      value={template.bodyText}
+                      onChange={(e) => handleUpdateTemplateField(idx, "bodyText", e.target.value)}
+                      placeholder="Olá {{1}}, obrigado por entrar em contato!"
+                      rows={2}
+                      className="w-full p-2.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="button"
+                  disabled={saveTemplatesMutation.isPending}
+                  onClick={handleSaveTemplates}
+                  size="sm"
+                  className="h-9 text-xs gap-1.5 px-4 font-medium"
+                >
+                  {saveTemplatesMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
                   )}
-                </div>
-              </form>
-
-              {/* WEBHOOK DETAILS FOR META */}
-              <div className="p-4 rounded-xl border border-primary/10 bg-primary/5 space-y-3">
-                <div className="flex items-center gap-2 text-primary">
-                  <Info className="h-4 w-4 shrink-0" />
-                  <h4 className="text-xs font-bold uppercase tracking-wider">Configuração do Webhook da Meta</h4>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Para receber mensagens no CRM, acesse a sua conta de desenvolvedor em <b>developers.facebook.com</b>, adicione o produto <b>WhatsApp Webhooks</b> e preencha os dados abaixo:
-                </p>
-
-                <div className="space-y-2.5 pt-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg border bg-background/50 gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] text-muted-foreground font-semibold uppercase">Callback URL</span>
-                      <p className="text-xs font-mono select-all text-foreground truncate max-w-[400px]">{webhookUrl}</p>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleCopy(webhookUrl, "Webhook Callback URL")}
-                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg border bg-background/50 gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] text-muted-foreground font-semibold uppercase">Verify Token</span>
-                      <p className="text-xs font-mono select-all text-foreground">{verifyToken}</p>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleCopy(verifyToken, "Webhook Verify Token")}
-                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-2">
-                  <Link className="h-3.5 w-3.5" />
-                  <span>Selecione a inscrição de campo <b>messages</b> no painel da Meta para receber os eventos.</span>
-                </div>
+                  Salvar Todos os Modelos
+                </Button>
               </div>
             </div>
           )}

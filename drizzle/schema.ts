@@ -173,6 +173,9 @@ export const whatsappMessages = mysqlTable("whatsappMessages", {
   mediaUrl: text("mediaUrl"),
   status: mysqlEnum("whatsappStatus", ["sent", "delivered", "read", "failed"]).default("sent").notNull(),
   externalId: varchar("externalId", { length: 255 }),
+  transcription: text("transcription"),
+  transcriptionStatus: varchar("transcriptionStatus", { length: 50 }),
+  sentiment: varchar("sentiment", { length: 50 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

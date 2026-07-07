@@ -23,6 +23,7 @@ import AttendantsPage from "./pages/AttendantsPage";
 import SettingsPage from "./pages/SettingsPage";
 import WhatsAppPage from "./pages/WhatsAppPage";
 import ReportsPage from "./pages/ReportsPage";
+import ChannelsPage from "./pages/ChannelsPage";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -81,6 +82,11 @@ function Router() {
       <Route path="/reports">
         <DashboardLayout>
           <ReportsPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/channels">
+        <DashboardLayout>
+          <ChannelsPage />
         </DashboardLayout>
       </Route>
       <Route path="/admin/users">

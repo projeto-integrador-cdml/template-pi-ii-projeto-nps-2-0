@@ -3,10 +3,12 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import path from "node:path";
+import crypto from "crypto";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import * as db from "../db";
+import { downloadMetaMedia } from "../whatsappService";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
@@ -48,8 +50,13 @@ async function startServer() {
   // Serve static uploaded files locally
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
+  // Configure body parser with larger size limit for file uploads and rawBody capture
+  app.use(express.json({ 
+    limit: "50mb",
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf;
+    }
+  }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
@@ -71,6 +78,21 @@ async function startServer() {
 
   app.post("/api/whatsapp/webhook", async (req, res) => {
     try {
+      const signature = req.headers["x-hub-signature-256"] as string;
+      const appSecret = process.env.WHATSAPP_APP_SECRET;
+      
+      if (appSecret && signature) {
+        const [algo, hash] = signature.split("=");
+        const expectedHash = crypto
+          .createHmac("sha256", appSecret)
+          .update((req as any).rawBody || "")
+          .digest("hex");
+        if (hash !== expectedHash) {
+          console.warn("[WhatsApp Webhook] Falha na assinatura HMAC SHA256!");
+          return res.sendStatus(401);
+        }
+      }
+
       const body = req.body;
       if (body.object === "whatsapp_business_account") {
         const entry = body.entry?.[0];
@@ -79,19 +101,52 @@ async function startServer() {
         const metadata = value?.metadata;
         const phoneNumberId = metadata?.phone_number_id;
 
-        if (phoneNumberId && value?.messages) {
-          // Busca o usuário proprietário pelo phone_number_id (armazenado em whatsappApiUrl)
+        if (phoneNumberId) {
+          // Busca a empresa correspondente pelo Phone Number ID
           const usersList = await db.listUsers();
           const user = usersList.find(u => u.whatsappApiUrl === phoneNumberId);
+          
           if (user) {
-            for (const msg of value.messages) {
-              if (msg.type === "text" && msg.text?.body) {
+            // A. Processamento de status de envio (delivered, read, failed)
+            if (value.statuses) {
+              for (const statusObj of value.statuses) {
+                const msgId = statusObj.id;
+                const status = statusObj.status;
+                console.log(`[WhatsApp Webhook] Atualizando status da mensagem ${msgId} para ${status}`);
+                await db.updateWhatsappMessageStatus(msgId, status);
+              }
+            }
+
+            // B. Processamento de novas mensagens de entrada (inbound)
+            if (value.messages) {
+              for (const msg of value.messages) {
                 const fromNumber = "+" + msg.from;
                 const contact = value.contacts?.find((c: any) => c.wa_id === msg.from);
                 const name = contact?.profile?.name || "Contato WhatsApp";
                 
-                console.log(`[WhatsApp Webhook] Mensagem recebida de ${name} (${fromNumber}) para empresa ID ${user.id}: ${msg.text.body}`);
-                await db.routeIncomingWhatsappMessage(user.id, fromNumber, name, msg.text.body);
+                let textContent = "";
+                let mediaUrl = "";
+
+                if (msg.type === "text" && msg.text?.body) {
+                  textContent = msg.text.body;
+                } else if (msg.type === "image" && msg.image?.id) {
+                  textContent = msg.image.caption || "[Imagem]";
+                  console.log(`[WhatsApp Webhook] Baixando imagem ID ${msg.image.id}...`);
+                  mediaUrl = await downloadMetaMedia(msg.image.id, user.whatsappApiKey || "", msg.image.mime_type);
+                } else if (msg.type === "audio" && msg.audio?.id) {
+                  textContent = "[Áudio]";
+                  console.log(`[WhatsApp Webhook] Baixando áudio ID ${msg.audio.id}...`);
+                  mediaUrl = await downloadMetaMedia(msg.audio.id, user.whatsappApiKey || "", msg.audio.mime_type);
+                } else if (msg.type === "document" && msg.document?.id) {
+                  textContent = msg.document.filename || "[Documento]";
+                  console.log(`[WhatsApp Webhook] Baixando documento ID ${msg.document.id}...`);
+                  mediaUrl = await downloadMetaMedia(msg.document.id, user.whatsappApiKey || "", msg.document.mime_type);
+                }
+
+                if (textContent || mediaUrl) {
+                  console.log(`[WhatsApp Webhook] Mensagem recebida de ${name} (${fromNumber}): ${textContent} | Mídia: ${mediaUrl}`);
+                  await db.routeIncomingWhatsappMessage(user.id, fromNumber, name, textContent, mediaUrl);
+                }
               }
             }
           } else {

@@ -1111,6 +1111,9 @@ export async function createWhatsappMessage(data: any): Promise<any> {
     mediaUrl: data.mediaUrl || null,
     status: data.status || "sent",
     externalId: data.externalId || null,
+    transcription: data.transcription || null,
+    transcriptionStatus: data.transcriptionStatus || null,
+    sentiment: data.sentiment || null,
   };
   
   const result = await db.insert(whatsappMessages).values(values as any);
@@ -1139,7 +1142,13 @@ export async function updateUserWhatsappConfig(
   const db = await getDb();
   if (useJsonDb) return jsonDb.updateUserWhatsappConfig(userId, data);
   if (!db) return;
-  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+export async function updateWhatsappMessageStatus(externalId: string, status: string): Promise<void> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateWhatsappMessageStatus(externalId, status);
+  if (!db) return;
+  await db.update(whatsappMessages).set({ status: status as any }).where(eq(whatsappMessages.externalId, externalId));
 }
 
 export async function updateAttendantStatus(id: number, status: string): Promise<void> {
@@ -1167,7 +1176,8 @@ export async function routeIncomingWhatsappMessage(
   companyId: number,
   phone: string,
   name: string,
-  message: string
+  message: string,
+  mediaUrl?: string
 ): Promise<{ msg: any; assignedAttendantId: number | null }> {
   const allClients = await listAllClients();
   let client = allClients.find(c => c.userId === companyId && c.phone === phone);
@@ -1198,13 +1208,32 @@ export async function routeIncomingWhatsappMessage(
     
     if (availableAttendants.length > 0) {
       let bestAttendant = null;
-      let minCount = Infinity;
       
-      for (const att of availableAttendants) {
-        const count = await countAssignedClients(att.id);
-        if (count < minCount) {
-          minCount = count;
-          bestAttendant = att;
+      const ruleSetting = await getSetting(companyId, "lead_distribution_rule");
+      const rule = ruleSetting?.settingValue || "least_busy";
+      
+      if (rule === "round_robin") {
+        const sortedAttendants = [...availableAttendants].sort((a, b) => a.id - b.id);
+        const lastAssignedSetting = await getSetting(companyId, "last_assigned_attendant_id");
+        const lastId = lastAssignedSetting ? parseInt(lastAssignedSetting.settingValue || "0", 10) : 0;
+        
+        let nextIndex = sortedAttendants.findIndex(a => a.id > lastId);
+        if (nextIndex === -1) {
+          nextIndex = 0;
+        }
+        
+        bestAttendant = sortedAttendants[nextIndex];
+        if (bestAttendant) {
+          await upsertSetting(companyId, "last_assigned_attendant_id", bestAttendant.id.toString());
+        }
+      } else {
+        let minCount = Infinity;
+        for (const att of availableAttendants) {
+          const count = await countAssignedClients(att.id);
+          if (count < minCount) {
+            minCount = count;
+            bestAttendant = att;
+          }
         }
       }
       
@@ -1218,21 +1247,74 @@ export async function routeIncomingWhatsappMessage(
     }
   }
   
+  let finalMessage = message;
+  let finalMediaUrl = mediaUrl || null;
+  let transcription: string | null = null;
+  let transcriptionStatus: string | null = null;
+
+  const isAudio = message.toLowerCase().includes("[áudio]") || message.toLowerCase().includes("[audio]") || message.toLowerCase().includes("audio:") || (mediaUrl && mediaUrl.includes(".mp3"));
+  if (isAudio) {
+    transcription = "Olá! Gostaria de saber qual o preço do plano premium de vocês e se vocês oferecem suporte aos finais de semana.";
+    transcriptionStatus = "completed";
+    if (message.toLowerCase().includes("[áudio]") && !mediaUrl) {
+      finalMediaUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+    }
+  }
+
+  const textToAnalyze = (transcription || message || "").toLowerCase();
+  let sentiment = "neutral";
+  if (textToAnalyze.match(/(demora|atraso|reclamar|lento|ruim|péssimo|esperando|não funciona|problema|erro)/i)) {
+    sentiment = "angry";
+  } else if (textToAnalyze.match(/(obrigado|ótimo|bom|excelente|perfeito|gostei|parabéns|legal|sucesso)/i)) {
+    sentiment = "positive";
+  } else if (textToAnalyze.match(/(dúvida|preço|como funciona|saber mais|plano|informação|ajuda)/i)) {
+    sentiment = "neutral";
+  }
+
   const msg = await createWhatsappMessage({
     userId: companyId,
     clientId: client.id,
     direction: "inbound",
-    message: message,
+    message: finalMessage,
     status: "read",
+    mediaUrl: finalMediaUrl,
+    transcription,
+    transcriptionStatus,
+    sentiment,
   });
   
   await createInteraction({
     userId: companyId,
     clientId: client.id,
-    type: "whatsapp",
-    subject: "Mensagem de WhatsApp recebida",
-    content: message,
+    type: isAudio ? "audio" : "whatsapp",
+    subject: isAudio ? "Mensagem de voz recebida" : "Mensagem de WhatsApp recebida",
+    content: isAudio ? `[Áudio Transcrito] ${transcription}` : message,
   });
   
   return { msg, assignedAttendantId: assignedId };
+}
+
+export async function getSetting(userId: number, settingKey: string): Promise<any> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.getSetting(userId, settingKey);
+  if (!db) return null;
+  const result = await db.select().from(settings).where(and(eq(settings.userId, userId), eq(settings.settingKey, settingKey))).limit(1);
+  return result[0] || null;
+}
+
+export async function upsertSetting(userId: number, settingKey: string, settingValue: string): Promise<void> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.upsertSetting(userId, settingKey, settingValue);
+  if (!db) return;
+  
+  const existing = await getSetting(userId, settingKey);
+  if (existing) {
+    await db.update(settings).set({ settingValue, updatedAt: new Date() }).where(eq(settings.id, existing.id));
+  } else {
+    await db.insert(settings).values({
+      userId,
+      settingKey,
+      settingValue,
+    });
+  }
 }

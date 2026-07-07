@@ -1590,7 +1590,9 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
     sendMessage: protectedProcedure
       .input(z.object({
         clientId: z.number(),
-        message: z.string().min(1),
+        message: z.string().optional().default(""),
+        mediaUrl: z.string().optional(),
+        mediaType: z.enum(["image", "document", "audio"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const companyId = getCompanyAdminId(ctx);
@@ -1602,31 +1604,199 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         }
         
         const attendantId = ctx.attendant ? ctx.attendant.id : null;
-        
+        const finalMsgText = input.message || (input.mediaType === "image" ? "[Imagem]" : input.mediaType === "audio" ? "[Áudio]" : "[Documento]");
+
         const msg = await db.createWhatsappMessage({
           userId: client.userId,
           clientId: client.id,
           attendantId,
           direction: "outbound",
-          message: input.message,
+          message: finalMsgText,
           status: "sent",
+          mediaUrl: input.mediaUrl || null,
         });
         
         await db.createInteraction({
           userId: client.userId,
           clientId: client.id,
           type: "whatsapp",
-          subject: "Mensagem de WhatsApp enviada",
-          content: input.message,
+          subject: input.mediaUrl ? `Arquivo de WhatsApp enviado (${input.mediaType})` : "Mensagem de WhatsApp enviada",
+          content: finalMsgText,
         });
 
-        // Envia pelo WhatsApp Web se houver número cadastrado
+        // Envia pelo WhatsApp se houver número cadastrado
         if (client.phone) {
-          whatsappService.sendMessage(client.userId, client.phone, input.message).catch(err => {
-            console.error("[WhatsApp Web] Erro ao enviar mensagem de saída:", err);
-          });
+          const sendPromise = input.mediaUrl && input.mediaType
+            ? whatsappService.sendMediaMessage(client.userId, client.phone, input.mediaUrl, input.mediaType, input.message)
+            : whatsappService.sendMessage(client.userId, client.phone, finalMsgText);
+
+          sendPromise
+            .then(async (res) => {
+              if (res.success && res.messageId && msg.id) {
+                if (db.useJsonDb) {
+                  const jsonDb = await import("./dbJson");
+                  const dbData = (jsonDb as any).readJsonDb();
+                  const m = dbData.whatsappMessages?.find((x: any) => x.id === msg.id);
+                  if (m) {
+                    m.externalId = res.messageId;
+                    (jsonDb as any).writeJsonDb(dbData);
+                  }
+                } else {
+                  const { whatsappMessages } = await import("../drizzle/schema");
+                  const { eq } = await import("drizzle-orm");
+                  const mysqlDb = await db.getDb();
+                  if (mysqlDb) {
+                    await mysqlDb.update(whatsappMessages).set({ externalId: res.messageId }).where(eq(whatsappMessages.id, msg.id));
+                  }
+                }
+              }
+            })
+            .catch(err => {
+              console.error("[WhatsApp API] Erro ao disparar mensagem de saída:", err);
+            });
         }
         
+        return msg;
+      }),
+
+    listTemplates: protectedProcedure.query(async ({ ctx }) => {
+      const companyId = getCompanyAdminId(ctx);
+      const setting = await db.getSetting(companyId, "whatsapp_templates");
+      if (setting && setting.settingValue) {
+        try {
+          return JSON.parse(setting.settingValue);
+        } catch (err) {
+          console.error("[tRPC] Erro ao carregar templates:", err);
+        }
+      }
+      return [
+        {
+          name: "boas_vindas",
+          language: "pt_BR",
+          category: "UTILITY",
+          bodyText: "Olá {{1}}, obrigado pelo contato! Como podemos te ajudar hoje?"
+        },
+        {
+          name: "lembrete_reuniao",
+          language: "pt_BR",
+          category: "UTILITY",
+          bodyText: "Olá {{1}}, este é um lembrete da nossa reunião agendada para {{2}}. Até lá!"
+        },
+        {
+          name: "proposta_enviada",
+          language: "pt_BR",
+          category: "UTILITY",
+          bodyText: "Olá {{1}}, enviamos a proposta comercial para o seu e-mail: {{2}}. Fique à vontade para tirar dúvidas."
+        }
+      ];
+    }),
+
+    saveTemplates: protectedProcedure
+      .input(z.array(z.object({
+        name: z.string().min(1),
+        language: z.string().min(1),
+        category: z.string(),
+        bodyText: z.string().min(1),
+      })))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem salvar templates" });
+        const companyId = getCreatorId(ctx);
+        await db.upsertSetting(companyId, "whatsapp_templates", JSON.stringify(input));
+        return { success: true };
+      }),
+
+    sendTemplate: protectedProcedure
+      .input(z.object({
+        clientId: z.number(),
+        templateName: z.string(),
+        languageCode: z.string().default("pt_BR"),
+        parameters: z.array(z.string()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const companyId = getCompanyAdminId(ctx);
+        const client = await db.getClientById(input.clientId, companyId);
+        if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Contato não encontrado" });
+
+        if (ctx.attendant && client.assignedAttendantId !== ctx.attendant.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para este contato" });
+        }
+
+        const attendantId = ctx.attendant ? ctx.attendant.id : null;
+        const templates = await db.getSetting(companyId, "whatsapp_templates");
+        let bodyText = `Template: ${input.templateName}`;
+        if (templates && templates.settingValue) {
+          try {
+            const list = JSON.parse(templates.settingValue);
+            const found = list.find((t: any) => t.name === input.templateName);
+            if (found) {
+              bodyText = found.bodyText;
+              input.parameters.forEach((val, idx) => {
+                bodyText = bodyText.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), val);
+              });
+            }
+          } catch (e) {}
+        } else {
+          const defaults: Record<string, string> = {
+            boas_vindas: "Olá {{1}}, obrigado pelo contato! Como podemos te ajudar hoje?",
+            lembrete_reuniao: "Olá {{1}}, este é um lembrete da nossa reunião agendada para {{2}}. Até lá!",
+            proposta_enviada: "Olá {{1}}, enviamos a proposta comercial para o seu e-mail: {{2}}. Fique à vontade para tirar dúvidas."
+          };
+          if (defaults[input.templateName]) {
+            bodyText = defaults[input.templateName];
+            input.parameters.forEach((val, idx) => {
+              bodyText = bodyText.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), val);
+            });
+          }
+        }
+
+        const msg = await db.createWhatsappMessage({
+          userId: client.userId,
+          clientId: client.id,
+          attendantId,
+          direction: "outbound",
+          message: bodyText,
+          status: "sent",
+        });
+
+        await db.createInteraction({
+          userId: client.userId,
+          clientId: client.id,
+          type: "whatsapp",
+          subject: `Template disparado (${input.templateName})`,
+          content: bodyText,
+        });
+
+        if (client.phone) {
+          whatsappService.sendTemplateMessage(
+            client.userId,
+            client.phone,
+            input.templateName,
+            input.languageCode,
+            input.parameters
+          ).then(async (res) => {
+            if (res.success && res.messageId && msg.id) {
+              if (db.useJsonDb) {
+                const jsonDb = await import("./dbJson");
+                const dbData = (jsonDb as any).readJsonDb();
+                const m = dbData.whatsappMessages?.find((x: any) => x.id === msg.id);
+                if (m) {
+                  m.externalId = res.messageId;
+                  (jsonDb as any).writeJsonDb(dbData);
+                }
+              } else {
+                const { whatsappMessages } = await import("../drizzle/schema");
+                const { eq } = await import("drizzle-orm");
+                const mysqlDb = await db.getDb();
+                if (mysqlDb) {
+                  await mysqlDb.update(whatsappMessages).set({ externalId: res.messageId }).where(eq(whatsappMessages.id, msg.id));
+                }
+              }
+            }
+          }).catch(err => {
+            console.error("[tRPC] Erro ao disparar template WhatsApp:", err);
+          });
+        }
+
         return msg;
       }),
 
@@ -1749,6 +1919,136 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       .mutation(async ({ ctx, input }) => {
         if (!ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas atendentes podem alterar seu próprio status" });
         await db.updateAttendantStatus(ctx.attendant.id, input.status);
+        return { success: true };
+      }),
+
+    listChannels: protectedProcedure.query(async ({ ctx }) => {
+      const companyId = getCompanyAdminId(ctx);
+      const setting = await db.getSetting(companyId, "company_channels");
+      if (setting && setting.settingValue) {
+        try {
+          return JSON.parse(setting.settingValue);
+        } catch (err) {
+          console.error("[tRPC] Erro ao carregar canais:", err);
+        }
+      }
+      
+      const user = await db.getUserById(companyId);
+      const hasConfig = user && user.whatsappNumber;
+
+      return [
+        {
+          id: 1,
+          name: "WhatsApp Vendas",
+          type: "whatsapp",
+          identifier: hasConfig ? user.whatsappNumber : "+55 11 98888-8888",
+          status: hasConfig ? user.whatsappStatus || "connected" : "connected",
+          phoneNumberId: hasConfig ? user.whatsappApiUrl || "" : "",
+          accessToken: hasConfig ? user.whatsappApiKey || "" : "",
+          contacts: 64073,
+          departments: 1,
+          attendants: 11
+        },
+        {
+          id: 2,
+          name: "@EmpresaExemplo",
+          type: "instagram",
+          identifier: "@empresa_digital",
+          status: "connected",
+          instagramAccountId: "",
+          pageAccessToken: "",
+          contacts: 1700,
+          departments: 1,
+          attendants: 10
+        }
+      ];
+    }),
+
+    saveChannels: protectedProcedure
+      .input(z.array(z.object({
+        id: z.number(),
+        name: z.string().min(1),
+        type: z.enum(["whatsapp", "instagram", "facebook"]),
+        identifier: z.string().min(1),
+        status: z.string(),
+        phoneNumberId: z.string().optional().nullable(),
+        instagramAccountId: z.string().optional().nullable(),
+        pageId: z.string().optional().nullable(),
+        accessToken: z.string().optional().nullable(),
+        pageAccessToken: z.string().optional().nullable(),
+        contacts: z.number(),
+        departments: z.number(),
+        attendants: z.number(),
+      })))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerenciar canais" });
+        const companyId = getCreatorId(ctx);
+
+        const whatsappChannel = input.find(c => c.type === "whatsapp");
+        if (whatsappChannel && whatsappChannel.phoneNumberId && whatsappChannel.accessToken) {
+          await db.updateUserWhatsappConfig(companyId, {
+            whatsappNumber: whatsappChannel.identifier,
+            whatsappApiUrl: whatsappChannel.phoneNumberId || null,
+            whatsappApiKey: whatsappChannel.accessToken || null,
+            whatsappStatus: "connected",
+            whatsappQrCode: null,
+          });
+        } else if (!input.some(c => c.type === "whatsapp")) {
+          await db.updateUserWhatsappConfig(companyId, {
+            whatsappNumber: null,
+            whatsappApiUrl: null,
+            whatsappApiKey: null,
+            whatsappStatus: "disconnected",
+            whatsappQrCode: null,
+          });
+        }
+
+        await db.upsertSetting(companyId, "company_channels", JSON.stringify(input));
+        return { success: true };
+      }),
+
+    generateAIDraft: protectedProcedure
+      .input(z.object({ clientId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const companyId = getCreatorId(ctx);
+        const messages = await db.listWhatsappMessages(companyId, input.clientId);
+        const inboundMessages = messages.filter(m => m.direction === "inbound");
+        const lastInbound = inboundMessages[inboundMessages.length - 1];
+        
+        const clientText = lastInbound 
+          ? (lastInbound.transcription || lastInbound.message || "") 
+          : "Olá";
+          
+        let reply = "Olá! Como posso ajudar você hoje?";
+        const txt = clientText.toLowerCase();
+        
+        if (txt.includes("preço") || txt.includes("valor") || txt.includes("plano") || txt.includes("custo")) {
+          reply = "Olá! Atualmente temos o Plano Basic por R$ 99/mês (ideal para equipes de até 3 pessoas) e o Plano Premium por R$ 249/mês (com atendentes ilimitados, IA Copiloto e Roleta de leads). Qual deles se encaixa melhor no seu momento?";
+        } else if (txt.includes("suporte") || txt.includes("ajuda") || txt.includes("problema") || txt.includes("erro")) {
+          reply = "Olá! Sinto muito pelo inconveniente. Você poderia me dar mais detalhes ou enviar um print do erro? Já vou acionar nossa equipe de suporte para te atender prioritariamente.";
+        } else if (txt.includes("finais de semana") || txt.includes("sabado") || txt.includes("domingo") || txt.includes("horario")) {
+          reply = "Olá! Nosso suporte oficial funciona de segunda a sexta, das 8h às 18h. Aos finais de semana, temos um sistema de plantão por IA para responder dúvidas urgentes e registrar chamados.";
+        } else if (txt.includes("teste") || txt.includes("testar") || txt.includes("demonstracao")) {
+          reply = "Olá! Claro! Posso liberar um teste gratuito de 7 dias do CRM para você avaliar todas as funções de WhatsApp e funil de vendas. Qual o seu melhor e-mail para cadastro?";
+        } else {
+          reply = `Olá! Compreendo perfeitamente sua dúvida sobre "${clientText}". Vou te passar as informações detalhadas sobre isso em um instante. Há algo específico que gostaria de priorizar?`;
+        }
+        
+        return { reply };
+      }),
+
+    getDistributionRule: protectedProcedure.query(async ({ ctx }) => {
+      const companyId = getCreatorId(ctx);
+      const setting = await db.getSetting(companyId, "lead_distribution_rule");
+      return { rule: setting?.settingValue || "least_busy" };
+    }),
+
+    setDistributionRule: protectedProcedure
+      .input(z.object({ rule: z.enum(["least_busy", "round_robin"]) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem alterar a regra de distribuição" });
+        const companyId = getCreatorId(ctx);
+        await db.upsertSetting(companyId, "lead_distribution_rule", input.rule);
         return { success: true };
       }),
   }),

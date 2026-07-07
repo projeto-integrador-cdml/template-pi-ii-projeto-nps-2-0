@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { 
   MessageCircle, Send, Search, Phone, Sparkles, CheckSquare, Target,
-  CheckCheck, Sliders, Play, ArrowLeftRight
+  CheckCheck, Sliders, Play, ArrowLeftRight, Paperclip, Loader2
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function WhatsAppPage() {
   const utils = trpc.useUtils();
@@ -18,6 +19,27 @@ export default function WhatsAppPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [messageText, setMessageText] = useState("");
   const [activeTab, setActiveTab] = useState<"assigned" | "unassigned">("assigned");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [selectedTemplateName, setSelectedTemplateName] = useState("");
+  const [templateParams, setTemplateParams] = useState<string[]>([]);
+  const [isDrafting, setIsDrafting] = useState(false);
+  const generateAIDraftMutation = trpc.whatsapp.generateAIDraft.useMutation();
+
+  const handleGenerateAIDraft = async () => {
+    if (!activeChatId) return;
+    try {
+      setIsDrafting(true);
+      const res = await generateAIDraftMutation.mutateAsync({ clientId: activeChatId });
+      setMessageText(res.reply);
+      toast.success("Rascunho inteligente gerado!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar rascunho inteligente");
+    } finally {
+      setIsDrafting(false);
+    }
+  };
 
   // Sandbox simulation states
   const [showSandbox, setShowSandbox] = useState(false);
@@ -61,6 +83,13 @@ export default function WhatsAppPage() {
   const createOppMutation = trpc.opportunities.create.useMutation();
   const createTaskMutation = trpc.tasks.create.useMutation();
 
+  const uploadMediaFileMutation = trpc.mediaFiles.create.useMutation();
+  const uploadDocFileMutation = trpc.mediaDocuments.create.useMutation();
+  const sendTemplateMutation = trpc.whatsapp.sendTemplate.useMutation();
+  const { data: templates } = trpc.whatsapp.listTemplates.useQuery();
+
+  const selectedTemplate = (templates || []).find((t: any) => t.name === selectedTemplateName);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to messages end
@@ -95,6 +124,88 @@ export default function WhatsAppPage() {
       refetchInteractions();
     } catch (err: any) {
       toast.error(err.message || "Erro ao enviar mensagem");
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeChatId) return;
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(",")[1];
+      const mimeType = file.type;
+      
+      let mediaType: "image" | "document" | "audio" = "document";
+      if (mimeType.startsWith("image/")) {
+        mediaType = "image";
+      } else if (mimeType.startsWith("audio/")) {
+        mediaType = "audio";
+      }
+
+      try {
+        toast.info(`Enviando anexo "${file.name}"...`);
+        let url = "";
+
+        if (mediaType === "image") {
+          const res = await uploadMediaFileMutation.mutateAsync({
+            name: file.name,
+            fileBase64: base64,
+            fileType: "image",
+            mimeType
+          });
+          url = res.url;
+        } else {
+          const res = await uploadDocFileMutation.mutateAsync({
+            name: file.name,
+            fileBase64: base64,
+            mimeType
+          });
+          url = res.url;
+        }
+
+        if (url) {
+          await sendMessageMutation.mutateAsync({
+            clientId: activeChatId,
+            message: file.name,
+            mediaUrl: url,
+            mediaType
+          });
+          toast.success("Mídia enviada com sucesso!");
+          refetchMessages();
+          refetchChats();
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao enviar mídia");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSendTemplate = async () => {
+    if (!activeChatId || !selectedTemplateName) return;
+    
+    const placeholderCount = (selectedTemplate?.bodyText.match(/\{\{\d+\}\}/g) || []).length;
+    for (let i = 0; i < placeholderCount; i++) {
+      if (!templateParams[i]?.trim()) {
+        toast.error(`Por favor, preencha a variável {{${i + 1}}}`);
+        return;
+      }
+    }
+
+    try {
+      await sendTemplateMutation.mutateAsync({
+        clientId: activeChatId,
+        templateName: selectedTemplateName,
+        parameters: templateParams,
+      });
+      setIsTemplateDialogOpen(false);
+      toast.success("Template enviado com sucesso!");
+      refetchMessages();
+      refetchChats();
+      refetchInteractions();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar template");
     }
   };
 
@@ -405,13 +516,56 @@ export default function WhatsAppPage() {
                           ? "bg-primary text-primary-foreground rounded-tr-sm" 
                           : "bg-card border border-border text-foreground rounded-tl-sm"
                       }`}>
-                        <p className="text-xs whitespace-pre-wrap">{msg.message}</p>
-                        <div className="flex items-center justify-end gap-1 mt-1.5">
+                        {msg.mediaUrl && (
+                          <div className="mb-2 max-w-sm rounded-lg overflow-hidden border bg-black/5">
+                            {msg.mediaUrl.match(/\.(jpeg|jpg|gif|png)$/i) || msg.message === "[Imagem]" ? (
+                              <img src={msg.mediaUrl} alt="Mídia" className="w-full h-auto object-cover max-h-60" />
+                            ) : msg.mediaUrl.match(/\.(ogg|mp3|wav|m4a|webm)$/i) || msg.message === "[Áudio]" ? (
+                              <>
+                                <audio src={msg.mediaUrl} controls className="w-full max-w-xs" />
+                                {(msg as any).transcription && (
+                                  <div className="p-2 border-t text-[10px] text-muted-foreground italic leading-normal bg-card/60">
+                                    📝 Transcrição: "{(msg as any).transcription}"
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <a href={msg.mediaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 text-xs text-primary font-semibold underline bg-background/50">
+                                📎 Download Documento
+                              </a>
+                            )}
+                          </div>
+                        )}
+                        {msg.message && msg.message !== "[Imagem]" && msg.message !== "[Áudio]" && (
+                          <p className="text-xs whitespace-pre-wrap">{msg.message}</p>
+                        )}
+                        <div className="flex items-center justify-end gap-1.5 mt-1.5">
+                          {!isOutbound && (msg as any).sentiment && (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold shrink-0 uppercase tracking-wider ${
+                              (msg as any).sentiment === "angry"
+                                ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                                : (msg as any).sentiment === "positive"
+                                ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                            }`}>
+                              {(msg as any).sentiment === "angry" ? "😡 Crítico" : (msg as any).sentiment === "positive" ? "😊 Positivo" : "😐 Neutro"}
+                            </span>
+                          )}
                           <span className={`text-[8px] ${isOutbound ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {isOutbound && (
-                            <CheckCheck className="h-3 w-3 text-primary-foreground/70 shrink-0" />
+                            <span className="shrink-0 flex">
+                              {msg.status === "read" ? (
+                                <CheckCheck className="h-3.5 w-3.5 text-sky-400" />
+                              ) : msg.status === "delivered" ? (
+                                <CheckCheck className="h-3.5 w-3.5 text-primary-foreground/60" />
+                              ) : msg.status === "sent" ? (
+                                <CheckCheck className="h-3.5 w-3.5 text-primary-foreground/30" />
+                              ) : (
+                                <span className="text-[8px] text-red-400 font-bold">⚠️ Falhou</span>
+                              )}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -422,14 +576,64 @@ export default function WhatsAppPage() {
               </div>
 
               {/* MESSAGE INPUT */}
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-card/25 shrink-0 flex gap-2">
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-card/25 shrink-0 flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="image/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                />
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
+                  title="Anexar arquivo"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setSelectedTemplateName(templates?.[0]?.name || "");
+                    setTemplateParams([]);
+                    setIsTemplateDialogOpen(true);
+                  }}
+                  className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
+                  title="Modelos de Mensagem"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleGenerateAIDraft}
+                  disabled={isDrafting}
+                  className="h-10 w-10 shrink-0 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 rounded-xl transition-all"
+                  title="Copiloto IA - Rascunhar Resposta"
+                >
+                  {isDrafting ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 fill-amber-500/15" />
+                  )}
+                </Button>
+
                 <Input
                   placeholder="Escreva uma mensagem de WhatsApp..."
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
-                  className="flex-1 h-10 text-xs"
+                  className="flex-1 h-10 text-xs rounded-xl"
                 />
-                <Button type="submit" size="icon" className="h-10 w-10 shrink-0">
+                <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl bg-primary hover:bg-primary/95">
                   <Send className="h-4 w-4" />
                 </Button>
               </form>
@@ -674,6 +878,84 @@ export default function WhatsAppPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* DIÁLOGO DE MODELOS DE MENSAGEM (TEMPLATES) */}
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <DialogContent className="max-w-md bg-card border border-border rounded-2xl shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-primary">
+              <Sparkles className="h-4 w-4" />
+              Enviar Modelo Homologado (Template)
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Selecione o Modelo</Label>
+              <select
+                value={selectedTemplateName}
+                onChange={(e) => {
+                  setSelectedTemplateName(e.target.value);
+                  setTemplateParams([]);
+                }}
+                className="w-full h-10 text-xs bg-muted border border-border rounded-xl px-3 focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="" disabled>Selecione um modelo...</option>
+                {(templates || []).map((t: any) => (
+                  <option key={t.name} value={t.name}>
+                    📋 {t.name} ({t.language})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedTemplate && (
+              <div className="space-y-4">
+                <div className="p-3 bg-muted/30 border rounded-xl text-xs space-y-1">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase">Texto Original:</span>
+                  <p className="italic text-foreground">{selectedTemplate.bodyText}</p>
+                </div>
+
+                {Array.from({ length: (selectedTemplate.bodyText.match(/\{\{\d+\}\}/g) || []).length }).map((_, idx) => (
+                  <div key={idx} className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Variável {`{{${idx + 1}}}`}</Label>
+                    <Input
+                      placeholder={`Ex: Valor para a variável {{${idx + 1}}}`}
+                      value={templateParams[idx] || ""}
+                      onChange={(e) => {
+                        const newParams = [...templateParams];
+                        newParams[idx] = e.target.value;
+                        setTemplateParams(newParams);
+                      }}
+                      className="h-10 text-xs rounded-xl"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsTemplateDialogOpen(false)}
+              className="text-xs h-9 rounded-xl"
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSendTemplate}
+              disabled={!selectedTemplateName || sendTemplateMutation.isPending}
+              className="text-xs h-9 rounded-xl bg-primary hover:bg-primary/95"
+            >
+              {sendTemplateMutation.isPending && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+              Enviar Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
