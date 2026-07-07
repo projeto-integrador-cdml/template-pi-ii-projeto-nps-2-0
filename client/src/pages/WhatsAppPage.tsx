@@ -56,13 +56,120 @@ export default function WhatsAppPage() {
   const [taskDate, setTaskDate] = useState("");
   const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">("medium");
 
+  // Reference to store previous chats state for notification comparison
+  const prevChatsRef = useRef<any[]>([]);
+
   // Queries
   const { data: me } = trpc.auth.me.useQuery(undefined, { retry: false });
-  const { data: chats, refetch: refetchChats } = trpc.whatsapp.listChats.useQuery();
+  const { data: chats, refetch: refetchChats } = trpc.whatsapp.listChats.useQuery(undefined, {
+    refetchInterval: 5000,
+  });
   const { data: messages, refetch: refetchMessages } = trpc.whatsapp.listMessages.useQuery(
     { clientId: activeChatId || 0 },
-    { enabled: !!activeChatId }
+    { 
+      enabled: !!activeChatId,
+      refetchInterval: 5000,
+    }
   );
+
+  // Solicitar permissão de notificação no carregamento da página
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // Função para reproduzir um tom harmônico calmo e marcante usando Web Audio API
+  const playNotificationSound = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      // Tom 1 (Fá#5 - 739.99 Hz, som cristalino e brilhante)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(739.99, ctx.currentTime);
+      
+      // Tom 2 (Lá#5 - 932.33 Hz, formando uma terça maior harmônica e relaxante)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(932.33, ctx.currentTime);
+      
+      // Envelopes de volume exponenciais (ataque rápido de 0.04s, decaimento suave de 0.7s)
+      gain1.gain.setValueAtTime(0, ctx.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.04);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+      
+      gain2.gain.setValueAtTime(0, ctx.currentTime);
+      gain2.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.04);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+      
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      
+      osc1.start(ctx.currentTime);
+      osc2.start(ctx.currentTime);
+      
+      osc1.stop(ctx.currentTime + 0.75);
+      osc2.stop(ctx.currentTime + 0.75);
+    } catch (err) {
+      console.error("Erro ao sintetizar áudio de notificação:", err);
+    }
+  };
+
+  // Função para exibir a notificação desktop
+  const showDesktopNotification = (title: string, body: string) => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      new Notification(title, {
+        body,
+        icon: "/favicon.ico",
+      });
+    }
+  };
+
+  // Monitoramento de novas mensagens (inbound) para disparar notificações
+  useEffect(() => {
+    if (!chats || chats.length === 0) return;
+
+    if (prevChatsRef.current.length === 0) {
+      prevChatsRef.current = chats;
+      return;
+    }
+
+    let hasNewInbound = false;
+    let clientName = "";
+    let lastText = "";
+
+    for (const chat of chats) {
+      const prevChat = prevChatsRef.current.find(c => c.client.id === chat.client.id);
+      
+      const isNewChat = !prevChat;
+      const isNewMessage = prevChat && prevChat.lastMessage.createdAt !== chat.lastMessage.createdAt;
+      const isInbound = chat.lastMessage.direction === "inbound";
+
+      if ((isNewChat || isNewMessage) && isInbound) {
+        hasNewInbound = true;
+        clientName = chat.client.name;
+        lastText = chat.lastMessage.message || "Enviou uma mídia";
+        break;
+      }
+    }
+
+    if (hasNewInbound) {
+      playNotificationSound();
+      showDesktopNotification(`Nova mensagem de ${clientName}`, lastText);
+    }
+
+    prevChatsRef.current = chats;
+  }, [chats]);
   const { data: attendants } = trpc.attendants.listAll.useQuery(undefined, {
     enabled: me?.role !== "attendant"
   });
