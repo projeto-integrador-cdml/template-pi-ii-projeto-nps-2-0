@@ -41,10 +41,8 @@ export default function WhatsAppPage() {
   const [sentimentFilter, setSentimentFilter] = useState<"all" | "positive" | "neutral" | "angry">("all");
   const [pinnedChatIds, setPinnedChatIds] = useState<number[]>([]);
 
-  const [activeQuickReplies, setActiveQuickReplies] = useState(() => {
-    const saved = localStorage.getItem("custom_quick_replies");
-    return saved ? JSON.parse(saved) : QUICK_REPLIES;
-  });
+  const { data: companyQuickReplies } = trpc.whatsapp.listQuickReplies.useQuery();
+  const activeQuickReplies = companyQuickReplies && companyQuickReplies.length > 0 ? companyQuickReplies : QUICK_REPLIES;
 
   // Schedule Message States
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);

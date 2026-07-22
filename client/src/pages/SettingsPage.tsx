@@ -9,16 +9,25 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
-  const [quickReplies, setQuickReplies] = useState(() => {
-    const saved = localStorage.getItem("custom_quick_replies");
-    return saved ? JSON.parse(saved) : [
-      { shortcut: "/boasvindas", label: "Boas-vindas", text: "Olá! Seja muito bem-vindo ao CRM Gabriel. Como posso te ajudar hoje?" },
-      { shortcut: "/precos", label: "Tabela de Preços", text: "Nossos planos começam em R$ 97,00/mês. Acesse a aba de planos para conferir todos os detalhes!" },
-      { shortcut: "/suporte", label: "Suporte Técnico", text: "Estou transferindo seu atendimento para a nossa equipe de suporte avançado. Um momento por favor!" },
-      { shortcut: "/pix", label: "Chave Pix", text: "Nossa chave Pix CNPJ é: 00.000.000/0001-00 (CRM Gabriel Tecnologia)." },
-      { shortcut: "/agendar", label: "Agendamento", text: "Podemos agendar uma demonstração rápida hoje às 15:00 ou 17:00. Qual horário prefere?" },
-    ];
+  const { data: serverQuickReplies, refetch: refetchQuickReplies } = trpc.whatsapp.listQuickReplies.useQuery();
+  const [quickReplies, setQuickReplies] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (serverQuickReplies) {
+      setQuickReplies(serverQuickReplies);
+    }
+  }, [serverQuickReplies]);
+
+  const saveQuickRepliesMutation = trpc.whatsapp.saveQuickReplies.useMutation({
+    onSuccess: () => {
+      refetchQuickReplies();
+      toast.success("Respostas rápidas da empresa salvas com sucesso no banco de dados!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Erro ao salvar respostas rápidas");
+    }
   });
+
   const { data: serverTemplates, refetch: refetchTemplates, isLoading: isLoadingTemplates } = trpc.whatsapp.listTemplates.useQuery();
   const [localTemplates, setLocalTemplates] = useState<any[]>([]);
 
@@ -306,7 +315,6 @@ export default function SettingsPage() {
                         const updated = [...quickReplies];
                         updated[idx].shortcut = e.target.value;
                         setQuickReplies(updated);
-                        localStorage.setItem("custom_quick_replies", JSON.stringify(updated));
                       }}
                       className="h-8 text-xs font-mono"
                     />
@@ -319,7 +327,6 @@ export default function SettingsPage() {
                         const updated = [...quickReplies];
                         updated[idx].label = e.target.value;
                         setQuickReplies(updated);
-                        localStorage.setItem("custom_quick_replies", JSON.stringify(updated));
                       }}
                       className="h-8 text-xs font-semibold"
                     />
@@ -331,8 +338,6 @@ export default function SettingsPage() {
                   onClick={() => {
                     const updated = quickReplies.filter((_: any, i: number) => i !== idx);
                     setQuickReplies(updated);
-                    localStorage.setItem("custom_quick_replies", JSON.stringify(updated));
-                    toast.info("Atalho removido!");
                   }}
                   className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 mt-4"
                 >
@@ -347,7 +352,6 @@ export default function SettingsPage() {
                     const updated = [...quickReplies];
                     updated[idx].text = e.target.value;
                     setQuickReplies(updated);
-                    localStorage.setItem("custom_quick_replies", JSON.stringify(updated));
                   }}
                   rows={2}
                   className="w-full p-2 text-xs bg-muted/30 border rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
@@ -355,6 +359,25 @@ export default function SettingsPage() {
               </div>
             </div>
           ))}
+
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={() => {
+                for (const q of quickReplies) {
+                  if (!q.shortcut.trim() || !q.label.trim() || !q.text.trim()) {
+                    toast.error("Preencha todos os campos do atalho antes de salvar.");
+                    return;
+                  }
+                }
+                saveQuickRepliesMutation.mutate(quickReplies);
+              }}
+              disabled={saveQuickRepliesMutation.isPending}
+              className="gap-2 text-xs h-9 bg-amber-500 hover:bg-amber-600 font-bold text-black"
+            >
+              {saveQuickRepliesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar Respostas Rápidas da Empresa
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

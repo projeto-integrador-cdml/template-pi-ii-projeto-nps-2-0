@@ -1745,6 +1745,38 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         return { success: true };
       }),
 
+    listQuickReplies: protectedProcedure.query(async ({ ctx }) => {
+      const companyId = getCompanyAdminId(ctx);
+      const setting = await db.getSetting(companyId, "quick_replies");
+      if (setting && setting.settingValue) {
+        try {
+          return JSON.parse(setting.settingValue);
+        } catch (err) {
+          console.error("[tRPC] Erro ao carregar respostas rápidas da empresa:", err);
+        }
+      }
+      return [
+        { shortcut: "/boasvindas", label: "👋 Boas-vindas", text: "Olá! Seja bem-vindo(a) à nossa empresa. Como podemos te ajudar hoje?" },
+        { shortcut: "/precos", label: "💰 Tabela de Preços", text: "Nossos planos começam em R$ 99/mês e o Plano Pro por R$ 249/mês. Qual atende melhor a sua empresa no momento?" },
+        { shortcut: "/suporte", label: "🛠️ Atendimento Técnico", text: "Nossa equipe técnica já está analisando sua solicitação. Retornaremos com atualizações em instantes!" },
+        { shortcut: "/pix", label: "💳 Dados para Pagamento (PIX)", text: "Nossa chave PIX CNPJ é: 12.345.678/0001-90 (CRM Web Tecnologia Ltda)." },
+        { shortcut: "/agendar", label: "📅 Agendar Demonstração", text: "Podemos agendar uma demonstração rápida de 15 minutos amanhã para apresentar a plataforma?" },
+      ];
+    }),
+
+    saveQuickReplies: protectedProcedure
+      .input(z.array(z.object({
+        shortcut: z.string().min(1),
+        label: z.string().min(1),
+        text: z.string().min(1),
+      })))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerenciar respostas rápidas" });
+        const companyId = getCreatorId(ctx);
+        await db.upsertSetting(companyId, "quick_replies", JSON.stringify(input));
+        return { success: true };
+      }),
+
     sendTemplate: protectedProcedure
       .input(z.object({
         clientId: z.number(),
