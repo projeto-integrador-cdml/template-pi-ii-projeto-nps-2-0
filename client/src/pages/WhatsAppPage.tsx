@@ -7,9 +7,18 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { 
   MessageCircle, Send, Search, Phone, Sparkles, CheckSquare, Target,
-  CheckCheck, Sliders, Play, ArrowLeftRight, Paperclip, Loader2
+  CheckCheck, Sliders, Play, ArrowLeftRight, Paperclip, Loader2,
+  Mic, Square, Zap, Clock, Pin, Image as ImageIcon, Calendar as CalendarIcon, X
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+const QUICK_REPLIES = [
+  { shortcut: "/boasvindas", label: "👋 Boas-vindas", text: "Olá! Seja bem-vindo(a) à nossa empresa. Como podemos te ajudar hoje?" },
+  { shortcut: "/precos", label: "💰 Tabela de Preços", text: "Temos o Plano Basic por R$ 99/mês e o Plano Pro por R$ 249/mês. Qual atende melhor a sua empresa no momento?" },
+  { shortcut: "/suporte", label: "🛠️ Atendimento Técnico", text: "Nossa equipe técnica já está analisando sua solicitação. Retornaremos com atualizações em instantes!" },
+  { shortcut: "/pix", label: "💳 Dados para Pagamento (PIX)", text: "Nossa chave PIX CNPJ é: 12.345.678/0001-90 (CRM Web Tecnologia Ltda)." },
+  { shortcut: "/agendar", label: "📅 Agendar Demonstração", text: "Podemos agendar uma demonstração rápida de 15 minutos amanhã para apresentar a plataforma?" },
+];
 
 export default function WhatsAppPage() {
   const utils = trpc.useUtils();
@@ -20,12 +29,178 @@ export default function WhatsAppPage() {
   const [messageText, setMessageText] = useState("");
   const [activeTab, setActiveTab] = useState<"assigned" | "unassigned">("assigned");
 
+  // Audio Recorder States
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<any>(null);
+
+  // Quick Replies & Filters
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [sentimentFilter, setSentimentFilter] = useState<"all" | "positive" | "neutral" | "angry">("all");
+  const [pinnedChatIds, setPinnedChatIds] = useState<number[]>([]);
+
+  // Schedule Message States
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [scheduleDateTime, setScheduleDateTime] = useState("");
+  const [scheduleMsgText, setScheduleMsgText] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [selectedTemplateName, setSelectedTemplateName] = useState("");
   const [templateParams, setTemplateParams] = useState<string[]>([]);
   const [isDrafting, setIsDrafting] = useState(false);
   const generateAIDraftMutation = trpc.whatsapp.generateAIDraft.useMutation();
+
+  // Audio Recorder Handlers
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setRecordingSeconds(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+
+      toast.info("🎙️ Gravando áudio... Fale com clareza.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
+    }
+  };
+
+  const stopAndSendRecording = () => {
+    if (!mediaRecorderRef.current) return;
+
+    mediaRecorderRef.current.onstop = async () => {
+      clearInterval(recordingTimerRef.current);
+      const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+      setIsRecording(false);
+      setRecordingSeconds(0);
+
+      if (audioBlob.size < 100) {
+        toast.error("Áudio muito curto.");
+        return;
+      }
+
+      // Converte blob para DataURL e simula envio de mídia de áudio
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = reader.result as string;
+        if (!activeChatId) return;
+
+        try {
+          await sendMessageMutation.mutateAsync({
+            clientId: activeChatId,
+            message: "[Áudio]",
+            mediaUrl: base64Audio,
+          });
+          toast.success("🎵 Áudio gravado e enviado com sucesso!");
+          refetchMessages();
+          refetchChats();
+        } catch (err: any) {
+          toast.error("Erro ao enviar áudio gravado.");
+        }
+      };
+    };
+
+    mediaRecorderRef.current.stop();
+    mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+    clearInterval(recordingTimerRef.current);
+    setIsRecording(false);
+    setRecordingSeconds(0);
+    toast.info("Gravação cancelada.");
+  };
+
+  // Clipboard Paste Image Handler
+  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        const file = items[i].getAsFile();
+        if (file && activeChatId) {
+          e.preventDefault();
+          toast.info("🖼️ Imagem detectada na área de transferência! Enviando...");
+
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onloadend = async () => {
+            const base64Image = reader.result as string;
+            try {
+              await sendMessageMutation.mutateAsync({
+                clientId: activeChatId,
+                message: "[Imagem]",
+                mediaUrl: base64Image,
+              });
+              toast.success("Imagem colada e enviada!");
+              refetchMessages();
+              refetchChats();
+            } catch (err) {
+              toast.error("Erro ao enviar imagem colada.");
+            }
+          };
+          break;
+        }
+      }
+    }
+  };
+
+  // Toggle Pin Chat
+  const togglePinChat = (clientId: number) => {
+    if (pinnedChatIds.includes(clientId)) {
+      setPinnedChatIds(pinnedChatIds.filter(id => id !== clientId));
+      toast.info("Conversa desfixada do topo.");
+    } else {
+      setPinnedChatIds([...pinnedChatIds, clientId]);
+      toast.success("Conversa fixada no topo!");
+    }
+  };
+
+  // Schedule Message Submit
+  const handleScheduleMessage = async () => {
+    if (!activeChatId || !scheduleMsgText.trim() || !scheduleDateTime) {
+      toast.error("Preencha a data/hora e a mensagem para agendar.");
+      return;
+    }
+    try {
+      await createTaskMutation.mutateAsync({
+        clientId: activeChatId,
+        title: `📲 Dispatch Agendado: "${scheduleMsgText.slice(0, 30)}..."`,
+        dueDate: new Date(scheduleDateTime),
+        priority: "high",
+        type: "follow_up",
+      });
+      toast.success(`Mensagem agendada para ${new Date(scheduleDateTime).toLocaleString("pt-BR")}!`);
+      setIsScheduleOpen(false);
+      setScheduleMsgText("");
+      setScheduleDateTime("");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao agendar mensagem");
+    }
+  };
 
   const handleGenerateAIDraft = async () => {
     if (!activeChatId) return;
@@ -400,20 +575,27 @@ export default function WhatsAppPage() {
     }
   };
 
-  // Filtered chats based on tab and search
+  // Filtered and Sorted chats based on tab, search, sentiment, and pin state
   const filteredChats = (chats || []).filter(chat => {
     const matchesSearch = chat.client.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (chat.client.phone?.includes(searchQuery) ?? false);
     
     const isUnassigned = chat.client.assignedAttendantId === null;
-    
-    if (activeTab === "assigned") {
-      // For admin/user, show all assigned chats. For attendants, listChats is already scoped by backend.
-      return matchesSearch && !isUnassigned;
-    } else {
-      // Unassigned chats (waiting queue)
-      return matchesSearch && isUnassigned;
-    }
+    const matchesTab = activeTab === "assigned" ? !isUnassigned : isUnassigned;
+
+    const chatSentiment = (chat.lastMessage as any)?.sentiment || "neutral";
+    const matchesSentiment = sentimentFilter === "all" || 
+      (sentimentFilter === "angry" && chatSentiment === "angry") ||
+      (sentimentFilter === "positive" && chatSentiment === "positive") ||
+      (sentimentFilter === "neutral" && (chatSentiment === "neutral" || !chatSentiment));
+
+    return matchesSearch && matchesTab && matchesSentiment;
+  }).sort((a, b) => {
+    const aPinned = pinnedChatIds.includes(a.client.id);
+    const bPinned = pinnedChatIds.includes(b.client.id);
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime();
   });
 
   const activeChat = chats?.find(c => c.client.id === activeChatId);
@@ -478,6 +660,21 @@ export default function WhatsAppPage() {
               />
             </div>
 
+            {/* Sentiment Filter Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground font-semibold uppercase">Filtro:</span>
+              <select
+                value={sentimentFilter}
+                onChange={(e) => setSentimentFilter(e.target.value as any)}
+                className="flex-1 h-7 text-[11px] bg-muted/40 border border-border/20 rounded-md px-2 text-foreground font-medium focus:outline-none"
+              >
+                <option value="all">Todos os Sentimentos</option>
+                <option value="angry">😡 Apenas Crítico / Reclamações</option>
+                <option value="positive">😊 Apenas Positivo / Elogios</option>
+                <option value="neutral">😐 Neutro / Dúvidas</option>
+              </select>
+            </div>
+
             {/* Tabs for Admins/Users to toggle waiting queue vs active chats */}
             {me?.role !== "attendant" && (
               <div className="grid grid-cols-2 gap-1 p-0.5 bg-muted/30 border border-border/10 rounded-lg">
@@ -522,39 +719,62 @@ export default function WhatsAppPage() {
             ) : (
               filteredChats.map((chat) => {
                 const isActive = activeChatId === chat.client.id;
+                const isPinned = pinnedChatIds.includes(chat.client.id);
+                const sentiment = (chat.lastMessage as any)?.sentiment;
+
                 return (
-                  <button
-                    key={chat.client.id}
-                    onClick={() => {
-                      setActiveChatId(chat.client.id);
-                      setCrmTab("info");
-                    }}
-                    className={`w-full text-left p-3.5 flex flex-col gap-1.5 transition-colors focus:outline-none ${
-                      isActive ? "bg-primary/10" : "hover:bg-muted/15"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold truncate max-w-[180px]">{chat.client.name}</span>
-                      <span className="text-[9px] text-muted-foreground">
-                        {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-normal">
-                        {chat.lastMessage.direction === "outbound" && "Você: "}{chat.lastMessage.message}
-                      </p>
-                      {chat.client.assignedAttendantId === null && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 font-semibold shrink-0">
-                          Aguardando
+                  <div key={chat.client.id} className="relative group">
+                    <button
+                      onClick={() => {
+                        setActiveChatId(chat.client.id);
+                        setCrmTab("info");
+                        utils.whatsapp.listMessages.invalidate();
+                      }}
+                      className={`w-full text-left p-3.5 flex flex-col gap-1.5 transition-colors focus:outline-none ${
+                        isActive ? "bg-primary/10 border-l-2 border-primary" : "hover:bg-muted/15"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold truncate max-w-[180px] flex items-center gap-1">
+                          {isPinned && <Pin className="h-3 w-3 text-amber-500 fill-amber-500/20 shrink-0" />}
+                          {chat.client.name}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-normal">
+                          {chat.lastMessage.direction === "outbound" && "Você: "}{chat.lastMessage.message || "Mídia"}
+                        </p>
+                        {sentiment && (
+                          <span className={`text-[8px] font-bold px-1 rounded ${
+                            sentiment === "angry" ? "bg-red-500/10 text-red-500" :
+                            sentiment === "positive" ? "bg-emerald-500/10 text-emerald-500" : "bg-blue-500/10 text-blue-500"
+                          }`}>
+                            {sentiment === "angry" ? "😡" : sentiment === "positive" ? "😊" : "😐"}
+                          </span>
+                        )}
+                      </div>
+                      {chat.client.attendantName && (
+                        <span className="text-[9px] text-primary/70 font-medium self-start flex items-center gap-1 mt-0.5">
+                          👤 Atendente: {chat.client.attendantName}
                         </span>
                       )}
-                    </div>
-                    {chat.client.attendantName && (
-                      <span className="text-[9px] text-primary/70 font-medium self-start flex items-center gap-1 mt-0.5">
-                        👤 Atendente: {chat.client.attendantName}
-                      </span>
-                    )}
-                  </button>
+                    </button>
+                    {/* Pin button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePinChat(chat.client.id);
+                      }}
+                      className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-amber-500"
+                      title={isPinned ? "Desfixar" : "Fixar no topo"}
+                    >
+                      <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-amber-500 text-amber-500" : ""}`} />
+                    </button>
+                  </div>
                 );
               })
             )}
@@ -682,8 +902,8 @@ export default function WhatsAppPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* MESSAGE INPUT */}
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-card/25 shrink-0 flex items-center gap-2">
+              {/* MESSAGE INPUT FORM */}
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-card/25 shrink-0 flex items-center gap-2 relative">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -692,6 +912,7 @@ export default function WhatsAppPage() {
                   accept="image/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx"
                 />
 
+                {/* Anexar Arquivo */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -703,6 +924,55 @@ export default function WhatsAppPage() {
                   <Paperclip className="h-4 w-4" />
                 </Button>
 
+                {/* Respostas Rápidas / Atalhos */}
+                <div className="relative">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowQuickReplies(!showQuickReplies)}
+                    className={`h-10 w-10 shrink-0 rounded-xl transition-all ${
+                      showQuickReplies ? "text-amber-500 bg-amber-500/10" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    }`}
+                    title="Respostas Rápidas (/atalhos)"
+                  >
+                    <Zap className="h-4 w-4 fill-current" />
+                  </Button>
+
+                  {/* Popover de Respostas Rápidas */}
+                  {showQuickReplies && (
+                    <div className="absolute bottom-12 left-0 w-80 bg-card border border-border rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
+                      <div className="flex items-center justify-between px-2 py-1 border-b border-border/10 mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Respostas Rápidas</span>
+                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setShowQuickReplies(false)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="space-y-1 max-h-56 overflow-y-auto">
+                        {QUICK_REPLIES.map((qr) => (
+                          <button
+                            key={qr.shortcut}
+                            type="button"
+                            onClick={() => {
+                              setMessageText(qr.text);
+                              setShowQuickReplies(false);
+                              toast.info(`Inserida resposta rápida: ${qr.label}`);
+                            }}
+                            className="w-full text-left p-2 hover:bg-muted/50 rounded-lg transition-colors group flex flex-col gap-0.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold group-hover:text-primary transition-colors">{qr.label}</span>
+                              <span className="text-[9px] font-mono bg-muted border px-1 rounded text-muted-foreground">{qr.shortcut}</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground line-clamp-1">{qr.text}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modelos de Mensagem (Templates) */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -713,11 +983,12 @@ export default function WhatsAppPage() {
                     setIsTemplateDialogOpen(true);
                   }}
                   className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
-                  title="Modelos de Mensagem"
+                  title="Modelos de Mensagem (Meta Official)"
                 >
                   <Sparkles className="h-4 w-4" />
                 </Button>
 
+                {/* Copiloto IA */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -734,15 +1005,66 @@ export default function WhatsAppPage() {
                   )}
                 </Button>
 
-                <Input
-                  placeholder="Escreva uma mensagem de WhatsApp..."
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  className="flex-1 h-10 text-xs rounded-xl"
-                />
-                <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl bg-primary hover:bg-primary/95">
-                  <Send className="h-4 w-4" />
+                {/* Agendar Mensagem Futura */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setScheduleMsgText(messageText);
+                    setIsScheduleOpen(true);
+                  }}
+                  className="h-10 w-10 shrink-0 text-sky-500 hover:text-sky-600 hover:bg-sky-500/10 rounded-xl transition-all"
+                  title="Agendar envio de mensagem"
+                >
+                  <Clock className="h-4 w-4" />
                 </Button>
+
+                {/* GRAVADOR DE ÁUDIO (MediaRecorder API) OU CAMPO DE TEXTO */}
+                {isRecording ? (
+                  <div className="flex-1 h-10 bg-red-500/10 border border-red-500/30 rounded-xl px-3 flex items-center justify-between animate-pulse">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-ping" />
+                      <span className="text-xs font-mono font-bold text-red-500">
+                        🎙️ Gravando {String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button type="button" variant="ghost" size="icon" onClick={cancelRecording} className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <Button type="button" size="sm" onClick={stopAndSendRecording} className="h-7 text-xs bg-red-500 hover:bg-red-600 font-bold gap-1 text-white">
+                        <Send className="h-3 w-3" /> Enviar Áudio
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Input
+                      placeholder="Escreva uma mensagem ou cole uma imagem (Ctrl+V)..."
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      onPaste={handlePaste}
+                      className="flex-1 h-10 text-xs rounded-xl"
+                    />
+
+                    {/* Botão de Microfone / Gravador */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={startRecording}
+                      className="h-10 w-10 shrink-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                      title="Gravar mensagem de áudio"
+                    >
+                      <Mic className="h-4 w-4" />
+                    </Button>
+
+                    <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl bg-primary hover:bg-primary/95">
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </form>
             </>
           ) : (
@@ -1064,6 +1386,46 @@ export default function WhatsAppPage() {
         </DialogContent>
       </Dialog>
 
+      {/* DIÁLOGO DE AGENDAMENTO DE MENSAGENS */}
+      <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
+        <DialogContent className="max-w-md bg-card border border-border rounded-2xl shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-sky-500">
+              <Clock className="h-4 w-4" />
+              Agendar Envio de Mensagem WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Data e Hora do Disparo</Label>
+              <Input
+                type="datetime-local"
+                value={scheduleDateTime}
+                onChange={(e) => setScheduleDateTime(e.target.value)}
+                className="h-10 text-xs rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Conteúdo da Mensagem</Label>
+              <textarea
+                placeholder="Escreva o texto a ser disparado no horário programado..."
+                value={scheduleMsgText}
+                onChange={(e) => setScheduleMsgText(e.target.value)}
+                rows={3}
+                className="w-full p-2.5 text-xs bg-muted/40 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setIsScheduleOpen(false)} className="text-xs h-9 rounded-xl">
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleScheduleMessage} className="text-xs h-9 rounded-xl bg-sky-500 hover:bg-sky-600 font-bold text-white">
+              Confirmar Agendamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

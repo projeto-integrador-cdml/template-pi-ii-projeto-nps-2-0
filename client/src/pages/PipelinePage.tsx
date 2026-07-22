@@ -28,6 +28,13 @@ function formatCurrency(value: number) {
 
 export default function PipelinePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [lossReasonOpen, setLossReasonOpen] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{ id: number; targetStage: string } | null>(null);
+  const [lossReason, setLossReason] = useState("");
+  const [customLossReason, setCustomLossReason] = useState("");
+  const [draggedOppId, setDraggedOppId] = useState<number | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+
   const [editingOpp, setEditingOpp] = useState<any>(null);
   const [form, setForm] = useState({ clientId: 0, title: "", description: "", value: "", stage: "lead" as string, priority: "medium" as string, expectedCloseDate: "" });
 
@@ -46,8 +53,70 @@ export default function PipelinePage() {
     onSuccess: () => { utils.opportunities.list.invalidate(); utils.opportunities.byStage.invalidate(); utils.dashboard.stats.invalidate(); toast.success("Oportunidade removida!"); },
   });
 
-  const moveToStage = (id: number, stage: string) => {
-    updateMutation.mutate({ id, stage: stage as any });
+  const moveToStage = (id: number, targetStage: string) => {
+    if (targetStage === "closed_lost") {
+      setPendingMove({ id, targetStage });
+      setLossReason("Preço alto");
+      setCustomLossReason("");
+      setLossReasonOpen(true);
+    } else {
+      updateMutation.mutate({ id, stage: targetStage as any });
+      toast.info(`Movido para ${stages.find(s => s.key === targetStage)?.label}`);
+    }
+  };
+
+  const handleConfirmLossReason = () => {
+    if (!pendingMove) return;
+    const finalReason = lossReason === "Outro" ? (customLossReason || "Outro motivo") : lossReason;
+    const opp = opportunities?.find(o => o.id === pendingMove.id);
+    const existingDesc = opp?.description || "";
+    const updatedDesc = existingDesc 
+      ? `${existingDesc}\n\n❌ [Motivo da Perda]: ${finalReason}` 
+      : `❌ [Motivo da Perda]: ${finalReason}`;
+
+    updateMutation.mutate({
+      id: pendingMove.id,
+      stage: "closed_lost" as any,
+      description: updatedDesc,
+    });
+    setLossReasonOpen(false);
+    setPendingMove(null);
+    toast.error(`Oportunidade marcada como Perdida (${finalReason})`);
+  };
+
+  // HTML5 Drag & Drop handlers
+  const handleDragStart = (e: React.DragEvent, id: number) => {
+    setDraggedOppId(id);
+    e.dataTransfer.setData("text/plain", id.toString());
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, stageKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverStage !== stageKey) {
+      setDragOverStage(stageKey);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, stageKey: string) => {
+    if (dragOverStage === stageKey) {
+      setDragOverStage(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStageKey: string) => {
+    e.preventDefault();
+    setDragOverStage(null);
+    const idStr = e.dataTransfer.getData("text/plain");
+    const id = idStr ? parseInt(idStr, 10) : draggedOppId;
+    if (id) {
+      const opp = opportunities?.find(o => o.id === id);
+      if (opp && opp.stage !== targetStageKey) {
+        moveToStage(id, targetStageKey);
+      }
+    }
+    setDraggedOppId(null);
   };
 
   const openCreate = () => {
@@ -103,7 +172,7 @@ export default function PipelinePage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Funil de Vendas</h1>
-          <p className="text-muted-foreground mt-1">{opportunities?.length ?? 0} oportunidades</p>
+          <p className="text-muted-foreground mt-1">{opportunities?.length ?? 0} oportunidades ativas (Arraste os cards entre colunas)</p>
         </div>
         <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nova Oportunidade</Button>
       </div>
@@ -114,22 +183,41 @@ export default function PipelinePage() {
           {stages.map((stage) => {
             const items = groupedByStage[stage.key] ?? [];
             const totalValue = items.reduce((sum: number, o: any) => sum + (o.value ?? 0), 0);
+            const isOver = dragOverStage === stage.key;
+
             return (
-              <div key={stage.key} className="kanban-column flex-1 min-w-[260px] flex flex-col">
-                <div className={`p-3 border-t-2 ${stage.color} rounded-t-lg`}>
+              <div 
+                key={stage.key} 
+                onDragOver={(e) => handleDragOver(e, stage.key)}
+                onDragLeave={(e) => handleDragLeave(e, stage.key)}
+                onDrop={(e) => handleDrop(e, stage.key)}
+                className={`kanban-column flex-1 min-w-[260px] flex flex-col transition-all duration-200 rounded-xl ${
+                  isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-card/20"
+                }`}
+              >
+                <div className={`p-3 border-t-4 ${stage.color} rounded-t-xl bg-card/60 shadow-sm`}>
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-sm">{stage.label}</h3>
-                    <Badge variant="secondary" className="text-xs">{items.length}</Badge>
+                    <Badge variant="secondary" className="text-xs font-bold">{items.length}</Badge>
                   </div>
-                  {totalValue > 0 && <p className="text-xs text-muted-foreground mt-1">{formatCurrency(totalValue)}</p>}
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-border/10">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Total acumulado:</span>
+                    <span className="text-xs font-bold text-emerald-500">{formatCurrency(totalValue)}</span>
+                  </div>
                 </div>
+
                 <ScrollArea className="flex-1 p-2" style={{ maxHeight: "calc(100vh - 280px)" }}>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-h-[120px]">
                     {items.map((opp: any) => (
-                      <Card key={opp.id} className="hover:border-primary/30 transition-all group">
+                      <Card 
+                        key={opp.id} 
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, opp.id)}
+                        className="cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group border-border/60 bg-card"
+                      >
                         <CardContent className="p-3">
                           <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-sm leading-tight">{opp.title}</h4>
+                            <h4 className="font-semibold text-sm leading-tight group-hover:text-primary transition-colors">{opp.title}</h4>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -155,15 +243,22 @@ export default function PipelinePage() {
                           <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
                             <Building2 className="h-3 w-3" /> {getClientName(opp.clientId)}
                           </p>
-                          <div className="flex items-center justify-between">
-                            {opp.value ? <span className="text-xs font-medium flex items-center gap-1"><DollarSign className="h-3 w-3" />{formatCurrency(opp.value)}</span> : <span />}
-                            {opp.expectedCloseDate && <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(opp.expectedCloseDate).toLocaleDateString("pt-BR")}</span>}
+                          <div className="flex items-center justify-between mt-2">
+                            {opp.value ? <span className="text-xs font-bold text-emerald-500 flex items-center gap-0.5"><DollarSign className="h-3.5 w-3.5" />{formatCurrency(opp.value)}</span> : <span />}
+                            {opp.expectedCloseDate && <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(opp.expectedCloseDate).toLocaleDateString("pt-BR")}</span>}
                           </div>
-                          <Badge variant="outline" className="text-xs mt-2">{opp.priority === "high" ? "Alta" : opp.priority === "medium" ? "Média" : "Baixa"}</Badge>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/10">
+                            <Badge variant="outline" className="text-[9px] uppercase tracking-wider font-semibold">{opp.priority === "high" ? "Alta" : opp.priority === "medium" ? "Média" : "Baixa"}</Badge>
+                            <span className="text-[9px] text-muted-foreground/60">🖐️ Arraste para mover</span>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
-                    {items.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhuma oportunidade</p>}
+                    {items.length === 0 && (
+                      <div className="border border-dashed border-border/40 rounded-xl p-4 text-center">
+                        <p className="text-xs text-muted-foreground/60 italic">Solte um card aqui</p>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </div>
@@ -172,7 +267,7 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {/* Dialog */}
+      {/* Dialog: Criar/Editar Oportunidade */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingOpp ? "Editar Oportunidade" : "Nova Oportunidade"}</DialogTitle></DialogHeader>
@@ -205,6 +300,57 @@ export default function PipelinePage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{editingOpp ? "Salvar" : "Criar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Motivo da Perda */}
+      <Dialog open={lossReasonOpen} onOpenChange={setLossReasonOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
+              ❌ Registrar Motivo da Perda
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Para qualificar os relatórios do funil de vendas, selecione por qual motivo esta oportunidade foi encerrada como perdida:
+            </p>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Motivo Principal</Label>
+              <select
+                value={lossReason}
+                onChange={(e) => setLossReason(e.target.value)}
+                className="w-full h-9 text-xs bg-muted border border-border rounded-xl px-3 focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="Preço alto">💰 Preço elevado / Fora do orçamento</option>
+                <option value="Fechou com concorrente">⚔️ Fechou com concorrente</option>
+                <option value="Sem orçamento">📉 Sem orçamento no momento</option>
+                <option value="Desistiu do projeto">🛑 Desistiu da compra / projeto</option>
+                <option value="Falta de retorno">📵 Cliente não respondeu ao contato</option>
+                <option value="Outro">✏️ Outro motivo</option>
+              </select>
+            </div>
+
+            {lossReason === "Outro" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Especifique o motivo</Label>
+                <Input
+                  placeholder="Ex: Produto indisponível em estoque"
+                  value={customLossReason}
+                  onChange={(e) => setCustomLossReason(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setLossReasonOpen(false)} className="text-xs">
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmLossReason} className="text-xs font-bold">
+              Confirmar Perda
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
