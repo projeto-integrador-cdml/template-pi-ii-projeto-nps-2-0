@@ -56,6 +56,28 @@ function ModuleCard({ title, description, icon: Icon, colorClass, bgClass, onCli
 export default function ReportsPage() {
   const { user } = useAuth();
   const [activeModule, setActiveModule] = useState<string | null>(null);
+
+  const exportReportCSV = () => {
+    const headers = ["Ranking", "Atendente", "Faturamento Fechado", "Vendas Fechadas", "Atendimentos", "Tempo Medio de Resposta", "Pontuacao"];
+    const rows = LEADERBOARD_ATTENDANTS.map(a => [
+      a.rank,
+      `"${a.name}"`,
+      `"${a.sales}"`,
+      a.deals,
+      a.chatsHandled,
+      `"${a.avgTime}"`,
+      `${a.score}/100`
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ranking_equipe_vendas_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   // Date filters
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), "yyyy-MM-dd"));
