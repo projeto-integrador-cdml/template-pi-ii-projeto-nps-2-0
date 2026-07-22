@@ -35,12 +35,15 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for frontend hosting (Vercel)
+  // Enable CORS & Disable Cache Headers (force latest version always)
   app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-trpc-source");
     res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     if (req.method === "OPTIONS") {
       return res.sendStatus(200);
     }
