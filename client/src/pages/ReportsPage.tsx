@@ -1006,8 +1006,226 @@ export default function ReportsPage() {
         </div>
       )}
 
+      {/* VIEW B8: MENSAGENS AGENDADAS */}
+      {activeModule === "agendadas" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Programadas / Pendentes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-amber-500">18</div>
+                <p className="text-[10px] text-amber-500 mt-1">⏳ Disparos programados para os próximos 7 dias</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Disparadas com Sucesso</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-emerald-500">342</div>
+                <p className="text-[10px] text-emerald-500 mt-1">🟢 98.8% de taxa de entrega na API Oficial</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Erros de Envio</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-red-500">2</div>
+                <p className="text-[10px] text-red-500 mt-1">🔴 Números inválidos ou fora do WhatsApp</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-bold">Fila de Disparos Programados</CardTitle>
+              <CardDescription className="text-xs">Mensagens e lembretes automáticos agendados pelos operadores</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-xs">
+              <div className="p-3 border rounded-xl bg-card flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-foreground">📲 Lembrete de Reunião Proposta</h4>
+                  <p className="text-muted-foreground text-[11px]">Destino: Carlos Souza (+55 11 99999-1111) · Operador: Gabriel Silva</p>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  ⏳ 23/07/2026 às 14:00
+                </span>
+              </div>
+              <div className="p-3 border rounded-xl bg-card flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-foreground">💳 Cobrança Fatura em Aberto</h4>
+                  <p className="text-muted-foreground text-[11px]">Destino: Fernanda Lima (+55 21 98888-2222) · Operador: Mariana Costa</p>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  ⏳ 24/07/2026 às 09:30
+                </span>
+              </div>
+              <div className="p-3 border rounded-xl bg-card flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-foreground">👋 Follow-up pós demonstração</h4>
+                  <p className="text-muted-foreground text-[11px]">Destino: Roberto Alves (+55 31 97777-3333) · Operador: Lucas Almeida</p>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  🟢 Enviado com sucesso
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* VIEW B9: HSM TEMPLATES */}
+      {activeModule === "hsm" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Taxa de Entrega HSM</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-emerald-500">99.4%</div>
+                <p className="text-[10px] text-emerald-500 mt-1">🟢 Modelos verificados e aprovados pela Meta</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Taxa de Abertura</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-sky-500">84.2%</div>
+                <p className="text-[10px] text-sky-500 mt-1">📱 Leitura garantida em notificações push do WhatsApp</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Taxa de Resposta</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-purple-500">26.8%</div>
+                <p className="text-[10px] text-purple-500 mt-1">💬 Leads que responderam ao modelo de mensagem</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-bold">Desempenho por Modelo Homologado (HSM)</CardTitle>
+              <CardDescription className="text-xs">Volume de disparos e respostas por template cadastrado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[250px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: "boas_vindas", disparos: 280, respostas: 92 },
+                    { name: "lembrete_reuniao", disparos: 195, respostas: 64 },
+                    { name: "proposta_enviada", disparos: 140, respostas: 48 },
+                  ]} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <RechartsTooltip />
+                    <Bar dataKey="disparos" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="Disparos Feitos" />
+                    <Bar dataKey="respostas" fill="#10b981" radius={[6, 6, 0, 0]} name="Respostas do Cliente" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* VIEW B10: METAS E METRICAS DE VENDAS */}
+      {activeModule === "metas" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Meta de Faturamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-500">R$ 132.900,00 / R$ 150.000,00</div>
+                <div className="w-full bg-muted rounded-full h-2 mt-2">
+                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: "88.6%" }} />
+                </div>
+                <p className="text-[10px] text-emerald-500 mt-1.5 font-bold">🎯 88.6% atingido no mês</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Meta de Novos Contratos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-sky-500">87 / 100 vendas</div>
+                <div className="w-full bg-muted rounded-full h-2 mt-2">
+                  <div className="bg-sky-500 h-2 rounded-full" style={{ width: "87%" }} />
+                </div>
+                <p className="text-[10px] text-sky-500 mt-1.5 font-bold">🎯 87% atingido no mês</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Meta de Captação Leads</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-500">460 / 500 leads</div>
+                <div className="w-full bg-muted rounded-full h-2 mt-2">
+                  <div className="bg-amber-500 h-2 rounded-full" style={{ width: "92%" }} />
+                </div>
+                <p className="text-[10px] text-amber-500 mt-1.5 font-bold">🎯 92% atingido no mês</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW B11: DESEMPENHO DE CAMPANHAS */}
+      {activeModule === "campanhas" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border border-rose-500/20 bg-rose-500/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-rose-400 font-bold uppercase tracking-wider">Campanha Destaque</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold text-foreground">🚀 Inbound Instagram Ads</div>
+                <p className="text-[11px] text-emerald-400 mt-1 font-bold">ROI: 4.8x · 142 leads convertidos</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Custo Médio por Lead (CPL)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">R$ 14,20</div>
+                <p className="text-[10px] text-emerald-500 mt-1">📉 Redução de 12% em relação ao mês anterior</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Faturamento de Campanhas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-500">R$ 87.400,00</div>
+                <p className="text-[10px] text-emerald-500 mt-1">🟢 Proveniente de anúncios e ações diretas</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* VIEW C: PROTOTYPED TABS FOR UNIMPLEMENTED FOR HIGH-FIDELITY CONSISTENCY */}
-      {activeModule && !["conversas", "performance", "nps", "oportunidades", "auto_atendimento", "inteligencia_canais", "ranking_equipe"].includes(activeModule) && (
+      {activeModule && !["conversas", "performance", "nps", "oportunidades", "auto_atendimento", "inteligencia_canais", "ranking_equipe", "agendadas", "hsm", "metas", "campanhas"].includes(activeModule) && (
         <div className="space-y-6">
           <Card className="border border-yellow-500/20 bg-yellow-500/5">
             <CardContent className="p-4 flex items-start gap-3">
