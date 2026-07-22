@@ -390,16 +390,34 @@ export default function WhatsAppPage() {
     }
   };
 
-  // Send message
+  const [isPrivateNote, setIsPrivateNote] = useState(false);
+  const createInteractionMutation = trpc.interactions.create.useMutation();
+
+  // Send message or Private Note
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeChatId || !messageText.trim()) return;
 
     try {
-      await sendMessageMutation.mutateAsync({
-        clientId: activeChatId,
-        message: messageText,
-      });
+      if (isPrivateNote) {
+        // Envia como Nota Interna Confidencial (Sem disparar no WhatsApp do cliente)
+        await sendMessageMutation.mutateAsync({
+          clientId: activeChatId,
+          message: `🔒 [Nota Interna]: ${messageText}`,
+        });
+        await createInteractionMutation.mutateAsync({
+          clientId: activeChatId,
+          type: "note",
+          subject: "🔒 Nota Interna Confidencial",
+          content: messageText,
+        });
+        toast.warning("🔒 Nota interna registrada! (Não foi enviada ao WhatsApp do cliente)");
+      } else {
+        await sendMessageMutation.mutateAsync({
+          clientId: activeChatId,
+          message: messageText,
+        });
+      }
       setMessageText("");
       refetchMessages();
       refetchChats();
@@ -836,6 +854,29 @@ export default function WhatsAppPage() {
               <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-muted/5">
                 {messages?.map((msg) => {
                   const isOutbound = msg.direction === "outbound";
+                  const isInternalNote = msg.message?.startsWith("🔒 [Nota Interna]:");
+
+                  if (isInternalNote) {
+                    return (
+                      <div key={msg.id} className="flex justify-center my-2">
+                        <div className="max-w-[85%] bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-2.5 shadow-sm leading-relaxed text-amber-200">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1 border-b border-amber-500/20 pb-1">
+                            <span>🔒 Nota Interna Confidencial</span>
+                            <span className="text-[9px] font-normal text-amber-300/60 ml-auto">
+                              (Visível apenas para a equipe)
+                            </span>
+                          </div>
+                          <p className="text-xs font-medium whitespace-pre-wrap">
+                            {msg.message.replace("🔒 [Nota Interna]:", "").trim()}
+                          </p>
+                          <span className="text-[8px] text-amber-400/60 block text-right mt-1">
+                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div key={msg.id} className={`flex ${isOutbound ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm leading-relaxed ${
@@ -1020,6 +1061,29 @@ export default function WhatsAppPage() {
                   <Clock className="h-4 w-4" />
                 </Button>
 
+                {/* Alternar Modo: Nota Privada Interna */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setIsPrivateNote(!isPrivateNote);
+                    toast.info(
+                      !isPrivateNote 
+                        ? "🔒 Modo Nota Interna ativado! Suas anotações ficarão amarelas e visíveis apenas para a equipe." 
+                        : "💬 Modo WhatsApp ativado! Suas mensagens serão enviadas ao cliente."
+                    );
+                  }}
+                  className={`h-10 w-10 shrink-0 rounded-xl transition-all ${
+                    isPrivateNote 
+                      ? "text-amber-400 bg-amber-500/20 border border-amber-500/30 shadow-sm" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                  title={isPrivateNote ? "Modo Nota Interna (Ativo)" : "Alternar para Nota Interna"}
+                >
+                  <Target className={`h-4 w-4 ${isPrivateNote ? "fill-amber-400/20" : ""}`} />
+                </Button>
+
                 {/* GRAVADOR DE ÁUDIO (MediaRecorder API) OU CAMPO DE TEXTO */}
                 {isRecording ? (
                   <div className="flex-1 h-10 bg-red-500/10 border border-red-500/30 rounded-xl px-3 flex items-center justify-between animate-pulse">
@@ -1041,26 +1105,42 @@ export default function WhatsAppPage() {
                 ) : (
                   <>
                     <Input
-                      placeholder="Escreva uma mensagem ou cole uma imagem (Ctrl+V)..."
+                      placeholder={
+                        isPrivateNote 
+                          ? "🔒 Digite uma nota privada confidencial para a equipe..." 
+                          : "Escreva uma mensagem ou cole uma imagem (Ctrl+V)..."
+                      }
                       value={messageText}
                       onChange={(e) => setMessageText(e.target.value)}
                       onPaste={handlePaste}
-                      className="flex-1 h-10 text-xs rounded-xl"
+                      className={`flex-1 h-10 text-xs rounded-xl transition-all ${
+                        isPrivateNote 
+                          ? "bg-amber-500/10 border-amber-500/30 text-amber-200 placeholder:text-amber-400/60 focus:ring-amber-500" 
+                          : ""
+                      }`}
                     />
 
                     {/* Botão de Microfone / Gravador */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={startRecording}
-                      className="h-10 w-10 shrink-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
-                      title="Gravar mensagem de áudio"
-                    >
-                      <Mic className="h-4 w-4" />
-                    </Button>
+                    {!isPrivateNote && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={startRecording}
+                        className="h-10 w-10 shrink-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                        title="Gravar mensagem de áudio"
+                      >
+                        <Mic className="h-4 w-4" />
+                      </Button>
+                    )}
 
-                    <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl bg-primary hover:bg-primary/95">
+                    <Button 
+                      type="submit" 
+                      size="icon" 
+                      className={`h-10 w-10 shrink-0 rounded-xl ${
+                        isPrivateNote ? "bg-amber-500 hover:bg-amber-600 text-black font-bold" : "bg-primary hover:bg-primary/95"
+                      }`}
+                    >
                       <Send className="h-4 w-4" />
                     </Button>
                   </>

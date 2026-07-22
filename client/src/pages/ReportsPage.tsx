@@ -8,12 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { 
   TrendingUp, MessageSquare, Clock, CheckCircle2, AlertCircle, BarChart3, ArrowLeft, 
-  Users, Bot, Smile, Target, Send, Activity, Globe, ShieldAlert, Sparkles, HelpCircle 
+  Users, Bot, Smile, Target, Send, Activity, Globe, ShieldAlert, Sparkles, HelpCircle, Trophy, Download 
 } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+const LEADERBOARD_ATTENDANTS = [
+  { rank: 1, medal: "🥇", name: "Gabriel Silva", sales: "R$ 48.500,00", deals: 32, chatsHandled: 142, avgTime: "1m 45s", score: 98 },
+  { rank: 2, medal: "🥈", name: "Mariana Costa", sales: "R$ 36.200,00", deals: 24, chatsHandled: 118, avgTime: "2m 10s", score: 94 },
+  { rank: 3, medal: "🥉", name: "Lucas Almeida", sales: "R$ 29.800,00", deals: 19, chatsHandled: 95, avgTime: "2m 40s", score: 89 },
+  { rank: 4, medal: "🏅", name: "Amanda Souza", sales: "R$ 18.400,00", deals: 12, chatsHandled: 78, avgTime: "3m 05s", score: 83 },
+];
 
 interface ModuleCardProps {
   title: string;
@@ -142,6 +149,7 @@ export default function ReportsPage() {
     { id: "metas", title: "Relatório de Metas", description: "Acompanhe o desempenho das metas por status, operador e departamento.", icon: CheckCircle2, colorClass: "text-emerald-500", bgClass: "bg-emerald-500/10" },
     { id: "campanhas", title: "Desempenho de Campanhas", description: "Acompanhe os resultados, compare envios e otimize sua performance com dados em tempo real.", icon: Send, colorClass: "text-rose-500", bgClass: "bg-rose-500/10" },
     { id: "inteligencia_canais", title: "Inteligência de Canais", description: "Visão científica e insights preditivos de conversão por canal de aquisição", icon: Sparkles, colorClass: "text-amber-500", bgClass: "bg-amber-500/10" },
+    { id: "ranking_equipe", title: "Ranking da Equipe (Gamificação)", description: "Leaderboard dos melhores atendentes ranqueados por faturamento, conversão e TMR", icon: Trophy, colorClass: "text-amber-400", bgClass: "bg-amber-400/10" },
   ];
 
   // Execution data for chatbot pie chart
@@ -184,23 +192,30 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {activeModule && (
-          <div className="flex items-center gap-2">
-            <Input 
-              type="date" 
-              value={startDate} 
-              onChange={(e) => setStartDate(e.target.value)}
-              className="h-8 text-xs bg-card border-border w-32"
-            />
-            <span className="text-[10px] text-muted-foreground">até</span>
-            <Input 
-              type="date" 
-              value={endDate} 
-              onChange={(e) => setEndDate(e.target.value)}
-              className="h-8 text-xs bg-card border-border w-32"
-            />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {activeModule && (
+            <Button onClick={exportReportCSV} variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+              <Download className="h-3.5 w-3.5" /> Exportar CSV
+            </Button>
+          )}
+          {activeModule && (
+            <>
+              <Input 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-8 text-xs bg-card border-border w-32"
+              />
+              <span className="text-xs text-muted-foreground">até</span>
+              <Input 
+                type="date" 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)}
+                className="h-8 text-xs bg-card border-border w-32"
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* VIEW A: MODULES HUB GRID */}
@@ -890,8 +905,87 @@ export default function ReportsPage() {
         </div>
       )}
 
+      {/* VIEW B7: RANKING DA EQUIPE (GAMIFICAÇÃO LEADERBOARD) */}
+      {activeModule === "ranking_equipe" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="flex items-center justify-between bg-card/60 p-4 border border-border rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-400">
+                <Trophy className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">Leaderboard Gamificado da Equipe de Vendas</h3>
+                <p className="text-xs text-muted-foreground">Ranking mensal atualizado em tempo real com base no faturamento fechado e produtividade</p>
+              </div>
+            </div>
+            <Button onClick={exportReportCSV} variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+              <Download className="h-3.5 w-3.5" /> Baixar Ranking CSV
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {LEADERBOARD_ATTENDANTS.map((att) => (
+              <Card key={att.rank} className={`relative overflow-hidden transition-all border ${
+                att.rank === 1 ? "border-amber-500/40 bg-gradient-to-b from-amber-500/10 to-card shadow-lg" :
+                att.rank === 2 ? "border-slate-400/40 bg-card" :
+                att.rank === 3 ? "border-amber-700/30 bg-card" : "border-border bg-card/50"
+              }`}>
+                <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+                  <span className="text-3xl font-extrabold">{att.medal}</span>
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-muted border">
+                    Top #{att.rank}
+                  </span>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-3">
+                  <div>
+                    <h4 className="font-bold text-sm text-foreground">{att.name}</h4>
+                    <p className="text-xs font-bold text-emerald-400 mt-0.5">{att.sales}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] pt-2 border-t border-border/10">
+                    <div>
+                      <span className="text-muted-foreground block">Vendas Fechadas</span>
+                      <span className="font-bold text-xs">{att.deals} contratos</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Atendimentos</span>
+                      <span className="font-bold text-xs">{att.chatsHandled} chats</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] pt-2 border-t border-border/10">
+                    <span className="text-muted-foreground">TMR Médio: <b>{att.avgTime}</b></span>
+                    <span className="font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                      Score: {att.score}/100
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-bold">Desempenho Comercial Comparativo</CardTitle>
+              <CardDescription className="text-xs">Faturamento acumulado em R$ por operador no período</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={LEADERBOARD_ATTENDANTS} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <RechartsTooltip formatter={(value: any) => [`${value}`, 'Faturamento']} />
+                    <Bar dataKey="deals" fill="#10b981" radius={[8, 8, 0, 0]} name="Contratos Fechados" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* VIEW C: PROTOTYPED TABS FOR UNIMPLEMENTED FOR HIGH-FIDELITY CONSISTENCY */}
-      {activeModule && !["conversas", "performance", "nps", "oportunidades", "auto_atendimento", "inteligencia_canais"].includes(activeModule) && (
+      {activeModule && !["conversas", "performance", "nps", "oportunidades", "auto_atendimento", "inteligencia_canais", "ranking_equipe"].includes(activeModule) && (
         <div className="space-y-6">
           <Card className="border border-yellow-500/20 bg-yellow-500/5">
             <CardContent className="p-4 flex items-start gap-3">

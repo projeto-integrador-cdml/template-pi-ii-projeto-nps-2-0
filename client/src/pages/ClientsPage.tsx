@@ -13,8 +13,19 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
+import { Download } from "lucide-react";
+
 const statusLabels: Record<string, string> = { active: "Ativo", inactive: "Inativo", prospect: "Prospecto" };
 const statusColors: Record<string, string> = { active: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", inactive: "bg-red-500/10 text-red-400 border-red-500/20", prospect: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+
+const getTagBadgeStyle = (tag: string) => {
+  const t = tag.toLowerCase().trim();
+  if (t.includes("vip") || t.includes("💎")) return "bg-purple-500/10 text-purple-400 border-purple-500/30";
+  if (t.includes("hot") || t.includes("🔥") || t.includes("urgente")) return "bg-red-500/10 text-red-400 border-red-500/30";
+  if (t.includes("pix") || t.includes("pagamento") || t.includes("⏳")) return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+  if (t.includes("proposta") || t.includes("⭐️")) return "bg-sky-500/10 text-sky-400 border-sky-500/30";
+  return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+};
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
@@ -28,6 +39,38 @@ export default function ClientsPage() {
     search: search || undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
+
+  const exportClientsToCSV = () => {
+    const clientList = data?.data ?? [];
+    if (!clientList || clientList.length === 0) {
+      toast.error("Nenhum cliente para exportar");
+      return;
+    }
+    const headers = ["ID", "Nome", "Email", "Telefone", "Empresa", "Cargo", "Status", "Origem", "Tags", "Notas"];
+    const rows = clientList.map(c => [
+      c.id,
+      `"${(c.name || '').replace(/"/g, '""')}"`,
+      `"${(c.email || '').replace(/"/g, '""')}"`,
+      `"${(c.phone || '').replace(/"/g, '""')}"`,
+      `"${(c.company || '').replace(/"/g, '""')}"`,
+      `"${(c.position || '').replace(/"/g, '""')}"`,
+      statusLabels[c.status] || c.status,
+      `"${(c.source || '').replace(/"/g, '""')}"`,
+      `"${(c.tags || '').replace(/"/g, '""')}"`,
+      `"${(c.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `clientes_crm_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Relatório de clientes exportado em CSV!");
+  };
 
   const createMutation = trpc.clients.create.useMutation({
     onSuccess: () => { utils.clients.list.invalidate(); setDialogOpen(false); setEditingClient(null); toast.success("Cliente criado com sucesso!"); },
@@ -62,16 +105,21 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
           <p className="text-muted-foreground mt-1">{data?.total ?? 0} clientes cadastrados</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Cliente
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={exportClientsToCSV} variant="outline" className="gap-2 text-xs">
+            <Download className="h-4 w-4" /> Exportar CSV
+          </Button>
+          <Button onClick={openCreate} className="gap-2 text-xs">
+            <Plus className="h-4 w-4" /> Novo Cliente
+          </Button>
+        </div>
       </div>
 
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome, email, telefone ou empresa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder="Buscar por nome, email, telefone ou empresa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 text-xs" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-[180px]">
@@ -145,7 +193,9 @@ export default function ClientsPage() {
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex flex-wrap gap-1">
                     {client.tags && client.tags.split(",").map((tag: string, i: number) => (
-                      <Badge key={i} variant="secondary" className="text-xs">{tag.trim()}</Badge>
+                      <Badge key={i} variant="outline" className={`text-xs font-semibold ${getTagBadgeStyle(tag)}`}>
+                        {tag.trim()}
+                      </Badge>
                     ))}
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
