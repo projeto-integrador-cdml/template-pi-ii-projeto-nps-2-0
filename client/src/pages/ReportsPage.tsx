@@ -119,6 +119,18 @@ export default function ReportsPage() {
     { enabled: activeModule === "auto_atendimento" }
   );
 
+  // Real Live Database Queries
+  const { data: realStats } = trpc.dashboard.stats.useQuery();
+  const { data: realOppsByStage } = trpc.dashboard.opportunitiesByStage.useQuery();
+  const { data: realTeamRanking } = trpc.reports.teamRanking.useQuery();
+  const { data: realClients } = trpc.clients.list.useQuery();
+  const { data: realTasks } = trpc.tasks.list.useQuery();
+  const { data: realOpps } = trpc.opportunities.list.useQuery();
+
+  const activeAttendantRanking = realTeamRanking && realTeamRanking.length > 0 ? realTeamRanking : [
+    { rank: 1, medal: "🥇", name: "Sem atendentes", sales: "R$ 0,00", deals: 0, chatsHandled: 0, avgTime: "0m", score: 0 },
+  ];
+
   // Set default flow on load
   useEffect(() => {
     if (flows && flows.length > 0 && !selectedFlowId) {
@@ -946,7 +958,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {LEADERBOARD_ATTENDANTS.map((att) => (
+            {activeAttendantRanking.map((att) => (
               <Card key={att.rank} className={`relative overflow-hidden transition-all border ${
                 att.rank === 1 ? "border-amber-500/40 bg-gradient-to-b from-amber-500/10 to-card shadow-lg" :
                 att.rank === 2 ? "border-slate-400/40 bg-card" :
@@ -986,17 +998,17 @@ export default function ReportsPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold">Desempenho Comercial Comparativo</CardTitle>
-              <CardDescription className="text-xs">Faturamento acumulado em R$ por operador no período</CardDescription>
+              <CardTitle className="text-sm font-bold">Desempenho Comercial Comparativo da Equipe</CardTitle>
+              <CardDescription className="text-xs">Faturamento acumulado em R$ por operador no banco de dados real</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={LEADERBOARD_ATTENDANTS} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                  <BarChart data={activeAttendantRanking} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
-                    <RechartsTooltip formatter={(value: any) => [`${value}`, 'Faturamento']} />
+                    <RechartsTooltip formatter={(value: any) => [`${value}`, 'Vendas Ganhas']} />
                     <Bar dataKey="deals" fill="#10b981" radius={[8, 8, 0, 0]} name="Contratos Fechados" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -1012,68 +1024,58 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Programadas / Pendentes</CardTitle>
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Tarefas & Disparos Pendentes</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-amber-500">18</div>
-                <p className="text-[10px] text-amber-500 mt-1">⏳ Disparos programados para os próximos 7 dias</p>
+                <div className="text-3xl font-bold text-amber-500">{realTasks?.filter((t: any) => !t.completed).length ?? 0}</div>
+                <p className="text-[10px] text-amber-500 mt-1">⏳ Programações pendentes no banco de dados</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Disparadas com Sucesso</CardTitle>
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Concluídas com Sucesso</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-emerald-500">342</div>
-                <p className="text-[10px] text-emerald-500 mt-1">🟢 98.8% de taxa de entrega na API Oficial</p>
+                <div className="text-3xl font-bold text-emerald-500">{realTasks?.filter((t: any) => t.completed).length ?? 0}</div>
+                <p className="text-[10px] text-emerald-500 mt-1">🟢 Finalizadas e disparadas</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Erros de Envio</CardTitle>
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Total Registradas</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-red-500">2</div>
-                <p className="text-[10px] text-red-500 mt-1">🔴 Números inválidos ou fora do WhatsApp</p>
+                <div className="text-3xl font-bold text-sky-500">{realTasks?.length ?? 0}</div>
+                <p className="text-[10px] text-sky-500 mt-1">📊 Histórico total acumulado</p>
               </CardContent>
             </Card>
           </div>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold">Fila de Disparos Programados</CardTitle>
-              <CardDescription className="text-xs">Mensagens e lembretes automáticos agendados pelos operadores</CardDescription>
+              <CardTitle className="text-sm font-bold">Fila Real de Disparos e Tarefas Programadas</CardTitle>
+              <CardDescription className="text-xs">Registros de agendamento em tempo real do sistema</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-xs">
-              <div className="p-3 border rounded-xl bg-card flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-foreground">📲 Lembrete de Reunião Proposta</h4>
-                  <p className="text-muted-foreground text-[11px]">Destino: Carlos Souza (+55 11 99999-1111) · Operador: Gabriel Silva</p>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  ⏳ 23/07/2026 às 14:00
-                </span>
-              </div>
-              <div className="p-3 border rounded-xl bg-card flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-foreground">💳 Cobrança Fatura em Aberto</h4>
-                  <p className="text-muted-foreground text-[11px]">Destino: Fernanda Lima (+55 21 98888-2222) · Operador: Mariana Costa</p>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  ⏳ 24/07/2026 às 09:30
-                </span>
-              </div>
-              <div className="p-3 border rounded-xl bg-card flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-foreground">👋 Follow-up pós demonstração</h4>
-                  <p className="text-muted-foreground text-[11px]">Destino: Roberto Alves (+55 31 97777-3333) · Operador: Lucas Almeida</p>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  🟢 Enviado com sucesso
-                </span>
-              </div>
+              {(!realTasks || realTasks.length === 0) ? (
+                <p className="text-muted-foreground text-center py-6">Nenhum agendamento pendente no momento.</p>
+              ) : (
+                realTasks.slice(0, 5).map((t: any) => (
+                  <div key={t.id} className="p-3 border rounded-xl bg-card flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-foreground">{t.title}</h4>
+                      <p className="text-muted-foreground text-[11px]">Tipo: {t.type || 'follow_up'} · Prioridade: {t.priority}</p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${
+                      t.completed ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                    }`}>
+                      {t.completed ? "🟢 Concluído" : `⏳ Vence: ${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'Hoje'}`}
+                    </span>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1147,40 +1149,47 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Meta de Faturamento</CardTitle>
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Faturamento Fechado (Real DB)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-emerald-500">R$ 132.900,00 / R$ 150.000,00</div>
-                <div className="w-full bg-muted rounded-full h-2 mt-2">
-                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: "88.6%" }} />
+                <div className="text-2xl font-bold text-emerald-500">
+                  R$ {(realStats?.totalWonValue ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
-                <p className="text-[10px] text-emerald-500 mt-1.5 font-bold">🎯 88.6% atingido no mês</p>
+                <div className="w-full bg-muted rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-emerald-500 h-2 rounded-full" 
+                    style={{ width: `${Math.min(100, Math.round(((realStats?.totalWonValue ?? 0) / 100000) * 100))}%` }} 
+                  />
+                </div>
+                <p className="text-[10px] text-emerald-500 mt-1.5 font-bold">
+                  🎯 {Math.min(100, Math.round(((realStats?.totalWonValue ?? 0) / 100000) * 100))}% da meta atingido
+                </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Meta de Novos Contratos</CardTitle>
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Oportunidades Ativas (Real DB)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-sky-500">87 / 100 vendas</div>
+                <div className="text-2xl font-bold text-sky-500">{realStats?.activeOpportunities ?? 0} negociações</div>
                 <div className="w-full bg-muted rounded-full h-2 mt-2">
-                  <div className="bg-sky-500 h-2 rounded-full" style={{ width: "87%" }} />
+                  <div className="bg-sky-500 h-2 rounded-full" style={{ width: `${Math.min(100, (realStats?.activeOpportunities ?? 0) * 10)}%` }} />
                 </div>
-                <p className="text-[10px] text-sky-500 mt-1.5 font-bold">🎯 87% atingido no mês</p>
+                <p className="text-[10px] text-sky-500 mt-1.5 font-bold">🎯 Funil comercial em andamento</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Meta de Captação Leads</CardTitle>
+                <CardTitle className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Clientes Cadastrados (Real DB)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-amber-500">460 / 500 leads</div>
+                <div className="text-2xl font-bold text-amber-500">{realStats?.totalClients ?? 0} contatos</div>
                 <div className="w-full bg-muted rounded-full h-2 mt-2">
-                  <div className="bg-amber-500 h-2 rounded-full" style={{ width: "92%" }} />
+                  <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${Math.min(100, (realStats?.totalClients ?? 0) * 5)}%` }} />
                 </div>
-                <p className="text-[10px] text-amber-500 mt-1.5 font-bold">🎯 92% atingido no mês</p>
+                <p className="text-[10px] text-amber-500 mt-1.5 font-bold">🎯 Base total cadastrada no CRM</p>
               </CardContent>
             </Card>
           </div>

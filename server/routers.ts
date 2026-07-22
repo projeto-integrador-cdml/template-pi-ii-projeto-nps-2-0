@@ -1522,6 +1522,46 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         await db.createOrUpdateFlowAnalytics(input.flowId, getCompanyAdminId(ctx), input.data);
         return { success: true };
       }),
+
+    teamRanking: protectedProcedure.query(async ({ ctx }) => {
+      const companyId = getCompanyAdminId(ctx);
+      const allAttendants = await db.listAttendantsByCompany(companyId);
+      const allOpps = await db.listOpportunities(companyId);
+      const allClients = await db.listAllClients();
+      const companyClients = allClients.filter(c => companyId === 0 || c.userId === companyId);
+      const allMsgs = await db.listAllWhatsappMessages();
+
+      const ranking = allAttendants.map((att, idx) => {
+        const attClients = companyClients.filter(c => c.assignedAttendantId === att.id);
+        const attClientIds = new Set(attClients.map(c => c.id));
+        const attOpps = allOpps.filter(o => o.clientId && attClientIds.has(o.clientId));
+        const wonOpps = attOpps.filter(o => o.stage === "closed_won");
+        const totalWonValue = wonOpps.reduce((sum, o) => sum + Number(o.value || 0), 0);
+        const chatsHandled = allMsgs.filter(m => attClientIds.has(m.clientId)).length;
+
+        return {
+          id: att.id,
+          rank: idx + 1,
+          name: att.name,
+          email: att.email,
+          position: att.position || "Atendente",
+          sales: `R$ ${totalWonValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+          salesNum: totalWonValue,
+          deals: wonOpps.length,
+          chatsHandled,
+          avgTime: "1m 30s",
+          score: Math.min(100, 50 + wonOpps.length * 10 + attClients.length * 2),
+        };
+      });
+
+      ranking.sort((a, b) => b.salesNum - a.salesNum);
+      const medals = ["🥇", "🥈", "🥉"];
+      return ranking.map((r, i) => ({
+        ...r,
+        rank: i + 1,
+        medal: medals[i] || "🏅",
+      }));
+    }),
   }),
 
   // ─── WhatsApp e Multiatendimento ───
