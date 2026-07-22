@@ -41,6 +41,11 @@ export default function WhatsAppPage() {
   const [sentimentFilter, setSentimentFilter] = useState<"all" | "positive" | "neutral" | "angry">("all");
   const [pinnedChatIds, setPinnedChatIds] = useState<number[]>([]);
 
+  const [activeQuickReplies, setActiveQuickReplies] = useState(() => {
+    const saved = localStorage.getItem("custom_quick_replies");
+    return saved ? JSON.parse(saved) : QUICK_REPLIES;
+  });
+
   // Schedule Message States
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [scheduleDateTime, setScheduleDateTime] = useState("");
@@ -509,17 +514,28 @@ export default function WhatsAppPage() {
     }
   };
 
-  // Transfer chat
+  // Transfer chat with private internal note (no WhatsApp message sent to customer)
   const handleTransfer = async (targetId: number | null) => {
     if (!activeChatId) return;
     try {
+      const targetAttendant = (attendants || []).find((a: any) => a.id === targetId);
+      const targetName = targetAttendant ? targetAttendant.name : "Fila de Espera (Aguardando Atribuição)";
+      const senderName = me ? me.name : "Equipe";
+
       await transferChatMutation.mutateAsync({
         clientId: activeChatId,
         targetAttendantId: targetId,
       });
-      toast.success("Atendimento atualizado com sucesso!");
+
+      // Registra a nota interna amarela privada para a equipe
+      await sendMessageMutation.mutateAsync({
+        clientId: activeChatId,
+        message: `🔒 [Nota Interna]: 🔄 Conversa transferida por ${senderName} para ${targetName}.`,
+      });
+
+      toast.success(`Conversa transferida para ${targetName}! (Nota registrada apenas para a equipe)`);
       refetchChats();
-      setActiveChatId(null);
+      refetchMessages();
     } catch (err: any) {
       toast.error(err.message || "Erro ao transferir chat");
     }
@@ -990,7 +1006,7 @@ export default function WhatsAppPage() {
                         </Button>
                       </div>
                       <div className="space-y-1 max-h-56 overflow-y-auto">
-                        {QUICK_REPLIES.map((qr) => (
+                        {activeQuickReplies.map((qr: any) => (
                           <button
                             key={qr.shortcut}
                             type="button"

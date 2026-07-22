@@ -50,11 +50,36 @@ import {
   PanelRight,
   GripVertical,
   Radio,
+  Search,
+  Command
 } from "lucide-react";
 import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { trpc } from "@/lib/trpc";
+
+// Web Audio API Gentle 528Hz Harmonic Chime Sound
+export const playGentleChimeSound = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(528, ctx.currentTime);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.8);
+  } catch (e) {
+    // browser audio policy handling
+  }
+};
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -158,8 +183,25 @@ function DashboardLayoutContent({
   const activeMenuItem = allItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
 
-  // Draggable button state
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const isDragging = useRef(false);
+
+  const { data: searchClientsData } = trpc.clients.list.useQuery(
+    { search: searchQuery || undefined, limit: 6 },
+    { enabled: searchOpen && searchQuery.length > 0 }
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
   const dragOffset = useRef({ x: 0, y: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
   const [btnPos, setBtnPos] = useState<{ x: number; y: number }>(() => {
@@ -425,27 +467,112 @@ function DashboardLayoutContent({
       {sidebarSide === "left" && sidebarEl}
 
       <SidebarInset className="relative min-w-0 flex-1">
-        {isMobile && (
-          <div className="flex border-b border-border h-14 items-center justify-between bg-background/95 px-2 backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <span className="tracking-tight text-foreground font-medium">
-                {activeMenuItem?.label ?? "Menu"}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setCustomizeOpen(true)}
-              className="h-9 w-9 rounded-lg mr-1 text-primary hover:text-primary"
-              title="Personalizar Aparência"
-            >
-              <Paintbrush className="h-4.5 w-4.5" />
-            </Button>
+        {/* Header bar on Desktop and Mobile */}
+        <div className="flex border-b border-border h-14 items-center justify-between bg-card/40 px-4 backdrop-blur sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            {isMobile && <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />}
+            <span className="tracking-tight text-foreground font-semibold text-sm">
+              {activeMenuItem?.label ?? "Painel"}
+            </span>
           </div>
-        )}
+
+          <div className="flex items-center gap-2">
+            {/* Quick Search Button Ctrl + K */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 hover:bg-muted border border-border px-3 py-1.5 rounded-xl transition-all"
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Pesquisa rápida...</span>
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 text-[9px] font-mono bg-background border px-1.5 py-0.5 rounded text-muted-foreground">
+                <Command className="h-2.5 w-2.5" /> K
+              </kbd>
+            </button>
+
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setCustomizeOpen(true)}
+                className="h-9 w-9 rounded-lg text-primary hover:text-primary"
+                title="Personalizar Aparência"
+              >
+                <Paintbrush className="h-4.5 w-4.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </SidebarInset>
+
+      {/* COMMAND PALETTE SEARCH DIALOG (CTRL + K) */}
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="sm:max-w-[540px] p-0 overflow-hidden rounded-2xl bg-card border border-border shadow-2xl">
+          <div className="flex items-center border-b border-border px-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground mr-2" />
+            <Input
+              placeholder="Digite o nome, email ou telefone para pesquisar..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-12 border-0 focus-visible:ring-0 text-xs bg-transparent"
+              autoFocus
+            />
+            <kbd className="text-[9px] font-mono bg-muted border px-1.5 py-0.5 rounded text-muted-foreground">
+              ESC
+            </kbd>
+          </div>
+          <div className="p-3 max-h-80 overflow-y-auto space-y-1">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider px-2 py-1">
+              Atalhos de Navegação
+            </p>
+            {visibleMenuItems.slice(0, 4).map((item) => (
+              <button
+                key={item.path}
+                onClick={() => {
+                  setLocation(item.path);
+                  setSearchOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-2 hover:bg-muted/50 rounded-xl transition-colors text-xs text-left group"
+              >
+                <div className="flex items-center gap-2">
+                  <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="font-semibold">{item.label}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground group-hover:text-foreground">Ir para tela</span>
+              </button>
+            ))}
+
+            {searchQuery.trim().length > 0 && (
+              <>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider px-2 py-1 pt-3">
+                  Clientes Encontrados
+                </p>
+                {(!searchClientsData?.data || searchClientsData.data.length === 0) ? (
+                  <p className="text-xs text-muted-foreground px-2 py-2">Nenhum cliente encontrado para "{searchQuery}"</p>
+                ) : (
+                  searchClientsData.data.map((client: any) => (
+                    <button
+                      key={client.id}
+                      onClick={() => {
+                        setLocation(`/clients/${client.id}`);
+                        setSearchOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between p-2.5 hover:bg-muted/50 rounded-xl transition-colors text-xs text-left group border border-transparent hover:border-border"
+                    >
+                      <div>
+                        <p className="font-bold text-foreground group-hover:text-primary transition-colors">{client.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{client.phone || client.email || "Sem contato"}</p>
+                      </div>
+                      <span className="text-[10px] font-semibold text-primary">Ver perfil →</span>
+                    </button>
+                  ))
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {sidebarSide === "right" && sidebarEl}
 

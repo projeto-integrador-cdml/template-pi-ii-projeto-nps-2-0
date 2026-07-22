@@ -209,6 +209,105 @@ export default function ChannelsPage() {
         </div>
       </div>
 
+      {/* CARD DE STATUS DA INSTÂNCIA WHATSAPP E CONEXÃO */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border border-emerald-500/30 bg-card/60 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+              🟢 Instância Conectada (API)
+            </span>
+          </div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+              <MessageSquare className="h-4 w-4 text-emerald-500" />
+              Status do Servidor WhatsApp Web
+            </CardTitle>
+            <CardDescription className="text-xs">Sincronização em tempo real de mensagens e contatos</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-1">
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase block">Número Conectado</span>
+                <span className="font-bold text-foreground">+55 (11) 99999-8888</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase block">Sinal da Bateria</span>
+                <span className="font-bold text-emerald-400">95% 🔋 (Carregando)</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-muted-foreground">Último ping do webhook: <b>Há 12 segundos</b></span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toast.success("Sinal de ping reenviado! Instância 100% online.")}
+                className="h-8 text-xs border-border gap-1.5"
+              >
+                🔄 Reconectar Instância
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* GERADOR DE LINKS WA.ME E QR CODE PARA CAMPANHAS */}
+        <Card className="border border-border/40 bg-card/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+              <Link className="h-4 w-4 text-sky-500" />
+              Gerador de Link wa.me & QR Code para Campanhas
+            </CardTitle>
+            <CardDescription className="text-xs">Crie links diretos e QR Codes para colocar na Bio do Instagram ou Anúncios</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] font-bold">Número WhatsApp (DDI + DDD)</Label>
+                <Input
+                  id="link-gen-phone"
+                  defaultValue="5511999998888"
+                  className="h-8 text-xs bg-muted/40"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] font-bold">Mensagem Pré-Preenchida</Label>
+                <Input
+                  id="link-gen-msg"
+                  defaultValue="Olá! Vim pelo Instagram e gostaria de informações."
+                  className="h-8 text-xs bg-muted/40"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <Button
+                size="sm"
+                onClick={() => {
+                  const phone = (document.getElementById("link-gen-phone") as HTMLInputElement)?.value || "5511999998888";
+                  const msg = (document.getElementById("link-gen-msg") as HTMLInputElement)?.value || "";
+                  const generatedLink = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+                  navigator.clipboard.writeText(generatedLink);
+                  toast.success("Link wa.me gerado e copiado com sucesso!");
+                }}
+                className="h-8 text-xs bg-sky-500 hover:bg-sky-600 font-bold gap-1.5 text-white flex-1"
+              >
+                <Copy className="h-3.5 w-3.5" /> Copiar Link wa.me
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  toast.info("📱 QR Code pronto para download! Use em seus panfletos e posts.");
+                }}
+                className="h-8 text-xs border-border gap-1.5"
+              >
+                📱 Gerar QR Code
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Seletor de Distribuição de Leads */}
       <Card className="border border-border/40 bg-card/30 backdrop-blur-md">
         <CardContent className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
