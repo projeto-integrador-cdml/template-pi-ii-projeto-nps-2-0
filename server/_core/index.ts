@@ -31,9 +31,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-async function startServer() {
+export function createApp() {
   const app = express();
-  const server = createServer(app);
 
   // Enable CORS & Disable Cache Headers (force latest version always)
   app.use((req, res, next) => {
@@ -61,6 +60,7 @@ async function startServer() {
     }
   }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
@@ -105,12 +105,10 @@ async function startServer() {
         const phoneNumberId = metadata?.phone_number_id;
 
         if (phoneNumberId) {
-          // Busca a empresa correspondente pelo Phone Number ID
           const usersList = await db.listUsers();
           const user = usersList.find(u => u.whatsappApiUrl === phoneNumberId);
           
           if (user) {
-            // A. Processamento de status de envio (delivered, read, failed)
             if (value.statuses) {
               for (const statusObj of value.statuses) {
                 const msgId = statusObj.id;
@@ -120,7 +118,6 @@ async function startServer() {
               }
             }
 
-            // B. Processamento de novas mensagens de entrada (inbound)
             if (value.messages) {
               for (const msg of value.messages) {
                 const fromNumber = "+" + msg.from;
@@ -172,7 +169,15 @@ async function startServer() {
       createContext,
     })
   );
-  // development mode uses Vite, production mode uses static files
+
+  return app;
+}
+
+export const app = createApp();
+
+async function startServer() {
+  const server = createServer(app);
+
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
@@ -188,7 +193,6 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    // Auto-seed test user in background
     db.seedTestUser().catch(err => {
       console.warn("[Seed] Failed to auto-seed test user:", err);
     });
@@ -196,4 +200,7 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+// Start server if executed directly (node / tsx)
+if (process.env.VERCEL !== "1") {
+  startServer().catch(console.error);
+}
