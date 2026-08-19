@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
-import { createServer } from "http";
+import { createServer as createHttpServer } from "http";
+import { createServer as createHttpsServer } from "https";
+import fs from "fs";
 import net from "net";
 import path from "node:path";
 import crypto from "crypto";
@@ -182,7 +184,19 @@ export function createApp() {
 export const app = createApp();
 
 async function startServer() {
-  const server = createServer(app);
+  const certPath = path.join(process.cwd(), "certs", "cert.pem");
+  const keyPath = path.join(process.cwd(), "certs", "key.pem");
+  const useHttps = fs.existsSync(certPath) && fs.existsSync(keyPath);
+
+  const server = useHttps
+    ? createHttpsServer({ cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) }, app)
+    : createHttpServer(app);
+
+  if (useHttps) {
+    console.log("[Server] 🔒 HTTPS mode enabled using certificates from certs/");
+  } else {
+    console.log("[Server] ⚠️  HTTP mode (no certs found in certs/ — generate with: openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj '/CN=sd-us1.blazebr.com')");
+  }
 
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
