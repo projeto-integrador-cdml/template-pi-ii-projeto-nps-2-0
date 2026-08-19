@@ -170,6 +170,12 @@ export function createApp() {
     })
   );
 
+  // Global JSON Error Handler (Guarantees valid JSON response for Vercel Serverless)
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("[Express Error Handler]", err);
+    res.status(500).json({ error: err?.message || "Internal Server Error" });
+  });
+
   return app;
 }
 

@@ -44,9 +44,10 @@ export async function getDb() {
   }
   
   connectionPromise = (async () => {
-    if (process.env.DATABASE_URL) {
+    const rawDbUrl = process.env.DATABASE_URL;
+    if (rawDbUrl) {
       try {
-        const dbUrl = new URL(process.env.DATABASE_URL);
+        const dbUrl = new URL(rawDbUrl);
         const pool = mysql.createPool({
           host: dbUrl.hostname,
           port: parseInt(dbUrl.port || "3306", 10),
