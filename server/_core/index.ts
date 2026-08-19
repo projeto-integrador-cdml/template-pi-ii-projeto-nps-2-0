@@ -184,18 +184,33 @@ export function createApp() {
 export const app = createApp();
 
 async function startServer() {
-  const certPath = path.join(process.cwd(), "certs", "cert.pem");
-  const keyPath = path.join(process.cwd(), "certs", "key.pem");
-  const useHttps = fs.existsSync(certPath) && fs.existsSync(keyPath);
+  // Check certs/ in both root and crm_discord_python/ (where bot generates them on Blaze Host)
+  const possibleCertDirs = [
+    path.join(process.cwd(), "certs"),
+    path.join(process.cwd(), "crm_discord_python", "certs"),
+  ];
+
+  let certPath = "";
+  let keyPath = "";
+  for (const dir of possibleCertDirs) {
+    const c = path.join(dir, "cert.pem");
+    const k = path.join(dir, "key.pem");
+    if (fs.existsSync(c) && fs.existsSync(k)) {
+      certPath = c;
+      keyPath = k;
+      break;
+    }
+  }
+  const useHttps = !!certPath;
 
   const server = useHttps
     ? createHttpsServer({ cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) }, app)
     : createHttpServer(app);
 
   if (useHttps) {
-    console.log("[Server] 🔒 HTTPS mode enabled using certificates from certs/");
+    console.log(`[Server] 🔒 HTTPS mode enabled using certificates from ${path.dirname(certPath)}`);
   } else {
-    console.log("[Server] ⚠️  HTTP mode (no certs found in certs/ — generate with: openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj '/CN=sd-us1.blazebr.com')");
+    console.log("[Server] ⚠️  HTTP mode (run bot.py to auto-generate SSL cert)");
   }
 
   if (process.env.NODE_ENV === "development") {

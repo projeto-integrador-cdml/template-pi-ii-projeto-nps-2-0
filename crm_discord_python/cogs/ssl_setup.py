@@ -3,9 +3,11 @@ import subprocess
 import logging
 from discord.ext import commands
 
-CERT_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "certs", "cert.pem")
-KEY_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "certs", "key.pem")
-CERTS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "certs")
+# Certs ficam dentro da própria pasta do bot (diretório gravável no container da Blaze Host)
+BOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CERTS_DIR = os.path.join(BOT_DIR, "certs")
+CERT_PATH = os.path.join(CERTS_DIR, "cert.pem")
+KEY_PATH = os.path.join(CERTS_DIR, "key.pem")
 
 class SSLSetup(commands.Cog):
     """Cog que verifica e gera automaticamente o certificado SSL para o servidor HTTPS (executa apenas uma vez)."""
