@@ -1,58 +1,10 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { existsSync } from 'fs';
 import { commands } from './commands/crm.js';
+import { startApiServer } from './server.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// ─── Localiza a raiz do projeto ───────────────────────────────────────────────
-// Suporta dois layouts de deploy:
-//   1. Blaze Host: só a pasta crm_discord_js/ foi enviada
-//      → __dirname = /home/container  (o bot.js está na raiz do container)
-//   2. Projeto completo no container
-//      → __dirname = /home/container/crm_discord_js
-function findProjectRoot() {
-  // Verifica se start.js existe no diretório atual ou no pai
-  const candidates = [
-    __dirname,                        // bot.js está na raiz do projeto
-    path.join(__dirname, '..'),       // bot.js está em subpasta
-    path.join(__dirname, '..', '..'),
-  ];
-  for (const dir of candidates) {
-    if (existsSync(path.join(dir, 'start.js'))) return dir;
-  }
-  return null;
-}
-
-const projectRoot = findProjectRoot();
-
-// ─── 1. Iniciar o servidor Express/tRPC (API do site) ─────────────────────────
-if (projectRoot) {
-  console.log(`[CRM Bot] 🚀 Servidor API encontrado em: ${projectRoot}`);
-  console.log(`[CRM Bot] 🌐 Iniciando na porta ${process.env.PORT || '26653'}...`);
-
-  const apiProcess = spawn('node', ['start.js'], {
-    stdio: 'inherit',
-    shell: false,          // sem shell evita warning de segurança
-    cwd: projectRoot,
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      PORT: process.env.PORT || '26653',
-    },
-  });
-
-  apiProcess.on('error', (err) => console.error('[API Server] ❌ Erro ao iniciar:', err.message));
-  apiProcess.on('exit', (code) => {
-    if (code !== 0) console.warn(`[API Server] ⚠️ Encerrou com código: ${code}`);
-  });
-} else {
-  console.warn('[CRM Bot] ⚠️  start.js não encontrado — certifique-se de que o projeto completo está no container.');
-  console.warn('[CRM Bot] ℹ️  Continuando apenas com o Bot Discord...');
-}
+// ─── 1. Iniciar o servidor API (Express + tRPC) ───────────────────────────────
+startApiServer();
 
 // ─── 2. Iniciar o Bot Discord ──────────────────────────────────────────────────
 const PREFIX = '!';
