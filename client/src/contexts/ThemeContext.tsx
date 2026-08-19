@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { trpc } from "@/lib/trpc";
 
 export type Theme = "light" | "dark";
-export type ColorPalette = "green" | "red" | "blue" | "pink" | "yellow";
+export type ColorPalette = "green" | "red" | "orange" | "pink" | "yellow";
 export type SidebarSide = "left" | "right";
 
 export interface ButtonPosition {
@@ -22,7 +22,7 @@ const DEFAULT_WIDGET_ORDER = ["metrics", "pipeline", "activities", "overdue"];
 
 const DEFAULT_PREFS: UserPreferences = {
   theme: "dark",
-  palette: "blue",
+  palette: "orange",
   sidebarSide: "left",
   buttonPosition: { x: -1, y: -1 }, // -1 = use default bottom-right
   widgetOrder: DEFAULT_WIDGET_ORDER,

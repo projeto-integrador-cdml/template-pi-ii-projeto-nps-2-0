@@ -350,7 +350,7 @@ function DashboardLayoutContent({
             {!isCollapsed && (
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-semibold tracking-tight truncate gradient-text text-lg">
-                  CRM Web
+                  Project ES
                 </span>
               </div>
             )}
@@ -644,20 +644,20 @@ function DashboardLayoutContent({
                 Paleta de Cores ({theme === "light" ? "Tons Pastel" : "Cores Neon"})
               </h4>
               <div className="grid grid-cols-5 gap-2.5">
-                {(["green", "red", "blue", "pink", "yellow"] as const).map((colorName) => {
+                {(["green", "red", "orange", "pink", "yellow"] as const).map((colorName) => {
                   const bgPreview =
                     theme === "light"
                       ? {
                           green: "bg-[oklch(0.72_0.12_145)]",
                           red: "bg-[oklch(0.70_0.15_25)]",
-                          blue: "bg-[oklch(0.70_0.12_230)]",
+                          orange: "bg-[oklch(0.70_0.16_48)]",
                           pink: "bg-[oklch(0.71_0.14_330)]",
                           yellow: "bg-[oklch(0.78_0.13_85)]",
                         }[colorName]
                       : {
                           green: "bg-[oklch(0.75_0.25_145)] shadow-[0_0_10px_oklch(0.75_0.25_145/40%)]",
                           red: "bg-[oklch(0.65_0.25_25)] shadow-[0_0_10px_oklch(0.65_0.25_25/40%)]",
-                          blue: "bg-[oklch(0.65_0.22_245)] shadow-[0_0_10px_oklch(0.65_0.22_245/40%)]",
+                          orange: "bg-[oklch(0.70_0.20_50)] shadow-[0_0_10px_oklch(0.70_0.20_50/40%)]",
                           pink: "bg-[oklch(0.65_0.26_330)] shadow-[0_0_10px_oklch(0.65_0.26_330/40%)]",
                           yellow: "bg-[oklch(0.80_0.22_95)] shadow-[0_0_10px_oklch(0.80_0.22_95/40%)]",
                         }[colorName];
@@ -665,7 +665,7 @@ function DashboardLayoutContent({
                   const label = {
                     green: "Verde",
                     red: "Vermelho",
-                    blue: "Azul",
+                    orange: "Laranja",
                     pink: "Rosa",
                     yellow: "Amarelo",
                   }[colorName];

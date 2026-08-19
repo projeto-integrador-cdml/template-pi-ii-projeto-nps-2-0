@@ -16,7 +16,7 @@ const QUICK_REPLIES = [
   { shortcut: "/boasvindas", label: "👋 Boas-vindas", text: "Olá! Seja bem-vindo(a) à nossa empresa. Como podemos te ajudar hoje?" },
   { shortcut: "/precos", label: "💰 Tabela de Preços", text: "Temos o Plano Basic por R$ 99/mês e o Plano Pro por R$ 249/mês. Qual atende melhor a sua empresa no momento?" },
   { shortcut: "/suporte", label: "🛠️ Atendimento Técnico", text: "Nossa equipe técnica já está analisando sua solicitação. Retornaremos com atualizações em instantes!" },
-  { shortcut: "/pix", label: "💳 Dados para Pagamento (PIX)", text: "Nossa chave PIX CNPJ é: 12.345.678/0001-90 (CRM Web Tecnologia Ltda)." },
+  { shortcut: "/pix", label: "💳 Dados para Pagamento (PIX)", text: "Nossa chave PIX CNPJ é: 12.345.678/0001-90 (Project ES Tecnologia Ltda)." },
   { shortcut: "/agendar", label: "📅 Agendar Demonstração", text: "Podemos agendar uma demonstração rápida de 15 minutos amanhã para apresentar a plataforma?" },
 ];
 

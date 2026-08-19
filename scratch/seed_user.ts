@@ -21,8 +21,8 @@ async function main() {
     process.exit(1);
   }
 
-  const email = "exemplo@gmail.com";
-  const password = "exemplo";
+  const email = "jose.alves@sempreceub.com";
+  const password = "exemplo123";
 
   console.log(`Hashing password for ${email}...`);
   const hashedPassword = await bcrypt.hash(password, 10);

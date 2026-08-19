@@ -18,7 +18,7 @@ export default function LandingPage() {
   const simMessages = [
     { sender: "bot", text: "Olá! 🤖", time: "10:19" },
     { sender: "user", text: "Oi, tudo bem? Gostaríamos de saber mais...", time: "10:20" },
-    { sender: "bot", text: "Com certeza! O GM CRM pode ajudar. Como posso te auxiliar hoje? 😊", time: "10:21" },
+    { sender: "bot", text: "Com certeza! O Project ES pode ajudar. Como posso te auxiliar hoje? 😊", time: "10:21" },
     { sender: "user", text: "Você vende produtos físicos ou serviços?", time: "10:22" },
     { sender: "user", text: "Serviços de Marketing Digital", time: "10:23" },
     { sender: "bot", text: "Excelente! Nosso Pipeline Kanban é perfeito. Vamos agendar uma demonstração?", time: "10:24" }
@@ -152,17 +152,17 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="sticky top-0 z-50 border-b border-white/5 bg-[#070913]/85 backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between">
-          {/* Logo combinando "GM GM CRM" ou "GM CRM" */}
+          {/* Logo combinando "GM Project ES" ou "Project ES" */}
           <div className="flex items-center gap-2 md:flex-1 justify-start">
             <div className="relative h-9 w-9 flex items-center justify-center">
               {/* O gradiente redondo sutil do logo */}
               <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-[#3b82f6] to-[#ec4899] opacity-35 blur-[1px]" />
               <div className="absolute inset-0 rounded-xl border border-white/10 bg-black/50 flex items-center justify-center shadow-lg">
-                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">GM</span>
+                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">ES</span>
               </div>
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-extrabold text-sm tracking-tight text-white leading-none">GM CRM</span>
+              <span className="font-extrabold text-sm tracking-tight text-white leading-none">Project ES</span>
               <span className="text-[7px] font-bold text-cyan-400 tracking-wider uppercase mt-0.5">WhatsApp AI</span>
             </div>
           </div>
@@ -231,10 +231,10 @@ export default function LandingPage() {
           {/* Pequena esfera laranja flutuante no topo esquerdo */}
           <div className="absolute left-[15%] top-[12%] w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-amber-500 shadow-[0_0_10px_rgba(251,146,60,0.5)] animate-float z-20" />
 
-          {/* Badge v2.0 GM CRM */}
+          {/* Badge v2.0 Project ES */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-white/10 bg-white/5 text-xs font-semibold mb-6 relative z-10">
             <span className="bg-gradient-to-r from-orange-500 to-pink-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider">v2.0</span>
-            <span className="text-white text-[11px]">GM CRM</span>
+            <span className="text-white text-[11px]">Project ES</span>
           </div>
           
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight max-w-3xl leading-[1.12] text-white relative z-10 px-4">
@@ -329,12 +329,10 @@ export default function LandingPage() {
             <div className="bg-[#121422] px-4 pt-7 pb-3 flex items-center justify-between border-b border-white/5 shrink-0 relative z-20">
               <div className="flex items-center gap-2">
                 <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-purple-600 to-cyan-400 p-[1px] flex items-center justify-center">
-                  <div className="h-full w-full rounded-full bg-[#0d0f1a] flex items-center justify-center text-[9px] font-black text-white">
-                    GM
-                  </div>
+                  <div className="h-full w-full rounded-full bg-[#0d0f1a] flex items-center justify-center text-[9px] font-black text-white">ES</div>
                 </div>
                 <div className="text-left">
-                  <h5 className="font-bold text-[10px] text-white leading-none">GM CRM v2.0</h5>
+                  <h5 className="font-bold text-[10px] text-white leading-none">Project ES v2.0</h5>
                   <span className="text-[7.5px] text-[#4ade80] flex items-center gap-1 mt-0.5 font-medium">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#4ade80] animate-pulse" />
                     Automatizado
@@ -597,7 +595,7 @@ export default function LandingPage() {
           <div className="space-y-3.5">
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Perguntas Frequentes</h2>
             <p className="text-slate-400 text-xs md:text-sm">
-              Tem alguma dúvida sobre o funcionamento do GM CRM? Confira as respostas rápidas abaixo.
+              Tem alguma dúvida sobre o funcionamento do Project ES? Confira as respostas rápidas abaixo.
             </p>
           </div>
 
@@ -653,7 +651,7 @@ export default function LandingPage() {
             <div className="w-full lg:max-w-xl rounded-3xl bg-[#092e56] border border-blue-500/20 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_10px_35px_-5px_rgba(9,46,86,0.3)]">
               <div className="text-left flex-1">
                 <h4 className="text-sm md:text-base font-semibold text-white leading-normal">
-                  Quer saber como funciona por dentro do GM CRM e ainda ganhar 14 dias grátis?
+                  Quer saber como funciona por dentro do Project ES e ainda ganhar 14 dias grátis?
                 </h4>
               </div>
               <button 
@@ -678,15 +676,15 @@ export default function LandingPage() {
               <ul className="space-y-3.5 text-[12px] text-slate-300">
                 <li className="flex items-start gap-2.5">
                   <MapPin className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-                  <span>Av Etelvina de Souza Majone, 1-199 Bauru - SP</span>
+                  <span>Av. Paulista, 1000 - São Paulo, SP</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>+55 11 94111-3090</span>
+                  <span>+55 (11) 99999-0000</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Mail className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>sales@beecrm.io</span>
+                  <span>contato@suaempresa.com</span>
                 </li>
               </ul>
             </div>
@@ -740,7 +738,7 @@ export default function LandingPage() {
 
           {/* Row 3: Bottom Meta Row */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-            <p>© 2026 GM CRM. Todos os direitos reservados.</p>
+            <p>© 2026 Project ES. Todos os direitos reservados.</p>
             <div className="flex items-center gap-6 text-slate-400">
               <a href="#" className="hover:text-white transition-colors">Termos de Uso</a>
               <a href="#" className="hover:text-white transition-colors">Privacidade</a>

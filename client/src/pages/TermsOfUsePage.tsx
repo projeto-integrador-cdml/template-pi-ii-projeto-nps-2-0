@@ -102,11 +102,11 @@ export default function TermsOfUsePage() {
             <div className="relative h-9 w-9 flex items-center justify-center">
               <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-[#3b82f6] to-[#ec4899] opacity-35 blur-[1px]" />
               <div className="absolute inset-0 rounded-xl border border-white/10 bg-black/50 flex items-center justify-center shadow-lg">
-                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">GM</span>
+                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">ES</span>
               </div>
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-extrabold text-sm tracking-tight text-white leading-none">GM CRM</span>
+              <span className="font-extrabold text-sm tracking-tight text-white leading-none">Project ES</span>
               <span className="text-[7px] font-bold text-cyan-400 tracking-wider uppercase mt-0.5">WhatsApp AI</span>
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function TermsOfUsePage() {
                 Em caso de dúvidas comerciais ou requisições formais sobre os nossos planos de contratação, contate-nos.
               </p>
               <div className="text-[11px] font-bold text-purple-400 pt-1 select-all">
-                sales@beecrm.io
+                contato@suaempresa.com
               </div>
             </div>
           </aside>
@@ -232,7 +232,7 @@ export default function TermsOfUsePage() {
                 </div>
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
                   <p>
-                    Ao acessar, registrar-se ou utilizar de qualquer forma a plataforma <strong>GM CRM</strong> e seus subdomínios, você ("Usuário" ou "Contratante") concorda incondicionalmente em cumprir e sujeitar-se a estes Termos de Uso e Serviço, bem como à nossa Política de Privacidade.
+                    Ao acessar, registrar-se ou utilizar de qualquer forma a plataforma <strong>Project ES</strong> e seus subdomínios, você ("Usuário" ou "Contratante") concorda incondicionalmente em cumprir e sujeitar-se a estes Termos de Uso e Serviço, bem como à nossa Política de Privacidade.
                   </p>
                   <p>
                     Caso você esteja aceitando estes termos em nome de uma empresa ou pessoa jurídica, você declara possuir os poderes necessários para vincular tal entidade às cláusulas descritas neste documento. Se você não concorda com qualquer uma das condições estabelecidas, não deverá utilizar a nossa plataforma ou acessar nossos canais.
@@ -250,7 +250,7 @@ export default function TermsOfUsePage() {
                 </div>
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
                   <p>
-                    O GM CRM outorga ao usuário uma licença de uso temporária, não exclusiva, intransferível e revogável de sua plataforma de software baseada em nuvem (SaaS). A plataforma fornece:
+                    O Project ES outorga ao usuário uma licença de uso temporária, não exclusiva, intransferível e revogável de sua plataforma de software baseada em nuvem (SaaS). A plataforma fornece:
                   </p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>Painel de chat omnichannel unificado (WhatsApp, Instagram, Messenger);</li>
@@ -278,7 +278,7 @@ export default function TermsOfUsePage() {
                     Para usufruir dos recursos da plataforma, você deve preencher o cadastro informando dados válidos, precisos e completos. Você é o único responsável pela guarda e confidencialidade de sua senha de acesso e por todas as operações executadas em sua conta.
                   </p>
                   <p>
-                    É estritamente vedada a cessão ou empréstimo de chaves de API, credenciais ou tokens de acesso a terceiros sem autorização prévia. Você concorda em notificar o suporte comercial do GM CRM imediatamente caso detecte qualquer uso não autorizado ou suspeita de quebra de segurança de sua conta.
+                    É estritamente vedada a cessão ou empréstimo de chaves de API, credenciais ou tokens de acesso a terceiros sem autorização prévia. Você concorda em notificar o suporte comercial do Project ES imediatamente caso detecte qualquer uso não autorizado ou suspeita de quebra de segurança de sua conta.
                   </p>
                 </div>
               </section>
@@ -319,11 +319,11 @@ export default function TermsOfUsePage() {
                 </div>
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
                   <p>
-                    O GM CRM é uma ferramenta de automação e qualificação de leads legítimos. O uso da plataforma é condicionado ao respeito às leis locais e à política antispam:
+                    O Project ES é uma ferramenta de automação e qualificação de leads legítimos. O uso da plataforma é condicionado ao respeito às leis locais e à política antispam:
                   </p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>
-                      <strong>SPAM Proibido:</strong> É terminantemente proibido utilizar o GM CRM para efetuar disparos em massa para números de contatos obtidos sem consentimento expresso (opt-in) ou listas frias compradas na internet.
+                      <strong>SPAM Proibido:</strong> É terminantemente proibido utilizar o Project ES para efetuar disparos em massa para números de contatos obtidos sem consentimento expresso (opt-in) ou listas frias compradas na internet.
                     </li>
                     <li>
                       <strong>Opção de Descadastro (Opt-Out):</strong> As campanhas devem incluir uma opção clara para o destinatário solicitar a interrupção das mensagens (ex: "Digite SAIR para parar").
@@ -347,14 +347,14 @@ export default function TermsOfUsePage() {
                   <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs my-2">
                     <span className="font-bold text-amber-400 block mb-1">⚠️ AVISO IMPORTANTE SOBRE BANIMENTOS:</span>
                     O WhatsApp possui algoritmos inteligentes de detecção de spam e comportamento robótico que operam de forma autônoma. 
-                    <strong> O GM CRM não possui ingerência, acesso ou controle sobre as punições de banimento, bloqueio ou suspensão aplicadas pela Meta Platforms, Inc. a números de telefone.</strong>
+                    <strong> O Project ES não possui ingerência, acesso ou controle sobre as punições de banimento, bloqueio ou suspensão aplicadas pela Meta Platforms, Inc. a números de telefone.</strong>
                   </div>
                   <p>
                     Você declara e aceita expressamente que:
                   </p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>O uso de automações e o volume excessivo de mensagens enviadas por um chip de WhatsApp (seja via QR Code Web ou API) pode violar os termos comerciais da Meta e levar ao bloqueio definitivo da sua linha telefônica.</li>
-                    <li><strong>O GM CRM não oferece qualquer garantia de que sua linha de WhatsApp estará imune a banimentos e não se responsabiliza por eventuais prejuízos comerciais decorrentes de números bloqueados.</strong></li>
+                    <li><strong>O Project ES não oferece qualquer garantia de que sua linha de WhatsApp estará imune a banimentos e não se responsabiliza por eventuais prejuízos comerciais decorrentes de números bloqueados.</strong></li>
                     <li>A parametrização de intervalos seguros (delays) entre as mensagens e a higienização das listas de leads são de responsabilidade operacional única e exclusiva do usuário.</li>
                   </ul>
                 </div>
@@ -370,7 +370,7 @@ export default function TermsOfUsePage() {
                 </div>
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
                   <p>
-                    Todas as marcas registradas, designs de telas, algoritmos de automação, códigos, artes, logos e documentos contidos no site do GM CRM ou dentro do painel do cliente são propriedade exclusiva da nossa marca. 
+                    Todas as marcas registradas, designs de telas, algoritmos de automação, códigos, artes, logos e documentos contidos no site do Project ES ou dentro do painel do cliente são propriedade exclusiva da nossa marca. 
                   </p>
                   <p>
                     É proibida qualquer tentativa de extrair o código-fonte (engenharia reversa), copiar o visual do site para ferramentas concorrentes sem autorização por escrito, ou remover avisos de copyright inseridos na plataforma.
@@ -427,7 +427,7 @@ export default function TermsOfUsePage() {
             <div className="w-full lg:max-w-xl rounded-3xl bg-[#092e56] border border-blue-500/20 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_10px_35px_-5px_rgba(9,46,86,0.3)]">
               <div className="text-left flex-1">
                 <h4 className="text-sm md:text-base font-semibold text-white leading-normal">
-                  Quer saber como funciona por dentro do GM CRM e ainda ganhar 14 dias grátis?
+                  Quer saber como funciona por dentro do Project ES e ainda ganhar 14 dias grátis?
                 </h4>
               </div>
               <button
@@ -452,15 +452,15 @@ export default function TermsOfUsePage() {
               <ul className="space-y-3.5 text-[12px] text-slate-300">
                 <li className="flex items-start gap-2.5">
                   <MapPin className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-                  <span>Av Etelvina de Souza Majone, 1-199 Bauru - SP</span>
+                  <span>Av. Paulista, 1000 - São Paulo, SP</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>+55 11 94111-3090</span>
+                  <span>+55 (11) 99999-0000</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Mail className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>sales@beecrm.io</span>
+                  <span>contato@suaempresa.com</span>
                 </li>
               </ul>
             </div>
@@ -514,7 +514,7 @@ export default function TermsOfUsePage() {
 
           {/* Row 3: Bottom Meta Row */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-            <p>© 2026 GM CRM. Todos os direitos reservados.</p>
+            <p>© 2026 Project ES. Todos os direitos reservados.</p>
             <div className="flex items-center gap-6 text-slate-400">
               <a href="/termos-de-uso" className="hover:text-white transition-colors">Termos de Uso</a>
               <a href="/politica-de-privacidade" className="hover:text-white transition-colors">Privacidade</a>

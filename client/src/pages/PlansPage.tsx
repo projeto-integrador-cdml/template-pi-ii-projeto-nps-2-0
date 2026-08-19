@@ -14,8 +14,8 @@ export default function PlansPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   const handleCTA = (planName: string) => {
-    const message = encodeURIComponent(`Olá! Gostaria de saber mais informações e os preços do plano ${planName} do GM CRM.`);
-    window.open(`https://wa.me/5511941113090?text=${message}`, "_blank");
+    const message = encodeURIComponent(`Olá! Gostaria de saber mais informações e os preços do plano ${planName} do Project ES.`);
+    window.open(`https://wa.me/5511999990000?text=${message}`, "_blank");
   };
 
   const plans = {
@@ -144,11 +144,11 @@ export default function PlansPage() {
             <div className="relative h-9 w-9 flex items-center justify-center">
               <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-[#3b82f6] to-[#ec4899] opacity-35 blur-[1px]" />
               <div className="absolute inset-0 rounded-xl border border-white/10 bg-black/50 flex items-center justify-center shadow-lg">
-                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">GM</span>
+                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">ES</span>
               </div>
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-extrabold text-sm tracking-tight text-white leading-none">GM CRM</span>
+              <span className="font-extrabold text-sm tracking-tight text-white leading-none">Project ES</span>
               <span className="text-[7px] font-bold text-cyan-400 tracking-wider uppercase mt-0.5">WhatsApp AI</span>
             </div>
           </div>
@@ -455,7 +455,7 @@ export default function PlansPage() {
             <div className="w-full lg:max-w-xl rounded-3xl bg-[#092e56] border border-blue-500/20 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_10px_35px_-5px_rgba(9,46,86,0.3)]">
               <div className="text-left flex-1">
                 <h4 className="text-sm md:text-base font-semibold text-white leading-normal">
-                  Quer saber como funciona por dentro do GM CRM e ainda ganhar 14 dias grátis?
+                  Quer saber como funciona por dentro do Project ES e ainda ganhar 14 dias grátis?
                 </h4>
               </div>
               <button 
@@ -480,15 +480,15 @@ export default function PlansPage() {
               <ul className="space-y-3.5 text-[12px] text-slate-300">
                 <li className="flex items-start gap-2.5">
                   <MapPin className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-                  <span>Av Etelvina de Souza Majone, 1-199 Bauru - SP</span>
+                  <span>Av. Paulista, 1000 - São Paulo, SP</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>+55 11 94111-3090</span>
+                  <span>+55 (11) 99999-0000</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Mail className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>sales@beecrm.io</span>
+                  <span>contato@suaempresa.com</span>
                 </li>
               </ul>
             </div>
@@ -542,7 +542,7 @@ export default function PlansPage() {
 
           {/* Row 3: Bottom Meta Row */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-            <p>© 2026 GM CRM. Todos os direitos reservados.</p>
+            <p>© 2026 Project ES. Todos os direitos reservados.</p>
             <div className="flex items-center gap-6 text-slate-400">
               <a href="#" className="hover:text-white transition-colors">Termos de Uso</a>
               <a href="#" className="hover:text-white transition-colors">Privacidade</a>

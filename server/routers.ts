@@ -13,6 +13,9 @@ import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { sdk } from "./_core/sdk";
+import { generateSecret, generateURI, verifySync } from "otplib";
+import QRCode from "qrcode";
+import { sendPasswordResetEmail } from "./emailService";
 
 function getCompanyAdminId(ctx: any): number {
   if (ctx.user) {
@@ -89,7 +92,24 @@ export const appRouter = router({
           phone: input.phone || null,
           role: "user",
           isActive: true,
+          companyName: input.name,
+          maxAttendants: 5,
         });
+
+        const registeredUser = await db.getUserByOpenId(openId);
+        if (registeredUser) {
+          const existingClient = await db.getClientById(registeredUser.id, 0);
+          if (!existingClient) {
+            await db.createClient({
+              userId: registeredUser.id,
+              name: input.name,
+              company: input.name,
+              email: input.email,
+              phone: input.phone || null,
+              status: "active",
+            });
+          }
+        }
 
         // Sign session token and set cookie
         const sessionToken = await sdk.createSessionToken(openId, {
@@ -107,6 +127,7 @@ export const appRouter = router({
       .input(z.object({
         email: z.string().email(),
         password: z.string().min(1),
+        twoFactorCode: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const user = await db.getUserByEmail(input.email);
@@ -121,6 +142,23 @@ export const appRouter = router({
 
         if (!user.isActive) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Sua conta está desativada" });
+        }
+
+        // Se 2FA estiver ativado para o usuário
+        if (user.twoFactorEnabled) {
+          if (!input.twoFactorCode) {
+            return { require2FA: true, userEmail: user.email };
+          }
+          if (!user.twoFactorSecret) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Segredo de 2FA não configurado." });
+          }
+          const check = verifySync({
+            token: input.twoFactorCode,
+            secret: user.twoFactorSecret,
+          });
+          if (!check.valid) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Código de autenticação de 2 fatores inválido ou expirado." });
+          }
         }
 
         // Sign session token and set cookie
@@ -146,6 +184,88 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         if (!ctx.user) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem atualizar preferências" });
         await db.updateUserPreferences(ctx.user.id, input.preferences);
+        return { success: true };
+      }),
+    // ── 2FA endpoints ──
+    setup2FA: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "Você precisa estar logado." });
+      const secret = generateSecret();
+      const otpauthUrl = generateURI({ label: ctx.user.email || "user", issuer: "CRM System", secret });
+      const qrCode = await QRCode.toDataURL(otpauthUrl);
+      return { secret, qrCode };
+    }),
+    enable2FA: protectedProcedure
+      .input(z.object({
+        secret: z.string().min(1),
+        code: z.string().length(6),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "Você precisa estar logado." });
+        const check = verifySync({
+          token: input.code,
+          secret: input.secret,
+        });
+        if (!check.valid) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Código de verificação de 2FA inválido. Tente novamente." });
+        }
+        await db.updateUser2FA(ctx.user.id, true, input.secret);
+        return { success: true };
+      }),
+    disable2FA: protectedProcedure
+      .input(z.object({
+        password: z.string().optional(),
+        code: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "Você precisa estar logado." });
+        if (input.password) {
+          const user = await db.getUserById(ctx.user.id);
+          if (!user || !user.password || !(await bcrypt.compare(input.password, user.password))) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Senha incorreta." });
+          }
+        } else if (input.code && ctx.user.twoFactorSecret) {
+          const check = verifySync({
+            token: input.code,
+            secret: ctx.user.twoFactorSecret,
+          });
+          if (!check.valid) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Código 2FA inválido." });
+          }
+        }
+        await db.updateUser2FA(ctx.user.id, false, null);
+        return { success: true };
+      }),
+    // ── Esqueci a Senha endpoints ──
+    requestPasswordReset: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          // Não revela se o e-mail existe por segurança
+          return { success: true };
+        }
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // Validade de 15 minutos
+        await db.createPasswordReset(user.email!, code, expiresAt);
+        const res = await sendPasswordResetEmail(user.email!, code);
+        return { success: true, simulated: res.simulated, message: res.message };
+      }),
+    resetPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+        newPassword: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const resetRecord = await db.getValidPasswordReset(input.email, input.code);
+        if (!resetRecord) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Código inválido ou expirado (expira em 15 minutos). Solicite um novo código." });
+        }
+        const hashedPassword = await bcrypt.hash(input.newPassword, 10);
+        await db.updateUserPasswordByEmail(input.email, hashedPassword);
+        await db.markPasswordResetUsed(resetRecord.id);
         return { success: true };
       }),
   }),
@@ -192,6 +312,21 @@ export const appRouter = router({
           companyName: input.companyName,
           maxAttendants: input.maxAttendants,
         });
+
+        const newUser = await db.getUserByEmail(input.email);
+        if (newUser) {
+          const userClients = await db.listClients(newUser.id);
+          if (!userClients.data || userClients.data.length === 0) {
+            await db.createClient({
+              userId: newUser.id,
+              name: input.companyName,
+              company: input.companyName,
+              email: input.email,
+              status: "active",
+            });
+          }
+        }
+
         return { success: true };
       }),
     updateUserCota: adminProcedure

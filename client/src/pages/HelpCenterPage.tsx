@@ -10,7 +10,7 @@ import {
   CheckCircle2, Mail, Phone, Clock, ArrowUpRight
 } from "lucide-react";
 
-// Mock data of articles for GM CRM
+// Mock data of articles for Project ES
 interface Article {
   id: string;
   title: string;
@@ -47,7 +47,7 @@ export default function HelpCenterPage() {
     {
       id: "primeiros-passos",
       name: "Primeiros Passos",
-      description: "Tudo o que você precisa saber para começar a usar o GM CRM rapidamente.",
+      description: "Tudo o que você precisa saber para começar a usar o Project ES rapidamente.",
       icon: Rocket,
       iconColor: "text-purple-400",
       glowColor: "group-hover:shadow-[0_0_30px_rgba(168,85,247,0.25)] group-hover:border-purple-500/30",
@@ -58,7 +58,7 @@ export default function HelpCenterPage() {
           excerpt: "Passo a passo para se registrar na plataforma e realizar o login inicial.",
           content: (
             <div className="space-y-4">
-              <p>Bem-vindo ao <strong>GM CRM</strong>! Criar sua conta é simples e leva menos de 2 minutos. Siga o passo a passo abaixo:</p>
+              <p>Bem-vindo ao <strong>Project ES</strong>! Criar sua conta é simples e leva menos de 2 minutos. Siga o passo a passo abaixo:</p>
               <ol className="list-decimal pl-6 space-y-2">
                 <li>Acesse a página de login clicando em <strong>Entrar</strong> ou vá diretamente para <code className="bg-white/5 px-1.5 py-0.5 rounded text-cyan-300">/auth</code>.</li>
                 <li>Selecione a aba <strong>Registrar</strong> no formulário.</li>
@@ -79,7 +79,7 @@ export default function HelpCenterPage() {
           excerpt: "Como integrar seu WhatsApp, Messenger ou Instagram Direct à plataforma.",
           content: (
             <div className="space-y-4">
-              <p>O GM CRM centraliza múltiplos canais em um único painel. Para conectar seu primeiro canal:</p>
+              <p>O Project ES centraliza múltiplos canais em um único painel. Para conectar seu primeiro canal:</p>
               <ol className="list-decimal pl-6 space-y-2">
                 <li>No menu lateral esquerdo do painel, clique em <strong>WhatsApp / Canais</strong>.</li>
                 <li>Clique no botão <strong>+ Adicionar Canal</strong> no canto superior direito.</li>
@@ -100,7 +100,7 @@ export default function HelpCenterPage() {
           excerpt: "Saiba como trazer atendentes e configurar o controle de acesso de cada um.",
           content: (
             <div className="space-y-4">
-              <p>O trabalho em equipe no GM CRM é otimizado através de regras claras de distribuição de leads. Veja como convidar sua equipe:</p>
+              <p>O trabalho em equipe no Project ES é otimizado através de regras claras de distribuição de leads. Veja como convidar sua equipe:</p>
               <ol className="list-decimal pl-6 space-y-2">
                 <li>Acesse a área de <strong>Configurações &gt; Equipe</strong> no menu lateral.</li>
                 <li>Clique em <strong>Convidar Usuário</strong>.</li>
@@ -150,7 +150,7 @@ export default function HelpCenterPage() {
             <div className="space-y-4">
               <p>A sincronização por QR Code usa a tecnologia multiaparelho oficial do WhatsApp. Siga estas etapas para garantir que o seu celular permaneça conectado de forma ininterrupta:</p>
               <ol className="list-decimal pl-6 space-y-2">
-                <li>No painel do GM CRM, vá na aba **WhatsApp** e selecione o canal que deseja conectar.</li>
+                <li>No painel do Project ES, vá na aba **WhatsApp** e selecione o canal que deseja conectar.</li>
                 <li>Se houver uma conexão antiga com falha, clique em **Desconectar / Limpar Sessão** primeiro.</li>
                 <li>Aguarde 5 segundos para que o sistema gere um novo QR Code atualizado.</li>
                 <li>No seu celular, abra o WhatsApp &gt; Configurações (ou três pontinhos) &gt; Aparelhos Conectados &gt; Conectar um Aparelho.</li>
@@ -174,7 +174,7 @@ export default function HelpCenterPage() {
                 <li><strong>Opt-In Obrigatório:</strong> Dispare apenas para pessoas que já entraram em contato com você anteriormente ou que explicitamente autorizaram receber suas mensagens.</li>
                 <li><strong>Gatilho de Opt-Out Claro:</strong> Sempre dê ao cliente a opção de parar de receber mensagens. Exemplo: <code className="bg-white/5 px-1 py-0.5 rounded text-emerald-300">"Digite SAIR para interromper este contato."</code>.</li>
                 <li><strong>Aquecimento de Número:</strong> Se o chip é novo, comece enviando poucas mensagens diárias (10 a 20) e aumente o volume progressivamente ao longo de 2 a 3 semanas.</li>
-                <li><strong>Intervalos Randômicos:</strong> No GM CRM, ao programar uma campanha, configure o atraso dinâmico entre mensagens para 15 a 45 segundos. Nunca use disparos sem atraso!</li>
+                <li><strong>Intervalos Randômicos:</strong> No Project ES, ao programar uma campanha, configure o atraso dinâmico entre mensagens para 15 a 45 segundos. Nunca use disparos sem atraso!</li>
               </ul>
             </div>
           )
@@ -185,12 +185,12 @@ export default function HelpCenterPage() {
           excerpt: "Centralize mensagens recebidas nas suas redes sociais Meta.",
           content: (
             <div className="space-y-4">
-              <p>Com o GM CRM, você pode responder comentários e mensagens diretas do Instagram de forma profissional. Veja o procedimento:</p>
+              <p>Com o Project ES, você pode responder comentários e mensagens diretas do Instagram de forma profissional. Veja o procedimento:</p>
               <ol className="list-decimal pl-6 space-y-2">
                 <li>Certifique-se de que sua conta do Instagram seja **Comercial (Business)** e esteja vinculada a uma Página do Facebook.</li>
-                <li>No painel do GM CRM, vá em **Adicionar Canal &gt; Instagram Direct**.</li>
+                <li>No painel do Project ES, vá em **Adicionar Canal &gt; Instagram Direct**.</li>
                 <li>Faça login com a conta do Facebook que gerencia a página vinculada.</li>
-                <li>Dê permissão para o GM CRM acessar as conversas do Instagram.</li>
+                <li>Dê permissão para o Project ES acessar as conversas do Instagram.</li>
                 <li>Selecione o perfil desejado e conclua.</li>
               </ol>
             </div>
@@ -229,11 +229,11 @@ export default function HelpCenterPage() {
           excerpt: "Escreva prompts eficientes e anexe documentos de texto para a IA responder seus clientes.",
           content: (
             <div className="space-y-4">
-              <p>O GM CRM conta com um agente de inteligência artificial de ponta conectado aos modelos GPT-4 e Claude. Para que ele atenda seus leads corretamente, você precisa instruí-lo:</p>
+              <p>O Project ES conta com um agente de inteligência artificial de ponta conectado aos modelos GPT-4 e Claude. Para que ele atenda seus leads corretamente, você precisa instruí-lo:</p>
               <h4 className="text-sm font-bold text-white mt-4">1. Prompt de Comportamento (Instruções)</h4>
               <p>Defina o papel da IA em formato de texto. Exemplo:</p>
               <pre className="bg-black/40 border border-white/10 rounded-2xl p-4 text-[11px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
-{`Você é a Alice, atendente virtual do GM CRM. Seu objetivo é qualificar o lead, tirar dúvidas sobre o nosso sistema de envio de WhatsApp e agendar uma demonstração gratuita de 15 minutos com nosso comercial. Seja simpática, prestativa e escreva mensagens de no máximo 3 linhas.`}
+{`Você é a Alice, atendente virtual do Project ES. Seu objetivo é qualificar o lead, tirar dúvidas sobre o nosso sistema de envio de WhatsApp e agendar uma demonstração gratuita de 15 minutos com nosso comercial. Seja simpática, prestativa e escreva mensagens de no máximo 3 linhas.`}
               </pre>
               <h4 className="text-sm font-bold text-white mt-4">2. Base de Conhecimento (Arquivos)</h4>
               <p>Envie arquivos em formato TXT, PDF ou digite informações diretas no sistema com dados de preços, links de agendamento e perguntas frequentes. A IA consultará estes dados antes de formular qualquer resposta.</p>
@@ -291,7 +291,7 @@ export default function HelpCenterPage() {
               <ol className="list-decimal pl-6 space-y-2">
                 <li>Prepare sua planilha no Excel contendo pelo menos as colunas: <strong>Nome</strong> e <strong>WhatsApp</strong> (com código do país e DDD, ex: <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-300">5511999998888</code>).</li>
                 <li>Exporte a planilha como formato **CSV (delimitado por vírgula)**.</li>
-                <li>No painel do GM CRM, vá em **Campanhas &gt; Contatos &gt; Importar Planilha**.</li>
+                <li>No painel do Project ES, vá em **Campanhas &gt; Contatos &gt; Importar Planilha**.</li>
                 <li>Selecione o arquivo CSV e faça o mapeamento das colunas (indique qual coluna representa o nome e qual representa o telefone).</li>
                 <li>Clique em salvar. Seus contatos estarão prontos para disparos.</li>
               </ol>
@@ -329,7 +329,7 @@ export default function HelpCenterPage() {
                 <li>Templates HSM passam por aprovação automática da Meta (geralmente leva menos de 5 minutos).</li>
                 <li>Eles permitem enviar notificações mesmo após a janela de 24 horas da última mensagem do cliente.</li>
                 <li>Permitem botões de chamadas de ação interativas (CTA) como links e números de telefone direto.</li>
-                <li>Você pode gerenciar e solicitar aprovações diretamente pela tela de **Modelos HSM** no GM CRM.</li>
+                <li>Você pode gerenciar e solicitar aprovações diretamente pela tela de **Modelos HSM** no Project ES.</li>
               </ul>
             </div>
           )
@@ -350,7 +350,7 @@ export default function HelpCenterPage() {
           excerpt: "Como autenticar requisições de terceiros e configurar alertas de novos chats.",
           content: (
             <div className="space-y-4">
-              <p>Para conectar o GM CRM com sistemas externos (como Hotmart, Kiwify, Bling ou seu próprio site):</p>
+              <p>Para conectar o Project ES com sistemas externos (como Hotmart, Kiwify, Bling ou seu próprio site):</p>
               <h4 className="text-sm font-bold text-white mt-4">1. Token de API</h4>
               <p>Acesse **Configurações &gt; API** e clique em **Gerar Novo Token**. Guarde este token de forma segura; ele concede acesso completo para envio e leitura de dados no seu sistema.</p>
               <h4 className="text-sm font-bold text-white mt-4">2. Configuração de Webhooks</h4>
@@ -366,7 +366,7 @@ export default function HelpCenterPage() {
             <div className="space-y-4">
               <p>Integre seu funil de WhatsApp com os CRMs mais conhecidos do mercado:</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li><strong>Pipedrive:</strong> Insira seu Token de Desenvolvedor do Pipedrive no GM CRM. Sempre que um lead alcançar a etapa de qualificação no chat, ele será enviado como "Negócio Iniciado" para a sua etapa correspondente do funil no Pipedrive.</li>
+                <li><strong>Pipedrive:</strong> Insira seu Token de Desenvolvedor do Pipedrive no Project ES. Sempre que um lead alcançar a etapa de qualificação no chat, ele será enviado como "Negócio Iniciado" para a sua etapa correspondente do funil no Pipedrive.</li>
                 <li><strong>HubSpot:</strong> Sincronize contatos em tempo real. As notas do chat (resumos e histórico de áudio) serão anexadas diretamente no card do contato dentro da HubSpot.</li>
               </ul>
             </div>
@@ -385,7 +385,7 @@ export default function HelpCenterPage() {
 --header 'Content-Type: application/json' \\
 --data '{
     "phone": "5511999998888",
-    "message": "Olá! Este é um envio automático via API do GM CRM.",
+    "message": "Olá! Este é um envio automático via API do Project ES.",
     "channelId": "1a2b3c4d"
 }'`}
               </pre>
@@ -438,7 +438,7 @@ export default function HelpCenterPage() {
           excerpt: "Configure e analise pesquisas de satisfação de estrelas após o encerramento de cada chat.",
           content: (
             <div className="space-y-4">
-              <p>Após encerrar uma conversa, o GM CRM pode enviar uma pesquisa de satisfação automática:</p>
+              <p>Após encerrar uma conversa, o Project ES pode enviar uma pesquisa de satisfação automática:</p>
               <ol className="list-decimal pl-6 space-y-2">
                 <li>Ative a opção em **Configurações &gt; CSAT**.</li>
                 <li>Escreva a pergunta de encerramento, ex: <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-300">"Como você avalia o atendimento recebido hoje? Digite de 1 a 5."</code>.</li>
@@ -588,11 +588,11 @@ export default function HelpCenterPage() {
             <div className="relative h-9 w-9 flex items-center justify-center">
               <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-[#3b82f6] to-[#ec4899] opacity-35 blur-[1px]" />
               <div className="absolute inset-0 rounded-xl border border-white/10 bg-black/50 flex items-center justify-center shadow-lg">
-                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">GM</span>
+                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">ES</span>
               </div>
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-extrabold text-sm tracking-tight text-white leading-none">GM CRM</span>
+              <span className="font-extrabold text-sm tracking-tight text-white leading-none">Project ES</span>
               <span className="text-[7px] font-bold text-cyan-400 tracking-wider uppercase mt-0.5">Central de Ajuda</span>
             </div>
           </div>
@@ -951,7 +951,7 @@ export default function HelpCenterPage() {
                 
                 <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full md:w-auto">
                   <Button
-                    onClick={() => window.open("https://wa.me/5511941113090?text=Olá! Gostaria de suporte técnico comercial sobre o GM CRM.", "_blank")}
+                    onClick={() => window.open("https://wa.me/5511999990000?text=Olá! Gostaria de suporte técnico comercial sobre o Project ES.", "_blank")}
                     className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-full text-xs font-bold transition-all shadow-lg flex items-center justify-center gap-1.5"
                   >
                     Suporte no WhatsApp <ArrowUpRight className="h-4 w-4" />
@@ -995,7 +995,7 @@ export default function HelpCenterPage() {
             <div className="w-full lg:max-w-xl rounded-3xl bg-[#092e56] border border-blue-500/20 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_10px_35px_-5px_rgba(9,46,86,0.3)]">
               <div className="text-left flex-1">
                 <h4 className="text-sm md:text-base font-semibold text-white leading-normal">
-                  Quer saber como funciona por dentro do GM CRM e ainda ganhar 14 dias grátis?
+                  Quer saber como funciona por dentro do Project ES e ainda ganhar 14 dias grátis?
                 </h4>
               </div>
               <button
@@ -1020,15 +1020,15 @@ export default function HelpCenterPage() {
               <ul className="space-y-3.5 text-[12px] text-slate-300">
                 <li className="flex items-start gap-2.5">
                   <MapPin className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-                  <span>Av Etelvina de Souza Majone, 1-199 Bauru - SP</span>
+                  <span>Av. Paulista, 1000 - São Paulo, SP</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>+55 11 94111-3090</span>
+                  <span>+55 (11) 99999-0000</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Mail className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>sales@beecrm.io</span>
+                  <span>contato@suaempresa.com</span>
                 </li>
               </ul>
             </div>
@@ -1082,7 +1082,7 @@ export default function HelpCenterPage() {
 
           {/* Row 3: Bottom Meta Row */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-            <p>© 2026 GM CRM. Todos os direitos reservados.</p>
+            <p>© 2026 Project ES. Todos os direitos reservados.</p>
             <div className="flex items-center gap-6 text-slate-400">
               <a href="/termos-de-uso" className="hover:text-white transition-colors">Termos de Uso</a>
               <a href="/politica-de-privacidade" className="hover:text-white transition-colors">Privacidade</a>

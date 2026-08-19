@@ -4,11 +4,82 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Bell, Database, CheckCircle, Loader2, Save, Link, Plus, Trash2, Sparkles, Zap } from "lucide-react";
+import { Settings, Bell, Database, CheckCircle, Loader2, Save, Link, Plus, Trash2, Sparkles, Zap, ShieldCheck, ShieldAlert, KeyRound, QrCode, Lock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
+  const utils = trpc.useUtils();
+  const { data: currentUser, refetch: refetchUser } = trpc.auth.me.useQuery();
+
+  // 2FA states
+  const [setupModalOpen, setSetupModalOpen] = useState(false);
+  const [disableModalOpen, setDisableModalOpen] = useState(false);
+  const [setupData, setSetupData] = useState<{ secret: string; qrCode: string } | null>(null);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [disableCode, setDisableCode] = useState("");
+  const [is2FALoading, setIs2FALoading] = useState(false);
+
+  const setup2FAMutation = trpc.auth.setup2FA.useMutation();
+  const enable2FAMutation = trpc.auth.enable2FA.useMutation();
+  const disable2FAMutation = trpc.auth.disable2FA.useMutation();
+
+  const handleStart2FASetup = async () => {
+    setIs2FALoading(true);
+    try {
+      const res = await setup2FAMutation.mutateAsync();
+      setSetupData(res);
+      setVerifyCode("");
+      setSetupModalOpen(true);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar chave de 2FA.");
+    } finally {
+      setIs2FALoading(false);
+    }
+  };
+
+  const handleConfirmEnable2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!setupData || !verifyCode) {
+      toast.error("Digite o código de 6 dígitos.");
+      return;
+    }
+    setIs2FALoading(true);
+    try {
+      await enable2FAMutation.mutateAsync({
+        secret: setupData.secret,
+        code: verifyCode,
+      });
+      toast.success("Autenticação de 2 Fatores ativada com sucesso!");
+      setSetupModalOpen(false);
+      refetchUser();
+      utils.auth.me.invalidate();
+    } catch (err: any) {
+      toast.error(err.message || "Código de verificação 2FA inválido.");
+    } finally {
+      setIs2FALoading(false);
+    }
+  };
+
+  const handleConfirmDisable2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIs2FALoading(true);
+    try {
+      await disable2FAMutation.mutateAsync({
+        code: disableCode || undefined,
+      });
+      toast.success("Autenticação de 2 Fatores desativada.");
+      setDisableModalOpen(false);
+      setDisableCode("");
+      refetchUser();
+      utils.auth.me.invalidate();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao desativar 2FA.");
+    } finally {
+      setIs2FALoading(false);
+    }
+  };
   const { data: serverQuickReplies, refetch: refetchQuickReplies } = trpc.whatsapp.listQuickReplies.useQuery();
   const [quickReplies, setQuickReplies] = useState<any[]>([]);
 
@@ -380,6 +451,155 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 2FA SECURITY CARD */}
+      <Card className="glass-card border border-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Autenticação de Dois Fatores (2FA)</CardTitle>
+            </div>
+            {(currentUser as any)?.twoFactorEnabled ? (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 gap-1.5 font-bold">
+                <CheckCircle className="h-3.5 w-3.5" /> 2FA Ativo
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 gap-1.5">
+                <ShieldAlert className="h-3.5 w-3.5" /> 2FA Desativado
+              </Badge>
+            )}
+          </div>
+          <CardDescription>
+            Proteja sua conta utilizando um aplicativo de autenticação (Google Authenticator, Authy, Microsoft Authenticator, 1Password, Bitwarden, etc.).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Quando a autenticação de 2 fatores estiver ativada, você precisará fornecer um código numérico de 6 dígitos gerado pelo seu aplicativo autenticador sempre que fizer login.
+          </p>
+
+          <div className="flex justify-end pt-2">
+            {(currentUser as any)?.twoFactorEnabled ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => { setDisableCode(""); setDisableModalOpen(true); }}
+                className="h-9 text-xs gap-1.5 font-bold"
+              >
+                <ShieldAlert className="h-4 w-4" /> Desativar Autenticação 2FA
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={handleStart2FASetup}
+                disabled={is2FALoading}
+                className="h-9 text-xs gap-1.5 font-bold"
+              >
+                {is2FALoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+                Configurar e Ativar 2FA
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* MODAL CONFIGURAR 2FA */}
+      <Dialog open={setupModalOpen} onOpenChange={setSetupModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <QrCode className="h-5 w-5 text-primary" /> Configurar Autenticação 2FA
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Siga os passos abaixo para conectar qualquer aplicativo de autenticação:
+            </DialogDescription>
+          </DialogHeader>
+
+          {setupData && (
+            <div className="space-y-4 pt-2">
+              <div className="text-xs space-y-2">
+                <p className="font-semibold text-foreground">1. Escaneie o QR Code abaixo no seu aplicativo:</p>
+                <div className="p-3 bg-white rounded-xl flex items-center justify-center max-w-[180px] mx-auto border shadow-sm">
+                  <img src={setupData.qrCode} alt="2FA QR Code" className="w-full h-auto" />
+                </div>
+              </div>
+
+              <div className="text-xs space-y-1.5">
+                <p className="font-semibold text-foreground">Ou insira a chave secreta manualmente:</p>
+                <div className="p-2.5 bg-muted/40 border border-border rounded-lg text-center font-mono font-bold text-xs select-all tracking-wider text-primary">
+                  {setupData.secret}
+                </div>
+              </div>
+
+              <form onSubmit={handleConfirmEnable2FA} className="space-y-3 pt-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="verify-2fa-code" className="text-xs font-bold text-primary">
+                    2. Digite o código de 6 dígitos exibido no app:
+                  </Label>
+                  <Input
+                    id="verify-2fa-code"
+                    type="text"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+                    className="text-center tracking-[8px] font-mono text-lg h-11"
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setSetupModalOpen(false)} className="w-1/3 text-xs h-10">
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={is2FALoading} className="w-2/3 text-xs h-10 font-bold">
+                    {is2FALoading ? "Ativando..." : "Confirmar e Ativar 2FA"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DESATIVAR 2FA */}
+      <Dialog open={disableModalOpen} onOpenChange={setDisableModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg text-destructive">
+              <ShieldAlert className="h-5 w-5" /> Desativar Autenticação 2FA
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Tem certeza de que deseja desativar a autenticação de dois fatores da sua conta?
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleConfirmDisable2FA} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="disable-code" className="text-xs">Digite o código de 6 dígitos do app (Opcional):</Label>
+              <Input
+                id="disable-code"
+                type="text"
+                maxLength={6}
+                placeholder="000000"
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ""))}
+                className="text-center tracking-[8px] font-mono text-base h-10"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setDisableModalOpen(false)} className="w-1/3 text-xs h-10">
+                Cancelar
+              </Button>
+              <Button type="submit" variant="destructive" disabled={is2FALoading} className="w-2/3 text-xs h-10 font-bold">
+                {is2FALoading ? "Desativando..." : "Desativar 2FA"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { and, desc, eq, like, or, sql, asc, gte, lte, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import {
   InsertUser, users,
   InsertClient, clients, Client,
@@ -23,6 +24,7 @@ import {
   flowExecutions,
   flowResponses,
   flowAnalytics,
+  passwordResets,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import bcrypt from "bcryptjs";
@@ -44,14 +46,28 @@ export async function getDb() {
   connectionPromise = (async () => {
     if (process.env.DATABASE_URL) {
       try {
-        const tempDb = drizzle(process.env.DATABASE_URL);
+        const dbUrl = new URL(process.env.DATABASE_URL);
+        const pool = mysql.createPool({
+          host: dbUrl.hostname,
+          port: parseInt(dbUrl.port || "3306", 10),
+          user: dbUrl.username,
+          password: decodeURIComponent(dbUrl.password),
+          database: dbUrl.pathname.replace("/", ""),
+          ssl: {
+            rejectUnauthorized: false,
+          },
+          waitForConnections: true,
+          connectionLimit: 10,
+          queueLimit: 0,
+        });
+        const tempDb = drizzle(pool as any);
         // Test connection with SELECT 1
         await tempDb.execute(sql`SELECT 1`);
-        console.log("[Database] Connected successfully to MySQL!");
+        console.log("[Database] Connected successfully to MySQL (Aiven Cloud)!");
         _db = tempDb;
         return _db;
       } catch (error) {
-        console.warn("[Database] Failed to connect to MySQL, falling back to JSON database.");
+        console.warn("[Database] Failed to connect to MySQL, falling back to JSON database.", error);
         useJsonDb = true;
         return null;
       }
@@ -153,6 +169,7 @@ export async function updateUserCota(id: number, companyName: string, maxAttenda
   if (useJsonDb) return jsonDb.updateUserCota(id, companyName, maxAttendants);
   if (!db) return;
   await db.update(users).set({ companyName, maxAttendants, updatedAt: new Date() }).where(eq(users.id, id));
+  await db.update(clients).set({ company: companyName, updatedAt: new Date() }).where(eq(clients.userId, id));
 }
 
 export async function updateUserPreferences(id: number, preferences: string) {
@@ -1040,11 +1057,11 @@ export async function seedTestUser() {
   // seedTestUser operates on getDb(), which routes to MySQL if active, or JSON DB otherwise!
   if (useJsonDb) {
     console.log("[Seed] Testing JSON database auto-seed...");
-    const email = "exemplo@gmail.com";
+    const email = "jose.alves@sempreceub.com";
     const existing = await jsonDb.getUserByEmail(email);
     if (!existing) {
       console.log(`[Seed] Test user ${email} not found in JSON DB. Creating...`);
-      const hashedPassword = await bcrypt.hash("exemplo", 10);
+      const hashedPassword = await bcrypt.hash("exemplo123", 10);
       const openId = `local-${nanoid()}`;
       await jsonDb.upsertUser({
         openId,
@@ -1318,3 +1335,51 @@ export async function upsertSetting(userId: number, settingKey: string, settingV
     });
   }
 }
+
+// ─── 2FA & Password Reset Helpers ───
+export async function updateUser2FA(userId: number, enabled: boolean, secret: string | null): Promise<void> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateUser2FA(userId, enabled, secret);
+  if (!db) return;
+  await db.update(users).set({ twoFactorEnabled: enabled, twoFactorSecret: secret, updatedAt: new Date() }).where(eq(users.id, userId));
+}
+
+export async function createPasswordReset(email: string, code: string, expiresAt: Date): Promise<void> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.createPasswordReset(email, code, expiresAt);
+  if (!db) return;
+  // Mark any old unused codes for this email as used
+  await db.update(passwordResets).set({ used: true }).where(and(eq(passwordResets.email, email), eq(passwordResets.used, false)));
+  await db.insert(passwordResets).values({ email, code, expiresAt, used: false });
+}
+
+export async function getValidPasswordReset(email: string, code: string): Promise<any> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.getValidPasswordReset(email, code);
+  if (!db) return null;
+  const result = await db.select().from(passwordResets)
+    .where(and(
+      eq(passwordResets.email, email),
+      eq(passwordResets.code, code),
+      eq(passwordResets.used, false),
+      gte(passwordResets.expiresAt, new Date())
+    ))
+    .orderBy(desc(passwordResets.createdAt))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function markPasswordResetUsed(id: number): Promise<void> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.markPasswordResetUsed(id);
+  if (!db) return;
+  await db.update(passwordResets).set({ used: true }).where(eq(passwordResets.id, id));
+}
+
+export async function updateUserPasswordByEmail(email: string, hashedPassword: string): Promise<void> {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateUserPasswordByEmail(email, hashedPassword);
+  if (!db) return;
+  await db.update(users).set({ password: hashedPassword, updatedAt: new Date() }).where(eq(users.email, email));
+}
+

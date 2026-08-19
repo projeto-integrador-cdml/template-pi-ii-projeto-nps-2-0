@@ -21,8 +21,25 @@ export default function AttendantsPage() {
 
   const utils = trpc.useUtils();
   const { data: allAttendants = [], isLoading } = trpc.attendants.listAll.useQuery();
+  const { data: usersData } = trpc.admin.listUsers.useQuery(undefined, { enabled: user?.role === "admin" });
   const { data: clientsData } = trpc.clients.list.useQuery({ limit: 100 });
-  const clients = clientsData?.data ?? [];
+
+  const companies = useMemo(() => {
+    const map = new Map<number, string>();
+    if (usersData) {
+      usersData.forEach((u: any) => {
+        if (u.role === "user" || u.companyName) {
+          map.set(u.id, u.companyName || u.name || `Empresa #${u.id}`);
+        }
+      });
+    }
+    (clientsData?.data ?? []).forEach((c: any) => {
+      if (!map.has(c.id)) {
+        map.set(c.id, c.company || c.name || `Empresa #${c.id}`);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [usersData, clientsData]);
 
   const createMutation = trpc.attendants.create.useMutation({
     onSuccess: () => { utils.attendants.listAll.invalidate(); setDialogOpen(false); setEditingAttendant(null); toast.success("Atendente criado com sucesso!"); },
@@ -45,7 +62,7 @@ export default function AttendantsPage() {
 
   const openCreate = () => {
     setEditingAttendant(null);
-    setForm({ clientId: clients[0]?.id ?? 0, name: "", email: "", password: "", phone: "", position: "" });
+    setForm({ clientId: companies[0]?.id ?? 0, name: "", email: "", password: "", phone: "", position: "" });
     setDialogOpen(true);
   };
 
@@ -90,8 +107,8 @@ export default function AttendantsPage() {
   }, [allAttendants, selectedClientId, search]);
 
   const getClientName = (clientId: number) => {
-    const client = clients.find((c) => c.id === clientId);
-    return client?.name || client?.company || `Empresa #${clientId}`;
+    const comp = companies.find((c) => c.id === clientId);
+    return comp?.name || `Empresa #${clientId}`;
   };
 
   // Agrupar por empresa
@@ -121,7 +138,7 @@ export default function AttendantsPage() {
           </h1>
           <p className="text-muted-foreground mt-1">{allAttendants.length} atendentes cadastrados</p>
         </div>
-        <Button onClick={openCreate} className="gap-2" disabled={clients.length === 0}>
+        <Button onClick={openCreate} className="gap-2" disabled={companies.length === 0}>
           <Plus className="h-4 w-4" /> Novo Atendente
         </Button>
       </div>
@@ -138,8 +155,8 @@ export default function AttendantsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as empresas</SelectItem>
-            {clients.map((c) => (
-              <SelectItem key={c.id} value={String(c.id)}>{c.name || c.company || `#${c.id}`}</SelectItem>
+            {companies.map((c) => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -169,8 +186,7 @@ export default function AttendantsPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground">Nenhum atendente encontrado.</p>
-            <Button onClick={openCreate} variant="outline" className="mt-4 gap-2" disabled={clients.length === 0}>
+            <Button onClick={openCreate} variant="outline" className="mt-4 gap-2">
               <Plus className="h-4 w-4" /> Adicionar primeiro atendente
             </Button>
           </CardContent>
@@ -179,7 +195,7 @@ export default function AttendantsPage() {
         <div className="space-y-6">
           {Object.entries(groupedByClient).map(([clientIdStr, atts]) => {
             const clientId = parseInt(clientIdStr);
-            const client = clients.find((c) => c.id === clientId);
+            const client = (clientsData?.data ?? []).find((c: any) => c.id === clientId);
             const maxAtt = (client as any)?.maxAttendants ?? 1;
             return (
               <Card key={clientId}>
@@ -263,8 +279,8 @@ export default function AttendantsPage() {
               <Select value={String(form.clientId)} onValueChange={(v) => setForm({ ...form, clientId: parseInt(v) })}>
                 <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                 <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name || c.company || `#${c.id}`}</SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -58,6 +58,7 @@ export default function AdminUsersPage() {
   const createUserMutation = trpc.admin.createUser.useMutation({
     onSuccess: () => {
       utils.admin.listUsers.invalidate();
+      utils.clients.list.invalidate();
       setCreateOpen(false);
       resetCreateForm();
       toast.success("Empresa e Administrador cadastrados com sucesso!");
@@ -70,6 +71,7 @@ export default function AdminUsersPage() {
   const updateCotaMutation = trpc.admin.updateUserCota.useMutation({
     onSuccess: () => {
       utils.admin.listUsers.invalidate();
+      utils.clients.list.invalidate();
       setEditOpen(false);
       setEditingUser(null);
       toast.success("Limites e empresa atualizados!");

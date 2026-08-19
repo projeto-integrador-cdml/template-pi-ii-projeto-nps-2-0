@@ -102,11 +102,11 @@ export default function PrivacyPolicyPage() {
             <div className="relative h-9 w-9 flex items-center justify-center">
               <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-[#3b82f6] to-[#ec4899] opacity-35 blur-[1px]" />
               <div className="absolute inset-0 rounded-xl border border-white/10 bg-black/50 flex items-center justify-center shadow-lg">
-                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">GM</span>
+                <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">ES</span>
               </div>
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-extrabold text-sm tracking-tight text-white leading-none">GM CRM</span>
+              <span className="font-extrabold text-sm tracking-tight text-white leading-none">Project ES</span>
               <span className="text-[7px] font-bold text-cyan-400 tracking-wider uppercase mt-0.5">WhatsApp AI</span>
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function PrivacyPolicyPage() {
             <span className="bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-300 bg-clip-text text-transparent">Privacidade</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto">
-            Última atualização em 01 de junho de 2026. Entenda como o GM CRM trata, protege e respeita a privacidade de seus dados em nossa plataforma.
+            Última atualização em 01 de junho de 2026. Entenda como o Project ES trata, protege e respeita a privacidade de seus dados em nossa plataforma.
           </p>
         </div>
       </section>
@@ -201,7 +201,7 @@ export default function PrivacyPolicyPage() {
                 Caso possua questionamentos sobre o uso de dados ou queira fazer uma requisição formal baseada na LGPD, fale com nosso Encarregado de Dados (DPO).
               </p>
               <div className="text-[11px] font-bold text-indigo-400 pt-1 select-all">
-                dpo@gm-crm.com
+                dpo@suaempresa.com
               </div>
             </div>
           </aside>
@@ -232,10 +232,10 @@ export default function PrivacyPolicyPage() {
                 </div>
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
                   <p>
-                    Esta Política de Privacidade descreve de que forma o <strong>GM CRM</strong> ("nós", "nosso", ou "plataforma") realiza a coleta, armazenamento, processamento, compartilhamento e proteção dos dados pessoais de seus clientes, usuários e visitantes ("você" ou "titular").
+                    Esta Política de Privacidade descreve de que forma o <strong>Project ES</strong> ("nós", "nosso", ou "plataforma") realiza a coleta, armazenamento, processamento, compartilhamento e proteção dos dados pessoais de seus clientes, usuários e visitantes ("você" ou "titular").
                   </p>
                   <p>
-                    O GM CRM é uma plataforma voltada para a gestão de relacionamentos com clientes, automação de funis de venda e integração omnichannel (como WhatsApp, Messenger e Instagram). Ao acessar ou utilizar os nossos serviços, você declara estar ciente do processamento de suas informações na forma indicada nesta Política de Privacidade.
+                    O Project ES é uma plataforma voltada para a gestão de relacionamentos com clientes, automação de funis de venda e integração omnichannel (como WhatsApp, Messenger e Instagram). Ao acessar ou utilizar os nossos serviços, você declara estar ciente do processamento de suas informações na forma indicada nesta Política de Privacidade.
                   </p>
                   <p>
                     Nós atuamos como <strong>Controlador</strong> de dados pessoais quando processamos dados cadastrais de nossos clientes (titulares da conta). Por outro lado, atuamos como <strong>Operador</strong> de dados pessoais quando processamos mensagens, leads ou dados dos clientes de nossos clientes dentro dos canais que eles conectam em nossa plataforma.
@@ -264,7 +264,7 @@ export default function PrivacyPolicyPage() {
                       <strong>Dados de Conexão e Navegação:</strong> Registramos informações técnicas automáticas quando você navega em nosso site, tais como endereço IP, navegador utilizado, sistema operacional, cookies de sessão, histórico de páginas acessadas e cliques de interação.
                     </li>
                     <li>
-                      <strong>Dados de Conversas e Integrações (WhatsApp/Redes Sociais):</strong> Quando você conecta sua conta de WhatsApp ou páginas de Facebook/Instagram ao GM CRM, nós processamos o conteúdo das conversas que chegam ao seu canal (mensagens de texto, mídias enviadas, áudios, status de mensagens e IDs de contatos) de forma a centralizá-los e disponibilizá-los no seu painel operacional.
+                      <strong>Dados de Conversas e Integrações (WhatsApp/Redes Sociais):</strong> Quando você conecta sua conta de WhatsApp ou páginas de Facebook/Instagram ao Project ES, nós processamos o conteúdo das conversas que chegam ao seu canal (mensagens de texto, mídias enviadas, áudios, status de mensagens e IDs de contatos) de forma a centralizá-los e disponibilizá-los no seu painel operacional.
                     </li>
                   </ul>
                 </div>
@@ -299,7 +299,7 @@ export default function PrivacyPolicyPage() {
                 </div>
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
                   <p>
-                    O GM CRM não vende, comercializa ou aluga dados pessoais de clientes a terceiros sob nenhuma hipótese. Compartilhamos dados apenas com parceiros essenciais nas seguintes circunstâncias:
+                    O Project ES não vende, comercializa ou aluga dados pessoais de clientes a terceiros sob nenhuma hipótese. Compartilhamos dados apenas com parceiros essenciais nas seguintes circunstâncias:
                   </p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>
@@ -372,7 +372,7 @@ export default function PrivacyPolicyPage() {
                 </div>
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
                   <p>
-                    Mantemos seus dados cadastrais e logs de atendimento ativos no sistema enquanto perdurar sua assinatura ativa no GM CRM ou conforme necessário para prestar o serviço.
+                    Mantemos seus dados cadastrais e logs de atendimento ativos no sistema enquanto perdurar sua assinatura ativa no Project ES ou conforme necessário para prestar o serviço.
                   </p>
                   <p>
                     Caso sua conta seja cancelada ou desativada, procedemos com a anonimização e exclusão permanente dos seus bancos de dados e mídias de chat em até 60 dias úteis, resguardados os dados que somos legalmente obrigados a manter armazenados (ex: prazos de guarda exigidos pela Receita Federal ou pelo Marco Civil da Internet).
@@ -390,10 +390,10 @@ export default function PrivacyPolicyPage() {
                 </div>
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
                   <p>
-                    Para exercer os seus direitos regulamentados na LGPD ou expressar qualquer dúvida jurídica sobre o tratamento de informações do GM CRM, envie um e-mail para o nosso Encarregado de Proteção de Dados (DPO) no endereço abaixo:
+                    Para exercer os seus direitos regulamentados na LGPD ou expressar qualquer dúvida jurídica sobre o tratamento de informações do Project ES, envie um e-mail para o nosso Encarregado de Proteção de Dados (DPO) no endereço abaixo:
                   </p>
                   <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 font-mono text-center font-bold text-indigo-400 my-4 text-xs selection:bg-indigo-400 selection:text-black select-all">
-                    dpo@gm-crm.com
+                    dpo@suaempresa.com
                   </div>
                   <p>
                     Responderemos sua solicitação em um prazo máximo de 15 dias úteis, em conformidade com as exigências legais.
@@ -432,7 +432,7 @@ export default function PrivacyPolicyPage() {
             <div className="w-full lg:max-w-xl rounded-3xl bg-[#092e56] border border-blue-500/20 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_10px_35px_-5px_rgba(9,46,86,0.3)]">
               <div className="text-left flex-1">
                 <h4 className="text-sm md:text-base font-semibold text-white leading-normal">
-                  Quer saber como funciona por dentro do GM CRM e ainda ganhar 14 dias grátis?
+                  Quer saber como funciona por dentro do Project ES e ainda ganhar 14 dias grátis?
                 </h4>
               </div>
               <button
@@ -457,15 +457,15 @@ export default function PrivacyPolicyPage() {
               <ul className="space-y-3.5 text-[12px] text-slate-300">
                 <li className="flex items-start gap-2.5">
                   <MapPin className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-                  <span>Av Etelvina de Souza Majone, 1-199 Bauru - SP</span>
+                  <span>Av. Paulista, 1000 - São Paulo, SP</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>+55 11 94111-3090</span>
+                  <span>+55 (11) 99999-0000</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Mail className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>sales@beecrm.io</span>
+                  <span>contato@suaempresa.com</span>
                 </li>
               </ul>
             </div>
@@ -519,7 +519,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Row 3: Bottom Meta Row */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-            <p>© 2026 GM CRM. Todos os direitos reservados.</p>
+            <p>© 2026 Project ES. Todos os direitos reservados.</p>
             <div className="flex items-center gap-6 text-slate-400">
               <a href="/termos-de-uso" className="hover:text-white transition-colors">Termos de Uso</a>
               <a href="/politica-de-privacidade" className="hover:text-white transition-colors">Privacidade</a>

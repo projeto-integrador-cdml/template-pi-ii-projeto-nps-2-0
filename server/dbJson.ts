@@ -134,6 +134,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       whatsappApiUrl: user.whatsappApiUrl ?? null,
       whatsappApiKey: user.whatsappApiKey ?? null,
       whatsappQrCode: user.whatsappQrCode ?? null,
+      twoFactorSecret: user.twoFactorSecret ?? null,
+      twoFactorEnabled: user.twoFactorEnabled ?? false,
       createdAt: now,
       updatedAt: now,
       lastSignedIn: user.lastSignedIn ? new Date(user.lastSignedIn) : now,
@@ -160,7 +162,7 @@ export async function getUserByEmail(email: string): Promise<User | undefined> {
 
 export async function listUsers(): Promise<User[]> {
   const db = readJsonDb();
-  return [...db.users].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return [...db.users].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function updateUserActive(id: number, isActive: boolean): Promise<void> {
@@ -200,6 +202,32 @@ export async function updateUserCota(id: number, companyName: string, maxAttenda
     user.companyName = companyName;
     user.maxAttendants = maxAttendants;
     user.updatedAt = new Date();
+
+    const client = db.clients.find(c => c.userId === id || c.company === user.companyName);
+    if (client) {
+      client.company = companyName;
+      client.name = companyName;
+      client.updatedAt = new Date();
+    } else {
+      db.clients.push({
+        id: nextId(db.clients),
+        userId: id,
+        name: companyName,
+        email: user.email,
+        phone: user.phone,
+        company: companyName,
+        position: null,
+        address: null,
+        notes: null,
+        tags: null,
+        source: null,
+        status: "active",
+        assignedAttendantId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
     writeJsonDb(db);
   }
 }
@@ -1294,4 +1322,66 @@ export async function upsertSetting(userId: number, settingKey: string, settingV
   }
   writeJsonDb(db);
 }
+
+export async function updateUser2FA(userId: number, enabled: boolean, secret: string | null): Promise<void> {
+  const db = readJsonDb();
+  const user = db.users.find((u: any) => u.id === userId);
+  if (user) {
+    user.twoFactorEnabled = enabled;
+    user.twoFactorSecret = secret;
+    user.updatedAt = new Date();
+    writeJsonDb(db);
+  }
+}
+
+export async function createPasswordReset(email: string, code: string, expiresAt: Date): Promise<void> {
+  const db = readJsonDb();
+  if (!(db as any).passwordResets) (db as any).passwordResets = [];
+  (db as any).passwordResets.forEach((p: any) => {
+    if (p.email === email) p.used = true;
+  });
+  const id = nextId((db as any).passwordResets);
+  (db as any).passwordResets.push({
+    id,
+    email,
+    code,
+    expiresAt,
+    used: false,
+    createdAt: new Date(),
+  });
+  writeJsonDb(db);
+}
+
+export async function getValidPasswordReset(email: string, code: string): Promise<any> {
+  const db = readJsonDb();
+  if (!(db as any).passwordResets) return null;
+  const now = new Date();
+  return (db as any).passwordResets.find((p: any) => 
+    p.email === email && 
+    p.code === code && 
+    !p.used && 
+    new Date(p.expiresAt) >= now
+  ) || null;
+}
+
+export async function markPasswordResetUsed(id: number): Promise<void> {
+  const db = readJsonDb();
+  if (!(db as any).passwordResets) return;
+  const record = (db as any).passwordResets.find((p: any) => p.id === id);
+  if (record) {
+    record.used = true;
+    writeJsonDb(db);
+  }
+}
+
+export async function updateUserPasswordByEmail(email: string, hashedPassword: string): Promise<void> {
+  const db = readJsonDb();
+  const user = db.users.find((u: any) => u.email === email);
+  if (user) {
+    user.password = hashedPassword;
+    user.updatedAt = new Date();
+    writeJsonDb(db);
+  }
+}
+
 
