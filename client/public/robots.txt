@@ -1,0 +1,18 @@
+# Security and Crawling Policy for CRM System
+User-agent: *
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /settings
+Disallow: /api/
+Disallow: /attendants
+Disallow: /clients
+Disallow: /pipeline
+Disallow: /reports
+Disallow: /tasks
+
+# Allow public pages
+Allow: /
+Allow: /auth
+Allow: /plans
+Allow: /terms
+Allow: /privacy
