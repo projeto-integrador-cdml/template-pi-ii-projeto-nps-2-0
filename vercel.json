@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://sd-us1.blazebr.com:26653/api/$1"
+      "destination": "http://147.135.65.231:26653/api/$1"
     },
     {
       "source": "/(.*)",
