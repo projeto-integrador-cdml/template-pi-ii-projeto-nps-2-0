@@ -65,6 +65,20 @@ export async function getDb() {
         await tempDb.execute(sql`SELECT 1`);
         console.log("[Database] Connected successfully to MySQL (Aiven Cloud)!");
         _db = tempDb;
+
+        // 3-hour Keep-Alive ping to prevent Aiven MySQL idle timeout/disconnect
+        const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+        setInterval(async () => {
+          if (_db && !useJsonDb) {
+            try {
+              await _db.execute(sql`SELECT 1`);
+              console.log("[Database Keep-Alive] 🟢 Aiven Cloud MySQL 3-hour heartbeat ping successful!");
+            } catch (e: any) {
+              console.warn("[Database Keep-Alive] ⚠️ Heartbeat warning:", e.message);
+            }
+          }
+        }, THREE_HOURS_MS);
+
         return _db;
       } catch (error) {
         console.warn("[Database] Failed to connect to MySQL, falling back to JSON database.", error);
