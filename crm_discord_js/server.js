@@ -11,8 +11,30 @@ import { pool } from './db.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { sendPasswordResetEmail } from './emailService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Garante que a tabela passwordResets exista
+async function ensureDbTables() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`passwordResets\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`email\` VARCHAR(320) NOT NULL,
+        \`code\` VARCHAR(6) NOT NULL,
+        \`expiresAt\` DATETIME NOT NULL,
+        \`used\` TINYINT(1) DEFAULT 0 NOT NULL,
+        \`createdAt\` DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        INDEX \`idx_passwordResets_email_code\` (\`email\`, \`code\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    console.log('[DB] ✅ Tabela passwordResets verificada/criada com sucesso.');
+  } catch (err) {
+    console.warn('[DB] ⚠️ Erro ao verificar tabela passwordResets:', err.message);
+  }
+}
+ensureDbTables();
 
 const COOKIE_NAME = 'app_session_id';
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -208,8 +230,76 @@ const authRouter = router({
   setup2FA: protectedProcedure.mutation(() => ({ secret: 'SAMPLE2FA', qrCode: '' })),
   enable2FA: protectedProcedure.input(z.any()).mutation(() => ({ success: true })),
   disable2FA: protectedProcedure.input(z.any()).mutation(() => ({ success: true })),
-  requestPasswordReset: publicProcedure.input(z.object({ email: z.string() })).mutation(() => ({ success: true })),
-  resetPassword: publicProcedure.input(z.any()).mutation(() => ({ success: true })),
+
+  // ── Esqueci a Senha ──
+  requestPasswordReset: publicProcedure
+    .input(z.object({
+      email: z.string().email(),
+    }))
+    .mutation(async ({ input }) => {
+      const user = await getUserByEmail(input.email);
+      if (!user) {
+        // Por segurança, retorna success mesmo que o e-mail não exista para não expor usuários
+        return { success: true };
+      }
+
+      // Gera código de 6 dígitos
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      try {
+        // Invalida códigos anteriores não utilizados
+        await pool.query(
+          'UPDATE passwordResets SET used = 1 WHERE email = ? AND used = 0',
+          [user.email]
+        );
+
+        // Insere novo código válido por 15 minutos
+        await pool.query(
+          'INSERT INTO passwordResets (email, code, expiresAt, used, createdAt) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), 0, NOW())',
+          [user.email, code]
+        );
+      } catch (dbErr) {
+        console.error('[Auth] Erro ao salvar código no banco:', dbErr.message);
+      }
+
+      // Envia o e-mail
+      const res = await sendPasswordResetEmail(user.email, code);
+      return { success: true, simulated: res.simulated, message: res.message };
+    }),
+
+  resetPassword: publicProcedure
+    .input(z.object({
+      email: z.string().email(),
+      code: z.string().length(6),
+      newPassword: z.string().min(6),
+    }))
+    .mutation(async ({ input }) => {
+      // Busca código válido e não expirado
+      const [rows] = await pool.query(
+        'SELECT * FROM passwordResets WHERE email = ? AND code = ? AND used = 0 AND expiresAt >= NOW() ORDER BY id DESC LIMIT 1',
+        [input.email, input.code]
+      );
+
+      const resetRecord = rows[0];
+      if (!resetRecord) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Código inválido ou expirado (expira em 15 minutos). Solicite um novo código.',
+        });
+      }
+
+      // Atualiza senha com hash
+      const hashedPassword = await bcrypt.hash(input.newPassword, 10);
+      await pool.query(
+        'UPDATE users SET password = ?, updatedAt = NOW() WHERE email = ?',
+        [hashedPassword, input.email]
+      );
+
+      // Marca código como utilizado
+      await pool.query('UPDATE passwordResets SET used = 1 WHERE id = ?', [resetRecord.id]);
+
+      return { success: true };
+    }),
 });
 
 const clientsRouter = router({
