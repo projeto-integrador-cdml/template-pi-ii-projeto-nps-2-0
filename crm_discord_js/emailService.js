@@ -1,4 +1,9 @@
 import nodemailer from 'nodemailer';
+import dns from 'node:dns';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch {}
 
 export async function sendPasswordResetEmail(toEmail, code) {
   let gmailUser = process.env.GMAIL_USER?.trim() || '';
@@ -30,10 +35,15 @@ export async function sendPasswordResetEmail(toEmail, code) {
 
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: gmailUser,
         pass: gmailPass,
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
 
