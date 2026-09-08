@@ -436,30 +436,257 @@ const whatsappRouter = router({
 });
 
 const attendantsRouter = router({
-  listAll: protectedProcedure.query(async () => []),
-  list: protectedProcedure.query(async () => []),
+  listAll: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      const userId = (ctx.user && ctx.user.role === 'admin') ? null : (ctx.user?.id || ctx.attendant?.companyId || 1);
+      const [rows] = userId
+        ? await pool.query('SELECT id, companyId, name, email, phone, position, isActive, status, createdAt FROM attendants WHERE companyId = ?', [userId])
+        : await pool.query('SELECT id, companyId, name, email, phone, position, isActive, status, createdAt FROM attendants');
+      return rows;
+    } catch {
+      return [];
+    }
+  }),
+  list: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      const userId = (ctx.user && ctx.user.role === 'admin') ? null : (ctx.user?.id || ctx.attendant?.companyId || 1);
+      const [rows] = userId
+        ? await pool.query('SELECT id, companyId, name, email, phone, position, isActive, status, createdAt FROM attendants WHERE companyId = ?', [userId])
+        : await pool.query('SELECT id, companyId, name, email, phone, position, isActive, status, createdAt FROM attendants');
+      return rows;
+    } catch {
+      return [];
+    }
+  }),
 });
 
 const dashboardRouter = router({
-  stats: protectedProcedure.query(async () => {
+  stats: protectedProcedure.query(async ({ ctx }) => {
     try {
-      const [[{ total: clients }]] = await pool.query('SELECT COUNT(*) AS total FROM clients');
-      const [[{ total: opportunities }]] = await pool.query('SELECT COUNT(*) AS total FROM opportunities');
-      const [[{ total: interactions }]] = await pool.query('SELECT COUNT(*) AS total FROM interactions');
-      return { clients, opportunities, interactions, totalRevenue: 0 };
-    } catch {
-      return { clients: 0, opportunities: 0, interactions: 0, totalRevenue: 0 };
+      const userId = (ctx.user && ctx.user.role === 'admin') ? null : (ctx.user?.id || ctx.attendant?.companyId || 1);
+      const userConditionClients = userId ? 'WHERE userId = ?' : '';
+      const userConditionOpps = userId ? 'WHERE userId = ?' : '';
+      const userConditionTasks = userId ? 'WHERE userId = ?' : '';
+      const userConditionInteractions = userId ? 'WHERE userId = ?' : '';
+      const params = userId ? [userId] : [];
+
+      const [[clientStats]] = await pool.query(
+        `SELECT COUNT(*) AS total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active FROM clients ${userConditionClients}`,
+        params
+      );
+
+      const [[oppStats]] = await pool.query(
+        `SELECT 
+          COUNT(*) AS total,
+          SUM(CASE WHEN stage NOT IN ('closed_won', 'closed_lost') THEN 1 ELSE 0 END) AS activeOpps,
+          COALESCE(SUM(CASE WHEN stage NOT IN ('closed_won', 'closed_lost') THEN value ELSE 0 END), 0) AS totalVal,
+          SUM(CASE WHEN stage = 'closed_won' THEN 1 ELSE 0 END) AS wonDeals,
+          COALESCE(SUM(CASE WHEN stage = 'closed_won' THEN value ELSE 0 END), 0) AS wonVal
+        FROM opportunities ${userConditionOpps}`,
+        params
+      );
+
+      const [[taskStats]] = await pool.query(
+        `SELECT 
+          SUM(CASE WHEN completed = 0 THEN 1 ELSE 0 END) AS pending,
+          SUM(CASE WHEN completed = 0 AND dueDate IS NOT NULL AND dueDate < NOW() THEN 1 ELSE 0 END) AS overdue
+        FROM tasks ${userConditionTasks}`,
+        params
+      );
+
+      const [[interactionStats]] = await pool.query(
+        `SELECT COUNT(*) AS total FROM interactions ${userConditionInteractions}`,
+        params
+      );
+
+      const totalClients = Number(clientStats?.total) || 0;
+      const activeClients = Number(clientStats?.active) || 0;
+      const totalOpportunities = Number(oppStats?.total) || 0;
+      const activeOpportunities = Number(oppStats?.activeOpps) || 0;
+      const totalValue = Number(oppStats?.totalVal) || 0;
+      const wonDeals = Number(oppStats?.wonDeals) || 0;
+      const wonValue = Number(oppStats?.wonVal) || 0;
+      const pendingTasks = Number(taskStats?.pending) || 0;
+      const overdueTasks = Number(taskStats?.overdue) || 0;
+      const interactionsCount = Number(interactionStats?.total) || 0;
+
+      return {
+        totalClients,
+        activeClients,
+        totalOpportunities,
+        activeOpportunities,
+        totalValue,
+        wonDeals,
+        wonValue,
+        totalWonValue: wonValue,
+        pendingTasks,
+        overdueTasks,
+        clients: totalClients,
+        opportunities: totalOpportunities,
+        interactions: interactionsCount,
+        totalRevenue: wonValue,
+      };
+    } catch (e) {
+      console.error('[Dashboard Stats Error]', e.message);
+      return {
+        totalClients: 0,
+        activeClients: 0,
+        totalOpportunities: 0,
+        activeOpportunities: 0,
+        totalValue: 0,
+        wonDeals: 0,
+        wonValue: 0,
+        totalWonValue: 0,
+        pendingTasks: 0,
+        overdueTasks: 0,
+        clients: 0,
+        opportunities: 0,
+        interactions: 0,
+        totalRevenue: 0,
+      };
     }
   }),
-  opportunitiesByStage: protectedProcedure.query(async () => []),
+
+  opportunitiesByStage: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      const userId = (ctx.user && ctx.user.role === 'admin') ? null : (ctx.user?.id || ctx.attendant?.companyId || 1);
+      const query = userId
+        ? 'SELECT stage, COUNT(*) AS count, COALESCE(SUM(value), 0) AS totalValue FROM opportunities WHERE userId = ? GROUP BY stage'
+        : 'SELECT stage, COUNT(*) AS count, COALESCE(SUM(value), 0) AS totalValue FROM opportunities GROUP BY stage';
+      const [rows] = await pool.query(query, userId ? [userId] : []);
+      return rows.map(r => ({
+        stage: r.stage,
+        count: Number(r.count) || 0,
+        totalValue: Number(r.totalValue) || 0,
+      }));
+    } catch {
+      return [];
+    }
+  }),
+
+  recentActivities: protectedProcedure
+    .input(z.object({ limit: z.number().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      try {
+        const userId = (ctx.user && ctx.user.role === 'admin') ? null : (ctx.user?.id || ctx.attendant?.companyId || 1);
+        const limit = input?.limit || 10;
+        const query = userId
+          ? 'SELECT * FROM interactions WHERE userId = ? ORDER BY id DESC LIMIT ?'
+          : 'SELECT * FROM interactions ORDER BY id DESC LIMIT ?';
+        const [rows] = await pool.query(query, userId ? [userId, limit] : [limit]);
+        return rows;
+      } catch {
+        return [];
+      }
+    }),
+
+  supportStats: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      const userId = (ctx.user && ctx.user.role === 'admin') ? null : (ctx.user?.id || ctx.attendant?.companyId || 1);
+      const attParams = userId ? [userId] : [];
+      const clientParams = userId ? [userId] : [];
+
+      const [[attStats]] = await pool.query(
+        `SELECT COUNT(*) AS total, SUM(CASE WHEN isActive = 1 AND status = 'available' THEN 1 ELSE 0 END) AS online FROM attendants ${userId ? 'WHERE companyId = ?' : ''}`,
+        attParams
+      );
+
+      const [[clientChatStats]] = await pool.query(
+        `SELECT 
+          SUM(CASE WHEN status != 'inactive' AND assignedAttendantId IS NOT NULL THEN 1 ELSE 0 END) AS active,
+          SUM(CASE WHEN status != 'inactive' AND assignedAttendantId IS NULL THEN 1 ELSE 0 END) AS waiting,
+          SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) AS completed
+        FROM clients ${userId ? 'WHERE userId = ?' : ''}`,
+        clientParams
+      );
+
+      const hourlyMessages = [];
+      for (let h = 8; h <= 18; h++) {
+        hourlyMessages.push({
+          hour: `${String(h).padStart(2, '0')}:00`,
+          received: 0,
+          sent: 0,
+        });
+      }
+
+      const completedConversationsPerHour = [];
+      for (let h = 0; h < 24; h++) {
+        completedConversationsPerHour.push({
+          hour: `${String(h).padStart(2, '0')}:00`,
+          count: 0,
+        });
+      }
+
+      return {
+        agentsTotal: Number(attStats?.total) || 0,
+        agentsOnline: Number(attStats?.online) || 0,
+        chatsActive: Number(clientChatStats?.active) || 0,
+        chatsWaiting: Number(clientChatStats?.waiting) || 0,
+        chatsCompleted: Number(clientChatStats?.completed) || 0,
+        chatsOffHours: 0,
+        tme: 0,
+        tma: 0,
+        tmr: 0,
+        fcr: 0,
+        satisfaction: 0,
+        satisfactionCount: 0,
+        hourlyMessages,
+        completedConversationsPerHour,
+        recentConversations: [],
+      };
+    } catch {
+      return {
+        agentsTotal: 0,
+        agentsOnline: 0,
+        chatsActive: 0,
+        chatsWaiting: 0,
+        chatsCompleted: 0,
+        chatsOffHours: 0,
+        tme: 0,
+        tma: 0,
+        tmr: 0,
+        fcr: 0,
+        satisfaction: 0,
+        satisfactionCount: 0,
+        hourlyMessages: [],
+        completedConversationsPerHour: [],
+        recentConversations: [],
+      };
+    }
+  }),
 });
 
 const reportsRouter = router({
-  flowExecutionStats: protectedProcedure.input(z.any()).query(async () => []),
+  flowExecutionStats: protectedProcedure.input(z.any()).query(async () => {
+    return { total: 0, successful: 0, failed: 0, successRate: 0 };
+  }),
   flowResponseCount: protectedProcedure.input(z.any()).query(async () => 0),
   averageResponseTime: protectedProcedure.input(z.any()).query(async () => 0),
   topFlows: protectedProcedure.input(z.any()).query(async () => []),
-  teamRanking: protectedProcedure.query(async () => []),
+  teamRanking: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      const userId = (ctx.user && ctx.user.role === 'admin') ? null : (ctx.user?.id || ctx.attendant?.companyId || 1);
+      const query = userId
+        ? 'SELECT id, name, status, email FROM attendants WHERE companyId = ?'
+        : 'SELECT id, name, status, email FROM attendants';
+      const [attRows] = await pool.query(query, userId ? [userId] : []);
+      if (!attRows || attRows.length === 0) return [];
+      
+      const medals = ["🥇", "🥈", "🥉", "🏅"];
+      return attRows.map((att, idx) => ({
+        rank: idx + 1,
+        medal: medals[idx] || "🏅",
+        name: att.name || "Atendente",
+        sales: "R$ 0,00",
+        deals: 0,
+        chatsHandled: 0,
+        avgTime: "0m",
+        score: 0,
+      }));
+    } catch {
+      return [];
+    }
+  }),
 });
 
 const flowsRouter = router({

@@ -68,10 +68,10 @@ export default function Home() {
   };
 
   // Soma de mensagens exibida no cabeçalho do BarChart
-  const totalMessagesToday = supportStats?.hourlyMessages?.reduce((sum, h) => sum + h.received + h.sent, 0) ?? 2954;
+  const totalMessagesToday = supportStats?.hourlyMessages?.reduce((sum, h) => sum + h.received + h.sent, 0) ?? 0;
 
   const totalChats = (supportStats?.chatsActive ?? 0) + (supportStats?.chatsWaiting ?? 0) + (supportStats?.chatsCompleted ?? 0) + (supportStats?.chatsOffHours ?? 0);
-  const fcrResolved = Math.round((supportStats?.chatsCompleted ?? 0) * ((supportStats?.fcr ?? 75.37) / 100));
+  const fcrResolved = Math.round((supportStats?.chatsCompleted ?? 0) * ((supportStats?.fcr ?? 0) / 100));
   const activePct = totalChats > 0 ? ((supportStats?.chatsActive ?? 0) / totalChats * 100).toFixed(2) : "0.00";
   const completedPct = totalChats > 0 ? ((supportStats?.chatsCompleted ?? 0) / totalChats * 100).toFixed(2) : "0.00";
   const offHoursPct = totalChats > 0 ? ((supportStats?.chatsOffHours ?? 0) / totalChats * 100).toFixed(2) : "0.00";
@@ -312,7 +312,7 @@ export default function Home() {
             />
             <MetricCard
               title="Satisfação"
-              value={supportLoading ? undefined : `${supportStats?.satisfaction?.toFixed(1) ?? "5.0"}`}
+              value={supportLoading ? undefined : (supportStats?.satisfaction ? supportStats.satisfaction.toFixed(1) : "0.0")}
               subtitle="Avaliação média (0-5)"
               icon={<Star className="h-5 w-5 text-amber-500 fill-amber-500" />}
               extraBadge={
@@ -327,7 +327,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <OutlineIndicatorCard
               title="FCR"
-              value={supportLoading ? undefined : `${supportStats?.fcr ?? 75.37}%`}
+              value={supportLoading ? undefined : `${supportStats?.fcr ?? 0}%`}
               subtitle="Resolvidos no 1º contato"
               subtitleDetail={supportLoading ? undefined : `${fcrResolved} de ${supportStats?.chatsCompleted ?? 0} resolvidos`}
               colorClass="border-t-blue-500 bg-blue-500/5"
