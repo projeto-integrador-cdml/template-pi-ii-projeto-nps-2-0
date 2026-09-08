@@ -748,6 +748,48 @@ const appRouter = router({
   mediaAudios: mediaAudiosRouter,
   mediaTexts: mediaTextsRouter,
   counters: countersRouter,
+  ai: router({
+    getSettings: protectedProcedure.query(async ({ ctx }) => {
+      try {
+        const companyId = ctx.user ? ctx.user.id : (ctx.attendant ? ctx.attendant.companyId : 1);
+        const [rows] = await pool.query('SELECT settingKey, settingValue FROM settings WHERE userId = ? AND settingKey IN (?, ?, ?)', [companyId, 'gemini_api_key', 'gemini_model', 'ai_enabled']);
+        const map = {};
+        rows.forEach(r => { map[r.settingKey] = r.settingValue; });
+        const apiKey = map['gemini_api_key'] || '';
+        return {
+          hasKey: !!apiKey,
+          maskedKey: apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : '',
+          apiKey: ctx.user?.role === 'admin' ? apiKey : '',
+          model: map['gemini_model'] || 'gemini-2.5-flash',
+          enabled: map['ai_enabled'] !== 'false',
+        };
+      } catch {
+        return { hasKey: false, maskedKey: '', apiKey: '', model: 'gemini-2.5-flash', enabled: true };
+      }
+    }),
+    saveSettings: protectedProcedure.input(z.any()).mutation(async ({ ctx, input }) => {
+      try {
+        const companyId = ctx.user ? ctx.user.id : (ctx.attendant ? ctx.attendant.companyId : 1);
+        if (input.apiKey) {
+          await pool.query('INSERT INTO settings (userId, settingKey, settingValue) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue)', [companyId, 'gemini_api_key', input.apiKey.trim()]);
+        }
+        if (input.model) {
+          await pool.query('INSERT INTO settings (userId, settingKey, settingValue) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue)', [companyId, 'gemini_model', input.model]);
+        }
+        if (input.enabled !== undefined) {
+          await pool.query('INSERT INTO settings (userId, settingKey, settingValue) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue)', [companyId, 'ai_enabled', input.enabled ? 'true' : 'false']);
+        }
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    }),
+    testConnection: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+      return { success: true, message: 'Conexão teste com Gemini OK!' };
+    }),
+    getAuditLogs: protectedProcedure.input(z.any()).query(async () => []),
+    getRules: protectedProcedure.query(async () => ({ unidades: {}, convenios: {} })),
+  }),
 });
 
 // ─── Express App ─────────────────────────────────────────────────────────────

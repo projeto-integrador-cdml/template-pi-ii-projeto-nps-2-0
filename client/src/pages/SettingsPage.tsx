@@ -4,7 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Bell, Database, CheckCircle, Loader2, Save, Link, Plus, Trash2, Sparkles, Zap, ShieldCheck, ShieldAlert, KeyRound, QrCode, Lock } from "lucide-react";
+import { 
+  Settings, Bell, Database, CheckCircle, Loader2, Save, Link, Plus, Trash2, 
+  Sparkles, Zap, ShieldCheck, ShieldAlert, KeyRound, QrCode, Lock,
+  Bot, Eye, EyeOff, Cpu, FileText, CheckCircle2, AlertCircle, ExternalLink
+} from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -12,6 +16,64 @@ import { toast } from "sonner";
 export default function SettingsPage() {
   const utils = trpc.useUtils();
   const { data: currentUser, refetch: refetchUser } = trpc.auth.me.useQuery();
+
+  // AI Configuration states
+  const { data: aiSettings, refetch: refetchAiSettings, isLoading: isLoadingAi } = trpc.ai.getSettings.useQuery();
+  const { data: clinicRules } = trpc.ai.getRules.useQuery();
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const { data: auditLogs, refetch: refetchAuditLogs, isLoading: isLoadingLogs } = trpc.ai.getAuditLogs.useQuery(
+    { limit: 30 },
+    { enabled: showLogsModal }
+  );
+
+  const [aiApiKey, setAiApiKey] = useState("");
+  const [showAiKey, setShowAiKey] = useState(false);
+  const [aiModel, setAiModel] = useState("gemini-2.5-flash");
+  const [aiEnabled, setAiEnabled] = useState(true);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    if (aiSettings) {
+      setAiApiKey(aiSettings.apiKey || "");
+      setAiModel(aiSettings.model || "gemini-2.5-flash");
+      setAiEnabled(aiSettings.enabled ?? true);
+    }
+  }, [aiSettings]);
+
+  const saveAiMutation = trpc.ai.saveSettings.useMutation({
+    onSuccess: () => {
+      refetchAiSettings();
+      toast.success("Configurações de IA salvas com sucesso!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Erro ao salvar configurações de IA");
+    }
+  });
+
+  const testAiMutation = trpc.ai.testConnection.useMutation();
+
+  const handleTestAi = async () => {
+    setTestResult(null);
+    try {
+      const res = await testAiMutation.mutateAsync({
+        apiKey: aiApiKey.trim() || undefined,
+        model: aiModel,
+      });
+      setTestResult({ success: true, message: res.message });
+      toast.success("✅ Conexão com Google Gemini aprovada!");
+    } catch (err: any) {
+      setTestResult({ success: false, message: err.message || "Falha na conexão com Gemini" });
+      toast.error("❌ Falha na conexão com Google Gemini");
+    }
+  };
+
+  const handleSaveAi = () => {
+    saveAiMutation.mutate({
+      apiKey: aiApiKey.trim(),
+      model: aiModel,
+      enabled: aiEnabled,
+    });
+  };
 
   // 2FA states
   const [setupModalOpen, setSetupModalOpen] = useState(false);
@@ -452,6 +514,185 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* GOOGLE GEMINI ENTERPRISE AI CARD */}
+      <Card className="glass-card border border-border shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Bot className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  Inteligência Artificial (Google Gemini Enterprise)
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Atendimento inteligente 24/7 com isolamento de dados em 3 camadas, motor de regras clínicas locais e transbordo humano automático.
+                </CardDescription>
+              </div>
+            </div>
+            {aiEnabled ? (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 gap-1.5 font-bold">
+                <CheckCircle2 className="h-3.5 w-3.5" /> IA Ativa
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5" /> IA Desativada
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Toggle IA Ativa */}
+          <div className="flex items-center justify-between p-3.5 bg-muted/20 border border-border/40 rounded-xl">
+            <div className="space-y-0.5">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-amber-400" />
+                Atendimento Automático por IA
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                Quando ativo, a IA responde dúvidas de convênios, procedimentos, carteirinhas e transfere para humanos quando solicitado.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aiEnabled}
+                onChange={(e) => setAiEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+
+          {/* Chave de API */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5 text-primary" />
+                Chave de API do Google Gemini (Por Empresa)
+              </Label>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] text-primary hover:underline flex items-center gap-1 font-medium"
+              >
+                Obter Chave no Google AI Studio <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            </div>
+            <div className="relative">
+              <Input
+                type={showAiKey ? "text" : "password"}
+                placeholder="AIzaSy..."
+                value={aiApiKey}
+                onChange={(e) => setAiApiKey(e.target.value)}
+                className="pr-10 h-10 text-xs font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowAiKey(!showAiKey)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+              >
+                {showAiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Sua chave é armazenada de forma isolada no banco de dados e nunca compartilhada com outras empresas.
+            </p>
+          </div>
+
+          {/* Seleção de Modelo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Cpu className="h-3.5 w-3.5 text-primary" />
+                Modelo do Gemini
+              </Label>
+              <select
+                value={aiModel}
+                onChange={(e) => setAiModel(e.target.value)}
+                className="w-full h-10 text-xs bg-muted border border-border rounded-xl px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado - Ultra rápido e preciso)</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Econômico e ágil)</option>
+                <option value="gemini-1.5-pro">Gemini 1.5 Pro (Raciocínio complexo e alto contexto)</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Última geração multimodal)</option>
+              </select>
+            </div>
+
+            {/* Painel de Regras Homologadas */}
+            <div className="p-3 bg-muted/20 border border-border/40 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-foreground">
+                <span>Motor de Regras Clínicas Locais</span>
+                <span className="text-primary font-mono text-[10px]">regras_clinica.json</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                ✅ <strong>4 Unidades:</strong> Asa Norte, Asa Sul, Noroeste, Lago Sul com matriz de restrições.<br />
+                ✅ <strong>38 Convênios</strong> homologados com regras de elegibilidade.<br />
+                🛑 <strong>Transbordo Imediato:</strong> TotalPass, Wellhub e ClassPass.<br />
+                🛡️ <strong>Fail-Safe:</strong> Falhas ou limites transferem na hora para atendente humano.
+              </p>
+            </div>
+          </div>
+
+          {/* Test Feedback */}
+          {testResult && (
+            <div className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+              testResult.success ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-destructive/10 border-destructive/30 text-destructive"
+            }`}>
+              {testResult.success ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> : <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />}
+              <div>
+                <p className="font-semibold">{testResult.success ? "Conexão Validada" : "Erro no Teste de Conexão"}</p>
+                <p className="text-[11px] opacity-90">{testResult.message}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Botões de Ação */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowLogsModal(true);
+                refetchAuditLogs();
+              }}
+              className="text-xs h-9 gap-1.5"
+            >
+              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+              Auditoria de IA (.json)
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleTestAi}
+                disabled={testAiMutation.isPending}
+                className="text-xs h-9 gap-1.5"
+              >
+                {testAiMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 text-amber-500" />}
+                Testar Conexão com Gemini
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSaveAi}
+                disabled={saveAiMutation.isPending}
+                className="text-xs h-9 gap-1.5 font-bold"
+              >
+                {saveAiMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Salvar Configurações de IA
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 2FA SECURITY CARD */}
       <Card className="glass-card border border-border">
         <CardHeader>
@@ -598,6 +839,71 @@ export default function SettingsPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL AUDITORIA DE IA (.JSON) */}
+      <Dialog open={showLogsModal} onOpenChange={setShowLogsModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col bg-card border border-border rounded-2xl shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+              <FileText className="h-5 w-5 text-primary" />
+              Logs de Auditoria da IA (data/ai_audit_logs.json)
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Registro append-only de prompts, tokens consumidos, regras acionadas e transbordos para atendentes humanos.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-3 py-2 pr-1">
+            {isLoadingLogs ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : !auditLogs || auditLogs.length === 0 ? (
+              <div className="text-center py-10 border border-dashed rounded-xl">
+                <p className="text-xs text-muted-foreground">Nenhum log registrado ainda. As mensagens processadas pela IA aparecerão aqui.</p>
+              </div>
+            ) : (
+              auditLogs.map((log: any) => (
+                <div key={log.id} className="p-3 bg-muted/20 border border-border/40 rounded-xl space-y-2 text-xs">
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span className="font-mono text-foreground font-semibold">Sessão: {log.clientPhone || log.sessionId}</span>
+                    <span>{new Date(log.timestamp).toLocaleString("pt-BR")}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-primary uppercase">Prompt do Cliente:</span>
+                    <p className="text-xs bg-background/60 p-2 rounded-md mt-0.5 text-foreground">{log.rawPrompt}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase">Resposta da IA:</span>
+                    <p className="text-xs bg-background/60 p-2 rounded-md mt-0.5 text-foreground whitespace-pre-wrap">{log.aiResponse}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground pt-1 border-t border-border/20">
+                    <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                      Tokens: {log.tokens?.totalTokens || 0} (Prompt: {log.tokens?.promptTokens || 0} / Resp: {log.tokens?.candidateTokens || 0})
+                    </span>
+                    {log.handoffTriggered && (
+                      <span className="bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded font-bold">
+                        ⚠️ Transbordo Humano: {log.assignedAttendantName ? `Atendente ${log.assignedAttendantName}` : log.handoffReason || "Atendente Humano"}
+                      </span>
+                    )}
+                    {log.toolsTriggered && log.toolsTriggered.length > 0 && (
+                      <span className="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-mono">
+                        Tools: {log.toolsTriggered.join(", ")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="flex justify-end pt-3 border-t border-border/40">
+            <Button size="sm" variant="outline" onClick={() => setShowLogsModal(false)} className="text-xs h-9">
+              Fechar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

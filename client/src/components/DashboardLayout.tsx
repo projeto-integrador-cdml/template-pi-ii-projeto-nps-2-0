@@ -41,6 +41,7 @@ import {
   PanelLeft,
   Shield,
   MessageCircle,
+  MessageSquare,
   UserCheck,
   BarChart3,
   Sun,
@@ -88,7 +89,7 @@ const menuItems = [
   { icon: CheckSquare, label: "Tarefas", path: "/tasks" },
   { icon: Bot, label: "Assistente IA", path: "/ai" },
   { icon: Mic, label: "Gravações", path: "/recordings" },
-  { icon: MessageCircle, label: "WhatsApp", path: "/whatsapp" },
+  { icon: MessageSquare, label: "Conversas", path: "/whatsapp" },
   { icon: BarChart3, label: "Relatórios", path: "/reports" },
   { icon: Radio, label: "Canais", path: "/channels" },
 ];

@@ -1,0 +1,59 @@
+[
+  {
+    "id": "46a2a509-a0b7-465c-bf8f-bc80931aec85",
+    "timestamp": "2026-09-08T23:16:15.365Z",
+    "companyId": 1,
+    "sessionId": "5511999999999",
+    "clientPhone": "5511999999999",
+    "rawPrompt": "Vocês aceitam TotalPass?",
+    "aiResponse": "TotalPass deve ser direcionado para atendimento humano.",
+    "tokens": {
+      "promptTokens": 50,
+      "candidateTokens": 20,
+      "totalTokens": 70
+    },
+    "toolsTriggered": [
+      "consultar_regras"
+    ],
+    "handoffTriggered": true,
+    "handoffReason": "totalpass_immediate_handoff"
+  },
+  {
+    "id": "0b49b58e-ab86-403f-b5d7-3b179083f4a6",
+    "timestamp": "2026-09-08T23:17:24.931Z",
+    "companyId": 1,
+    "sessionId": "5511999999999",
+    "clientPhone": "5511999999999",
+    "rawPrompt": "Vocês aceitam TotalPass?",
+    "aiResponse": "TotalPass deve ser direcionado para atendimento humano.",
+    "tokens": {
+      "promptTokens": 50,
+      "candidateTokens": 20,
+      "totalTokens": 70
+    },
+    "toolsTriggered": [
+      "consultar_regras"
+    ],
+    "handoffTriggered": true,
+    "handoffReason": "totalpass_immediate_handoff"
+  },
+  {
+    "id": "9ba12588-aa74-43ce-bb57-7d66ece9de96",
+    "timestamp": "2026-09-08T23:18:51.017Z",
+    "companyId": 1,
+    "sessionId": "5511999999999",
+    "clientPhone": "5511999999999",
+    "rawPrompt": "Vocês aceitam TotalPass?",
+    "aiResponse": "TotalPass deve ser direcionado para atendimento humano.",
+    "tokens": {
+      "promptTokens": 50,
+      "candidateTokens": 20,
+      "totalTokens": 70
+    },
+    "toolsTriggered": [
+      "consultar_regras"
+    ],
+    "handoffTriggered": true,
+    "handoffReason": "totalpass_immediate_handoff"
+  }
+]

@@ -1,0 +1,372 @@
+{
+  "unidades": {
+    "lista_geral_procedimentos": [
+      "Fisioterapia Motora",
+      "Fisioterapia Pélvica",
+      "Fisioterapia Respiratória",
+      "Pilates",
+      "RPG",
+      "Acupuntura",
+      "Massagem (Drenagem e Relaxante)",
+      "Osteopatia",
+      "Liberação Miofascial",
+      "ATM/DTM"
+    ],
+    "unidades_atendimento": {
+      "asa_norte": {
+        "nome": "Asa Norte",
+        "nao_atende": [
+          "Fisioterapia Respiratória"
+        ]
+      },
+      "asa_sul": {
+        "nome": "Asa Sul",
+        "nao_atende": [
+          "ATM/DTM",
+          "Massagem",
+          "Fisioterapia Respiratória",
+          "Osteopatia"
+        ]
+      },
+      "noroeste": {
+        "nome": "Noroeste",
+        "nao_atende": [
+          "ATM/DTM",
+          "Fisioterapia Respiratória"
+        ]
+      },
+      "lago_sul": {
+        "nome": "Lago Sul",
+        "nao_atende": [
+          "Massagem",
+          "Acupuntura",
+          "ATM/DTM",
+          "Fisioterapia Respiratória",
+          "Osteopatia"
+        ]
+      }
+    }
+  },
+  "convenios": {
+    "affego": {
+      "nome": "AFFEGO",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Pélvica"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "assefaz": {
+      "nome": "ASSEFAZ",
+      "procedimentos": ["Avaliação", "Acupuntura", "Fisioterapia Pélvica"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": "Exige cópia da carteirinha e documento oficial com foto.",
+      "elegibilidade": "Sim",
+      "transferir_humano": false
+    },
+    "bacen": {
+      "nome": "BACEN",
+      "procedimentos": ["RPG", "Fisioterapia", "Fisioterapia Pélvica", "Acupuntura"],
+      "autorizacao": "Verificar com recepção",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "camara_dos_deputados": {
+      "nome": "Câmara dos Deputados",
+      "procedimentos": ["Avaliação", "Acupuntura", "Fisioterapia", "Pélvica", "Pilates", "RPG"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "care_plus": {
+      "nome": "Care Plus",
+      "procedimentos": ["Avaliação", "Fisioterapia", "RPG"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "casec": {
+      "nome": "CASEC",
+      "procedimentos": ["Avaliação", "RPG", "Fisio Pélvica", "Fisioterapia"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "casaembrapa": {
+      "nome": "CASAEMBRAPA",
+      "procedimentos": ["Avaliação", "Fisioterapia", "RPG", "Pélvica"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "cassi": {
+      "nome": "CASSI",
+      "procedimentos": ["Avaliação", "Fisioterapia Ortopédica", "Fisioterapia Pélvica"],
+      "autorizacao": "Sim/Diária",
+      "observacoes": "RPG atende apenas associados e reciprocidade. Não atendemos carteirinha Essencial.",
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "cbm": {
+      "nome": "CBM",
+      "procedimentos": ["Avaliação", "Fisioterapia", "RPG", "Acupuntura", "Pilates"],
+      "autorizacao": "Guia para RPG, Fisioterapia e Acupuntura; Ressarcimento para Pilates.",
+      "observacoes": "Cópia do documento oficial com foto. Não existe carteirinha física.",
+      "elegibilidade": "Pegar cópia do documento com foto",
+      "transferir_humano": false
+    },
+    "evida_eletronorte": {
+      "nome": "EVIDA-ELETRONORTE",
+      "procedimentos": ["Avaliação", "RPG", "Fisioterapia", "Acupuntura"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": "Atende apenas alguns planos específicos. RPG: planos 01, 03, 05, 20. Fisioterapia: planos 01, 02, 03, 04, 05, 20, 21, 22, 23, 24, 25 e 26.",
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "embratel": {
+      "nome": "EMBRATEL",
+      "procedimentos": ["Fisioterapia"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "fapes": {
+      "nome": "FAPES",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Pélvica"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "fascal": {
+      "nome": "FASCAL",
+      "procedimentos": ["Avaliação", "Fisioterapia", "RPG"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "fusex": {
+      "nome": "FUSEX",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Pélvica", "RPG"],
+      "autorizacao": "Paciente deve trazer a guia autorizada",
+      "observacoes": null,
+      "elegibilidade": "Não existe carteirinha física",
+      "transferir_humano": false
+    },
+    "gdf_inas": {
+      "nome": "GDF – INAS",
+      "procedimentos": ["Avaliação", "Fisioterapia"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "geap": {
+      "nome": "GEAP",
+      "procedimentos": ["Avaliação", "Pilates", "Fisioterapia", "Acupuntura", "Pélvica"],
+      "autorizacao": "Sim/Direto. Primeiro solicita autorização da avaliação. Não solicita sessões antes da avaliação.",
+      "observacoes": "Pilates atende apenas mulheres acima de 12 anos participantes do programa Integra Saúde.",
+      "elegibilidade": "Não solicitamos sessões antes da realização da avaliação",
+      "transferir_humano": false
+    },
+    "life_empresarial": {
+      "nome": "LIFE EMPRESARIAL",
+      "procedimentos": ["Avaliação", "Pélvica"],
+      "autorizacao": "Verificar com recepção",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "medsenior": {
+      "nome": "MEDSENIOR",
+      "procedimentos": ["Avaliação", "Fisioterapia"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": "Não atendemos a carteirinha Essencial.",
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "omint": {
+      "nome": "OMINT",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Pélvica"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "planassiste": {
+      "nome": "PLANASSISTE",
+      "procedimentos": ["Avaliação", "Pilates", "RPG", "Fisioterapia", "Pélvica"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "policia_federal": {
+      "nome": "POLÍCIA FEDERAL",
+      "procedimentos": ["Avaliação", "Fisioterapia"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "postal_saude": {
+      "nome": "POSTAL SAÚDE",
+      "procedimentos": ["Avaliação", "Fisioterapia", "RPG"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "proasa": {
+      "nome": "PROASA",
+      "procedimentos": ["Avaliação", "Pélvica"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "saude_caixa": {
+      "nome": "SAÚDE CAIXA",
+      "procedimentos": ["Avaliação", "Pilates", "RPG", "Fisioterapia", "Pélvica"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "saude_petrobras": {
+      "nome": "SAÚDE PETROBRÁS",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Pélvica", "RPG"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "serpro": {
+      "nome": "SERPRO",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Pélvica", "RPG"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "sis_senado": {
+      "nome": "SIS SENADO",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Pélvica", "RPG", "Pilates", "Acupuntura"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": "Cópia da carteirinha e documento oficial com foto.",
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "stf": {
+      "nome": "STF",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Acupuntura", "Pilates", "Pélvica", "RPG"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": "Pilates precisa de autorização prévia. Se a fisioterapia for para mais de uma patologia, exige autorização.",
+      "elegibilidade": "Relatório do fisioterapeuta no caso de avaliação.",
+      "transferir_humano": false
+    },
+    "stj": {
+      "nome": "STJ",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Acupuntura", "Pilates", "Pélvica", "RPG"],
+      "autorizacao": "Sim/Direto (Somente para Pélvica)",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "stm": {
+      "nome": "STM",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Acupuntura", "Pilates", "Pélvica", "RPG"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": "Cópia da carteirinha e documento oficial com foto.",
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "tjdft": {
+      "nome": "TJDFT",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Acupuntura", "Pilates", "Pélvica", "RPG"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "tre": {
+      "nome": "TRE",
+      "procedimentos": ["Avaliação", "Pélvica"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "trf": {
+      "nome": "TRF",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Acupuntura", "Pilates", "Pélvica", "RPG"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "trt": {
+      "nome": "TRT",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Acupuntura", "Pilates", "Pélvica", "RPG"],
+      "autorizacao": "Sim/E-mail",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "tst": {
+      "nome": "TST",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Acupuntura", "Pilates", "Pélvica", "RPG"],
+      "autorizacao": "Sim/Direto",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "unafisco": {
+      "nome": "UNAFISCO",
+      "procedimentos": ["Avaliação", "Fisioterapia", "RPG"],
+      "autorizacao": "Sim/AMHPDF",
+      "observacoes": null,
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "unimed_saw": {
+      "nome": "UNIMED - SAW",
+      "procedimentos": ["Avaliação", "Fisioterapia", "Acupuntura"],
+      "autorizacao": "Sim/Direto Token Facial",
+      "observacoes": "Apenas Unimed Nacional. Não atende Seguros Unimed.",
+      "elegibilidade": null,
+      "transferir_humano": false
+    },
+    "totalpass": {
+      "nome": "TOTALPASS",
+      "procedimentos": ["Avaliação", "Pilates"],
+      "autorizacao": "Agenda Check-in",
+      "observacoes": "Somente agendamento prévio.",
+      "elegibilidade": "Transferir para atendente",
+      "transferir_humano": true
+    },
+    "wellhub_gympass": {
+      "nome": "WELLHUB / GYMPASS",
+      "procedimentos": ["Avaliação", "Pilates", "Massagem", "Acupuntura"],
+      "autorizacao": "Agenda Check-in",
+      "observacoes": "Somente agendamento prévio.",
+      "elegibilidade": "Transferir para atendente",
+      "transferir_humano": true
+    },
+    "classpass": {
+      "nome": "CLASSPASS",
+      "procedimentos": ["Pilates"],
+      "autorizacao": "Aplicativo",
+      "observacoes": "Disponibilidade de vagas gerenciada exclusivamente pelo aplicativo.",
+      "elegibilidade": "Transferir para atendente",
+      "transferir_humano": true
+    }
+  }
+}

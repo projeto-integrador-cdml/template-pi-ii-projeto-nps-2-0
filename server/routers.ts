@@ -16,6 +16,9 @@ import { sdk } from "./_core/sdk";
 import { generateSecret, generateURI, verifySync } from "otplib";
 import QRCode from "qrcode";
 import { sendPasswordResetEmail } from "./emailService";
+import { getAuditLogs } from "./services/aiLogger";
+import { loadRules } from "./services/rulesEngine";
+import { processIncomingMessage } from "./services/aiOrchestrator";
 
 function getCompanyAdminId(ctx: any): number {
   if (ctx.user) {
@@ -1011,6 +1014,115 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         const text = typeof content === "string" ? content : "";
         return { suggestions: text };
       }),
+
+    getSettings: protectedProcedure.query(async ({ ctx }) => {
+      const companyId = getCreatorId(ctx);
+      const apiKeySetting = await db.getSetting(companyId, "gemini_api_key");
+      const modelSetting = await db.getSetting(companyId, "gemini_model");
+      const enabledSetting = await db.getSetting(companyId, "ai_enabled");
+
+      const apiKey = apiKeySetting?.settingValue || "";
+      const maskedKey = apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : "";
+
+      return {
+        hasKey: !!apiKey,
+        maskedKey,
+        apiKey: ctx.user?.role === "admin" ? apiKey : maskedKey,
+        model: modelSetting?.settingValue || "gemini-2.5-flash",
+        enabled: enabledSetting ? enabledSetting.settingValue === "true" : true,
+      };
+    }),
+
+    saveSettings: protectedProcedure
+      .input(z.object({
+        apiKey: z.string().optional(),
+        model: z.string().optional(),
+        enabled: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.attendant) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem configurar a IA" });
+        }
+        const companyId = getCreatorId(ctx);
+
+        if (input.apiKey !== undefined && input.apiKey !== "") {
+          await db.upsertSetting(companyId, "gemini_api_key", input.apiKey.trim());
+        }
+        if (input.model !== undefined) {
+          await db.upsertSetting(companyId, "gemini_model", input.model);
+        }
+        if (input.enabled !== undefined) {
+          await db.upsertSetting(companyId, "ai_enabled", input.enabled ? "true" : "false");
+        }
+
+        return { success: true };
+      }),
+
+    testConnection: protectedProcedure
+      .input(z.object({
+        apiKey: z.string().optional(),
+        model: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const companyId = getCreatorId(ctx);
+        let key = input.apiKey?.trim();
+        if (!key) {
+          const savedKeySetting = await db.getSetting(companyId, "gemini_api_key");
+          key = savedKeySetting?.settingValue || process.env.GEMINI_API_KEY || "";
+        }
+
+        if (!key) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Nenhuma chave de API fornecida ou cadastrada para teste.",
+          });
+        }
+
+        const model = input.model || "gemini-2.5-flash";
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: "Responda apenas: OK" }] }],
+            }),
+          });
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const errMsg = errData.error?.message || `Status HTTP ${response.status}`;
+            throw new Error(`Falha na autenticação do Gemini: ${errMsg}`);
+          }
+
+          const data = await response.json();
+          const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "OK";
+
+          return {
+            success: true,
+            model,
+            message: `Conexão bem-sucedida com Gemini (${model})! Resposta do modelo: ${reply.trim()}`,
+          };
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err.message || "Erro ao conectar com a API do Gemini",
+          });
+        }
+      }),
+
+    getAuditLogs: protectedProcedure
+      .input(z.object({ limit: z.number().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        const companyId = getCreatorId(ctx);
+        const limit = input?.limit || 50;
+        return getAuditLogs(companyId, limit);
+      }),
+
+    getRules: protectedProcedure.query(async () => {
+      return loadRules();
+    }),
   }),
 
   // ─── Mídias: Áudios, Imagens, Documentos, Textos ───
@@ -1733,6 +1845,7 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
             id: client.id,
             name: client.name,
             phone: client.phone,
+            source: client.source || "whatsapp",
             assignedAttendantId: client.assignedAttendantId,
             attendantName,
           },
@@ -2052,11 +2165,50 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         phone: z.string().min(1),
         name: z.string().min(1),
         message: z.string().min(1),
+        mediaUrl: z.string().optional(),
+        channel: z.enum(["whatsapp", "instagram", "messenger"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const companyId = getCompanyAdminId(ctx);
         try {
-          return await db.routeIncomingWhatsappMessage(companyId, input.phone, input.name, input.message);
+          const routeRes = await db.routeIncomingWhatsappMessage(companyId, input.phone, input.name, input.message, input.mediaUrl);
+
+          if (input.channel) {
+            const allClients = await db.listAllClients();
+            const c = allClients.find(client => client.userId === companyId && client.phone === input.phone);
+            if (c) {
+              await db.updateClient(c.id, companyId, { source: input.channel } as any);
+            }
+          }
+
+          // Processamento Inteligente via Gemini Orchestrator (com regras, convenios, fotos e fail-safe)
+          try {
+            const aiRes = await processIncomingMessage({
+              companyId,
+              clientPhone: input.phone,
+              clientName: input.name,
+              userMessage: input.message,
+              mediaUrl: input.mediaUrl,
+            });
+
+            if (aiRes?.replyText) {
+              const allClients = await db.listAllClients();
+              const client = allClients.find(c => c.userId === companyId && c.phone === input.phone);
+              if (client) {
+                await db.createWhatsappMessage({
+                  userId: companyId,
+                  clientId: client.id,
+                  direction: "outbound",
+                  message: aiRes.replyText,
+                  status: "delivered",
+                });
+              }
+            }
+          } catch (aiErr: any) {
+            console.error("[SimulateIncoming AI Error]:", aiErr.message);
+          }
+
+          return routeRes;
         } catch (err: any) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message || "Erro ao simular mensagem de entrada" });
         }

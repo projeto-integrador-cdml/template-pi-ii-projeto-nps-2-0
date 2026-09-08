@@ -6,11 +6,79 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { 
-  MessageCircle, Send, Search, Phone, Sparkles, CheckSquare, Target,
+  MessageCircle, MessageSquare, Send, Search, Phone, Sparkles, CheckSquare, Target,
   CheckCheck, Sliders, Play, ArrowLeftRight, Paperclip, Loader2,
   Mic, Square, Zap, Clock, Pin, Image as ImageIcon, Calendar as CalendarIcon, X
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+function ChannelIcon({ source, className = "h-3.5 w-3.5" }: { source?: string; className?: string }) {
+  const norm = (source || "whatsapp").toLowerCase();
+
+  if (norm.includes("instagram")) {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+      </svg>
+    );
+  }
+
+  if (norm.includes("messenger") || norm.includes("facebook")) {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.477 2 2 6.145 2 11.258c0 2.91 1.455 5.512 3.735 7.172V22l3.418-1.875c.917.254 1.884.39 2.847.39 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm1.06 12.443l-2.55-2.723-4.975 2.723 5.474-5.811 2.613 2.723 4.912-2.723-5.474 5.811z" />
+      </svg>
+    );
+  }
+
+  // Default: WhatsApp
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.978-.276-.1-.476-.15-.677.15-.201.301-.777.978-.953 1.179-.176.2-.351.226-.652.075-.301-.15-1.272-.469-2.423-1.496-.895-.799-1.5-1.786-1.676-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.351.451-.527.15-.176.201-.301.301-.502.1-.201.05-.376-.025-.527-.075-.15-.677-1.631-.928-2.233-.244-.587-.492-.507-.677-.517-.175-.008-.376-.01-.577-.01s-.527.075-.802.376c-.276.301-1.054 1.029-1.054 2.508 0 1.48 1.079 2.909 1.23 3.109.15.201 2.122 3.24 5.141 4.544.718.31 1.279.496 1.716.635.722.23 1.379.197 1.9.12.58-.087 1.78-.727 2.03-1.43.25-.702.25-1.304.175-1.43-.075-.125-.276-.201-.577-.351zM12.04 2C6.544 2 2.08 6.464 2.08 11.96c0 1.99.584 3.844 1.593 5.408L2 22l4.793-1.572A9.914 9.914 0 0 0 12.04 21.92c5.496 0 9.96-4.464 9.96-9.96S17.536 2 12.04 2z" />
+    </svg>
+  );
+}
+
+function ChannelBadge({ source, showLabel = false }: { source?: string; showLabel?: boolean }) {
+  const norm = (source || "whatsapp").toLowerCase();
+
+  if (norm.includes("instagram")) {
+    return (
+      <span
+        title="Canal: Instagram Direct"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-gradient-to-r from-[#833ab4]/20 via-[#fd1d1d]/20 to-[#fcb045]/20 text-[#fd1d1d] border border-[#fd1d1d]/30"
+      >
+        <ChannelIcon source="instagram" className="h-2.5 w-2.5 text-[#E1306C]" />
+        {showLabel && "Instagram"}
+      </span>
+    );
+  }
+
+  if (norm.includes("messenger") || norm.includes("facebook")) {
+    return (
+      <span
+        title="Canal: Facebook Messenger"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-[#0084FF]/15 text-[#0084FF] border border-[#0084FF]/30"
+      >
+        <ChannelIcon source="messenger" className="h-2.5 w-2.5 text-[#0084FF]" />
+        {showLabel && "Messenger"}
+      </span>
+    );
+  }
+
+  // Default: WhatsApp
+  return (
+    <span
+      title="Canal: WhatsApp"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/30"
+    >
+      <ChannelIcon source="whatsapp" className="h-2.5 w-2.5 text-[#25D366]" />
+      {showLabel && "WhatsApp"}
+    </span>
+  );
+}
 
 const QUICK_REPLIES = [
   { shortcut: "/boasvindas", label: "👋 Boas-vindas", text: "Olá! Seja bem-vindo(a) à nossa empresa. Como podemos te ajudar hoje?" },
@@ -224,6 +292,8 @@ export default function WhatsAppPage() {
   const [sandboxPhone, setSandboxPhone] = useState("+5511999991111");
   const [sandboxName, setSandboxName] = useState("Cliente Teste");
   const [sandboxMsg, setSandboxMsg] = useState("Olá, gostaria de saber mais sobre o sistema!");
+  const [sandboxChannel, setSandboxChannel] = useState<"whatsapp" | "instagram" | "messenger">("whatsapp");
+  const [sandboxMediaUrl, setSandboxMediaUrl] = useState("");
 
   // CRM panel states
   const [crmTab, setCrmTab] = useState<"info" | "opp" | "task">("info");
@@ -547,15 +617,21 @@ export default function WhatsAppPage() {
         phone: sandboxPhone,
         name: sandboxName,
         message: sandboxMsg,
+        channel: sandboxChannel,
+        mediaUrl: sandboxMediaUrl.trim() || undefined,
       });
       toast.success("Mensagem simulada enviada com sucesso!");
       refetchChats();
+      if (activeChatId) {
+        refetchMessages();
+      }
       if (res.assignedAttendantId) {
         toast.info(`Chat distribuído para atendente ID: ${res.assignedAttendantId}`);
       } else {
         toast.info("Nenhum atendente online. Chat aguarda atribuição.");
       }
       setSandboxMsg("");
+      setSandboxMediaUrl("");
     } catch (err: any) {
       toast.error(err.message || "Erro ao simular mensagem");
     }
@@ -638,12 +714,18 @@ export default function WhatsAppPage() {
       {/* HEADER BAR */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/40 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center">
-            <MessageCircle className="h-5 w-5 text-emerald-500" />
+          <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center">
+            <MessageSquare className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight">Painel de Multiatendimento</h1>
-            <p className="text-[10px] text-muted-foreground">WhatsApp Business API Simulator</p>
+            <h1 className="text-sm font-bold tracking-tight">Conversas Omnichannel</h1>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+              <span className="flex items-center gap-1 text-emerald-400 font-medium"><ChannelIcon source="whatsapp" className="h-3 w-3" /> WhatsApp</span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-pink-400 font-medium"><ChannelIcon source="instagram" className="h-3 w-3" /> Instagram</span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-blue-400 font-medium"><ChannelIcon source="messenger" className="h-3 w-3" /> Messenger</span>
+            </p>
           </div>
         </div>
 
@@ -767,9 +849,10 @@ export default function WhatsAppPage() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold truncate max-w-[180px] flex items-center gap-1">
+                        <span className="text-xs font-bold truncate max-w-[180px] flex items-center gap-1.5">
                           {isPinned && <Pin className="h-3 w-3 text-amber-500 fill-amber-500/20 shrink-0" />}
-                          {chat.client.name}
+                          <ChannelBadge source={(chat.client as any).source} />
+                          <span className="truncate">{chat.client.name}</span>
                         </span>
                         <span className="text-[9px] text-muted-foreground">
                           {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -820,11 +903,19 @@ export default function WhatsAppPage() {
               {/* CHAT HEADER */}
               <div className="px-6 py-3 border-b border-border bg-card/25 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center font-bold text-primary text-xs">
-                    {activeChat.client.name.charAt(0).toUpperCase()}
+                  <div className="relative">
+                    <div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center font-bold text-primary text-xs">
+                      {activeChat.client.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 p-0.5 bg-background rounded-full shadow-sm border border-border/40">
+                      <ChannelIcon source={(activeChat.client as any).source} className="h-3 w-3" />
+                    </div>
                   </div>
                   <div>
-                    <h2 className="text-xs font-bold leading-none">{activeChat.client.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xs font-bold leading-none">{activeChat.client.name}</h2>
+                      <ChannelBadge source={(activeChat.client as any).source} showLabel={true} />
+                    </div>
                     <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
                       <Phone className="h-3 w-3 shrink-0" />
                       {activeChat.client.phone}
@@ -1363,7 +1454,19 @@ export default function WhatsAppPage() {
             </div>
             <form onSubmit={handleSimulateSandbox} className="space-y-3">
               <div className="space-y-1">
-                <Label className="text-[10px]">Número de WhatsApp</Label>
+                <Label className="text-[10px]">Canal de Entrada</Label>
+                <select
+                  value={sandboxChannel}
+                  onChange={(e) => setSandboxChannel(e.target.value as any)}
+                  className="w-full h-8 text-xs bg-muted border border-border rounded-lg px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="whatsapp">🟢 WhatsApp</option>
+                  <option value="instagram">🟣 Instagram Direct</option>
+                  <option value="messenger">🔵 Facebook Messenger</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Número / Identificador</Label>
                 <Input
                   value={sandboxPhone}
                   onChange={(e) => setSandboxPhone(e.target.value)}
@@ -1373,13 +1476,22 @@ export default function WhatsAppPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px]">Nome do Lead</Label>
+                <Label className="text-[10px]">Nome do Contato</Label>
                 <Input
                   value={sandboxName}
                   onChange={(e) => setSandboxName(e.target.value)}
                   placeholder="Carlos Souza"
                   className="h-8 text-xs"
                   required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">URL de Imagem / Carteirinha (Opcional)</Label>
+                <Input
+                  value={sandboxMediaUrl}
+                  onChange={(e) => setSandboxMediaUrl(e.target.value)}
+                  placeholder="https://.../carteirinha.jpg"
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">

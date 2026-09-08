@@ -10,7 +10,8 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import * as db from "../db";
-import { downloadMetaMedia } from "../whatsappService";
+import { downloadMetaMedia, sendMessage as sendWhatsappMessage } from "../whatsappService";
+import { processIncomingMessage } from "../services/aiOrchestrator";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
@@ -148,6 +149,39 @@ export function createApp() {
                 if (textContent || mediaUrl) {
                   console.log(`[WhatsApp Webhook] Mensagem recebida de ${name} (${fromNumber}): ${textContent} | Mídia: ${mediaUrl}`);
                   await db.routeIncomingWhatsappMessage(user.id, fromNumber, name, textContent, mediaUrl);
+
+                  // Processamento com Orquestrador de IA
+                  try {
+                    const aiRes = await processIncomingMessage({
+                      companyId: user.id,
+                      clientPhone: fromNumber,
+                      clientName: name,
+                      userMessage: textContent,
+                      mediaUrl,
+                    });
+
+                    if (aiRes?.replyText) {
+                      const allClients = await db.listAllClients();
+                      const client = allClients.find(c => c.userId === user.id && c.phone === fromNumber);
+                      if (client) {
+                        await db.createWhatsappMessage({
+                          userId: user.id,
+                          clientId: client.id,
+                          direction: "outbound",
+                          message: aiRes.replyText,
+                          status: "delivered",
+                        });
+                      }
+
+                      if (user.whatsappNumber && user.whatsappApiKey) {
+                        await sendWhatsappMessage(user.id, fromNumber, aiRes.replyText).catch(e => {
+                          console.warn("[WhatsApp Webhook] Erro ao enviar resposta da IA via API:", e.message);
+                        });
+                      }
+                    }
+                  } catch (aiErr: any) {
+                    console.error("[WhatsApp Webhook AI Error]:", aiErr.message);
+                  }
                 }
               }
             }
