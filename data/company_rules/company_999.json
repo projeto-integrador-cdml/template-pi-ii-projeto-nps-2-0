@@ -1,0 +1,9 @@
+{
+  "companyId": 999,
+  "isClinic": false,
+  "profileName": "E-commerce de Varejo",
+  "regrasGerais": [
+    "Frete grátis acima de R$ 199",
+    "Devolução em 7 dias"
+  ]
+}

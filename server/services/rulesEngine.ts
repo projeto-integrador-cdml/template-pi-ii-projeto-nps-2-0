@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 
 export interface RuleResult {
   encontrado: boolean;
@@ -17,7 +16,7 @@ export interface RuleResult {
   detalhes?: string;
 }
 
-let cachedRules: any = null;
+const rulesCache: Record<number | string, any> = {};
 
 function normalize(text: string): string {
   return (text || "")
@@ -27,23 +26,82 @@ function normalize(text: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-export function loadRules(): any {
-  if (cachedRules) return cachedRules;
-  try {
-    const filePath = path.resolve(process.cwd(), "regras_clinica.json");
-    if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, "utf-8");
-      cachedRules = JSON.parse(data);
-      return cachedRules;
+/**
+ * Carrega regras isoladas por empresa.
+ * - Empresa 54 (Espaço Physio): carrega as regras completas da clínica (4 unidades, 38 convênios, TotalPass/Wellhub, etc.)
+ * - Outras empresas: carregam data/company_rules/company_${companyId}.json ou perfil genérico vazio.
+ */
+export function loadRules(companyId?: number): any {
+  const key = companyId ?? "default";
+  if (rulesCache[key]) return rulesCache[key];
+
+  // 1. Verifica se existe arquivo customizado de regras para a empresa
+  if (companyId) {
+    const customPath = path.resolve(process.cwd(), "data", "company_rules", `company_${companyId}.json`);
+    if (fs.existsSync(customPath)) {
+      try {
+        const data = fs.readFileSync(customPath, "utf-8");
+        const parsed = JSON.parse(data);
+        rulesCache[key] = parsed;
+        return parsed;
+      } catch (err: any) {
+        console.error(`[RulesEngine] Erro ao ler regras da empresa ${companyId}:`, err.message);
+      }
     }
-  } catch (err: any) {
-    console.error("[RulesEngine] Erro ao carregar regras_clinica.json:", err.message);
   }
-  return { unidades: { lista_geral_procedimentos: [], unidades_atendimento: {} }, convenios: {} };
+
+  // 2. Se for a conta Espaço Physio (ID 54), carrega as regras da clínica fisioterápica
+  const isEspacoPhysio = companyId === 54;
+  if (isEspacoPhysio) {
+    try {
+      const filePath = path.resolve(process.cwd(), "regras_clinica.json");
+      if (fs.existsSync(filePath)) {
+        const data = fs.readFileSync(filePath, "utf-8");
+        const parsed = JSON.parse(data);
+        const clinicProfile = {
+          companyId: 54,
+          isClinic: true,
+          profileName: "Espaço Physio (Clínica • 4 Unidades • 38 Convênios)",
+          ...parsed,
+        };
+        rulesCache[key] = clinicProfile;
+        return clinicProfile;
+      }
+    } catch (err: any) {
+      console.error("[RulesEngine] Erro ao carregar regras_clinica.json para Espaço Physio:", err.message);
+    }
+  }
+
+  // 3. Para outras empresas (ou sem ID), retorna perfil padrão sem regras de convênios/unidades clínicas
+  const defaultProfile = {
+    companyId: companyId || 0,
+    isClinic: false,
+    profileName: "CRM Padrão / Empresa",
+    unidades: { lista_geral_procedimentos: [], unidades_atendimento: {} },
+    convenios: {},
+    regrasGerais: [],
+    transferirHumanoGatilhos: [],
+  };
+  rulesCache[key] = defaultProfile;
+  return defaultProfile;
 }
 
-export function consultarConvenio(convenioNome: string): RuleResult {
-  const rules = loadRules();
+/**
+ * Salva regras customizadas para uma empresa específica
+ */
+export async function saveCompanyRules(companyId: number, rules: any): Promise<void> {
+  const dir = path.resolve(process.cwd(), "data", "company_rules");
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const filePath = path.join(dir, `company_${companyId}.json`);
+  fs.writeFileSync(filePath, JSON.stringify(rules, null, 2), "utf-8");
+  delete rulesCache[companyId];
+  delete rulesCache["default"];
+}
+
+export function consultarConvenio(convenioNome: string, companyId?: number): RuleResult {
+  const rules = loadRules(companyId);
   const convenios = rules.convenios || {};
   const normInput = normalize(convenioNome);
 
@@ -56,70 +114,83 @@ export function consultarConvenio(convenioNome: string): RuleResult {
     };
   }
 
-  // 1. Checagem direta de gatilhos prioritários de transferência humana
-  if (normInput.includes("totalpass")) {
+  // Se não for empresa clínica e não houver convênios cadastrados
+  if (!rules.isClinic && Object.keys(convenios).length === 0) {
     return {
-      encontrado: true,
-      convenioNome: "TOTALPASS",
-      aceito: false,
-      transferirHumano: true,
-      motivoTransferencia: "TotalPass possui agendamento prévio e atendimento exclusivo com a recepção humana.",
-      observacoes: "Somente agendamento prévio.",
-      elegibilidade: "Transferir para atendente",
-    };
-  }
-
-  if (normInput.includes("wellhub") || normInput.includes("gympass")) {
-    return {
-      encontrado: true,
-      convenioNome: "WELLHUB / GYMPASS",
-      aceito: false,
-      transferirHumano: true,
-      motivoTransferencia: "Wellhub / Gympass requer validação de check-in diário e agendamento direto com a recepção.",
-      observacoes: "Somente agendamento prévio.",
-      elegibilidade: "Transferir para atendente",
-    };
-  }
-
-  if (normInput.includes("classpass")) {
-    return {
-      encontrado: true,
-      convenioNome: "CLASSPASS",
-      aceito: false,
-      transferirHumano: true,
-      motivoTransferencia: "Vagas do ClassPass são geridas exclusivamente pelo aplicativo parceiro.",
-      observacoes: "Disponibilidade de vagas gerenciada exclusivamente pelo aplicativo.",
-      elegibilidade: "Transferir para atendente",
-    };
-  }
-
-  if (normInput.includes("segurosunimed") || (normInput.includes("seguros") && normInput.includes("unimed"))) {
-    return {
-      encontrado: true,
-      convenioNome: "Seguros Unimed",
+      encontrado: false,
       aceito: false,
       transferirHumano: false,
-      observacoes: "Não atendemos Seguros Unimed. Aceitamos apenas Unimed Nacional (SAW).",
-      mensagemRestricao: "Não atendemos Seguros Unimed. Aceitamos apenas Unimed Nacional (SAW).",
+      detalhes: "Esta empresa opera em modo CRM comercial e não possui regras de convênios clínicos ativas.",
     };
   }
 
-  if (normInput.includes("unimed")) {
-    const item = convenios["unimed_saw"];
-    if (item) {
+  // Regras específicas de clínicas (Espaço Physio)
+  if (rules.isClinic) {
+    // 1. Checagem direta de gatilhos prioritários de transferência humana
+    if (normInput.includes("totalpass")) {
       return {
         encontrado: true,
-        convenioNome: item.nome,
-        aceito: true,
-        transferirHumano: false,
-        autorizacao: item.autorizacao,
-        observacoes: item.observacoes,
-        procedimentosPermitidos: item.procedimentos,
+        convenioNome: "TOTALPASS",
+        aceito: false,
+        transferirHumano: true,
+        motivoTransferencia: "TotalPass possui agendamento prévio e atendimento exclusivo com a recepção humana.",
+        observacoes: "Somente agendamento prévio.",
+        elegibilidade: "Transferir para atendente",
       };
+    }
+
+    if (normInput.includes("wellhub") || normInput.includes("gympass")) {
+      return {
+        encontrado: true,
+        convenioNome: "WELLHUB / GYMPASS",
+        aceito: false,
+        transferirHumano: true,
+        motivoTransferencia: "Wellhub / Gympass requer validação de check-in diário e agendamento direto com a recepção.",
+        observacoes: "Somente agendamento prévio.",
+        elegibilidade: "Transferir para atendente",
+      };
+    }
+
+    if (normInput.includes("classpass")) {
+      return {
+        encontrado: true,
+        convenioNome: "CLASSPASS",
+        aceito: false,
+        transferirHumano: true,
+        motivoTransferencia: "Vagas do ClassPass são geridas exclusivamente pelo aplicativo parceiro.",
+        observacoes: "Disponibilidade de vagas gerenciada exclusivamente pelo aplicativo.",
+        elegibilidade: "Transferir para atendente",
+      };
+    }
+
+    if (normInput.includes("segurosunimed") || (normInput.includes("seguros") && normInput.includes("unimed"))) {
+      return {
+        encontrado: true,
+        convenioNome: "Seguros Unimed",
+        aceito: false,
+        transferirHumano: false,
+        observacoes: "Não atendemos Seguros Unimed. Aceitamos apenas Unimed Nacional (SAW).",
+        mensagemRestricao: "Não atendemos Seguros Unimed. Aceitamos apenas Unimed Nacional (SAW).",
+      };
+    }
+
+    if (normInput.includes("unimed")) {
+      const item = convenios["unimed_saw"];
+      if (item) {
+        return {
+          encontrado: true,
+          convenioNome: item.nome,
+          aceito: true,
+          transferirHumano: false,
+          autorizacao: item.autorizacao,
+          observacoes: item.observacoes,
+          procedimentosPermitidos: item.procedimentos,
+        };
+      }
     }
   }
 
-  // 2. Busca nos convênios cadastrados
+  // 2. Busca nos convênios cadastrados da empresa
   for (const key of Object.keys(convenios)) {
     const item = convenios[key];
     const normKey = normalize(key);
@@ -150,14 +221,20 @@ export function consultarConvenio(convenioNome: string): RuleResult {
     encontrado: false,
     aceito: false,
     transferirHumano: false,
-    detalhes: "Convênio não localizado na tabela oficial de credenciados.",
+    detalhes: rules.isClinic 
+      ? "Convênio não localizado na tabela oficial de credenciados."
+      : "Regra não localizada.",
   };
 }
 
-export function verificarProcedimentoUnidade(procedimento: string, unidadeChave: string): { permitido: boolean; motivo?: string } {
-  const rules = loadRules();
+export function verificarProcedimentoUnidade(procedimento: string, unidadeChave: string, companyId?: number): { permitido: boolean; motivo?: string } {
+  const rules = loadRules(companyId);
   const unidades = rules.unidades?.unidades_atendimento || {};
   const normUnit = normalize(unidadeChave);
+
+  if (!rules.isClinic && Object.keys(unidades).length === 0) {
+    return { permitido: true };
+  }
 
   let targetUnit: any = null;
   for (const k of Object.keys(unidades)) {
@@ -190,8 +267,9 @@ export function consultarRegras(params: {
   convenioNome?: string;
   procedimento?: string;
   unidade?: string;
+  companyId?: number;
 }): RuleResult {
-  const rules = loadRules();
+  const rules = loadRules(params.companyId);
   const res: RuleResult = {
     encontrado: false,
     aceito: true,
@@ -199,7 +277,7 @@ export function consultarRegras(params: {
   };
 
   if (params.convenioNome) {
-    const convRes = consultarConvenio(params.convenioNome);
+    const convRes = consultarConvenio(params.convenioNome, params.companyId);
     Object.assign(res, convRes);
     if (convRes.transferirHumano) {
       return res;
@@ -207,7 +285,7 @@ export function consultarRegras(params: {
   }
 
   if (params.unidade && params.procedimento) {
-    const unitRes = verificarProcedimentoUnidade(params.procedimento, params.unidade);
+    const unitRes = verificarProcedimentoUnidade(params.procedimento, params.unidade, params.companyId);
     if (!unitRes.permitido) {
       res.unidadePermitida = false;
       res.mensagemRestricao = unitRes.motivo;

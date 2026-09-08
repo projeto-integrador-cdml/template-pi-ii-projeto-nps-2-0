@@ -60,13 +60,20 @@ function getCookieOptions(req) {
 // ─── DB helpers ──────────────────────────────────────────────────────────────
 async function getUserByEmail(email) {
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const asciiEmail = cleanEmail.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const [rows] = await pool.query('SELECT * FROM users WHERE email = ? OR email = ? LIMIT 1', [cleanEmail, asciiEmail]);
     return rows[0] || null;
   } catch (e) {
     console.error('[DB] getUserByEmail error:', e.message);
     return null;
   }
 }
+
+const flexibleEmailSchema = z.string().min(3).refine(
+  (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+  { message: "Email inválido" }
+);
 async function getUserById(id) {
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
@@ -163,7 +170,7 @@ const authRouter = router({
 
   login: publicProcedure
     .input(z.object({
-      email: z.string().email(),
+      email: flexibleEmailSchema,
       password: z.string().min(1),
       twoFactorCode: z.string().optional(),
     }))
@@ -189,7 +196,7 @@ const authRouter = router({
   register: publicProcedure
     .input(z.object({
       name: z.string().min(1),
-      email: z.string().email(),
+      email: flexibleEmailSchema,
       password: z.string().min(6),
       phone: z.string().optional(),
     }))
@@ -234,7 +241,7 @@ const authRouter = router({
   // ── Esqueci a Senha ──
   requestPasswordReset: publicProcedure
     .input(z.object({
-      email: z.string().email(),
+      email: flexibleEmailSchema,
     }))
     .mutation(async ({ input }) => {
       const user = await getUserByEmail(input.email);
@@ -788,7 +795,33 @@ const appRouter = router({
       return { success: true, message: 'Conexão teste com Gemini OK!' };
     }),
     getAuditLogs: protectedProcedure.input(z.any()).query(async () => []),
-    getRules: protectedProcedure.query(async () => ({ unidades: {}, convenios: {} })),
+    getRules: protectedProcedure.query(async ({ ctx }) => {
+      const companyId = ctx.user?.id || (ctx.attendant ? ctx.attendant.companyId : 0);
+      const isEspacoPhysio = companyId === 54 || ctx.user?.email?.includes('physio') || ctx.user?.email?.includes('espaço');
+      if (isEspacoPhysio) {
+        try {
+          const fs = await import('fs');
+          const path = await import('path');
+          const p = path.resolve(process.cwd(), 'regras_clinica.json');
+          if (fs.existsSync(p)) {
+            const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            return { companyId: 54, isClinic: true, profileName: 'Espaço Physio (Clínica • 4 Unidades • 38 Convênios)', ...data };
+          }
+        } catch (e) {}
+      }
+      return { companyId, isClinic: false, profileName: 'CRM Padrão / Empresa', unidades: { lista_geral_procedimentos: [], unidades_atendimento: {} }, convenios: {} };
+    }),
+    saveRules: protectedProcedure.input(z.object({ rules: z.any() })).mutation(async ({ ctx, input }) => {
+      const companyId = ctx.user?.id || 0;
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const dir = path.resolve(process.cwd(), 'data', 'company_rules');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, `company_${companyId}.json`), JSON.stringify(input.rules, null, 2), 'utf-8');
+      } catch (e) {}
+      return { success: true };
+    }),
   }),
 });
 

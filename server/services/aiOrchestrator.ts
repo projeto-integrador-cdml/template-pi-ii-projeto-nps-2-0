@@ -1,5 +1,5 @@
 import * as db from "../db";
-import { consultarRegras } from "./rulesEngine";
+import { consultarRegras, loadRules } from "./rulesEngine";
 import { processarCarteirinha } from "./visionPipeline";
 import { logAIOperation } from "./aiLogger";
 
@@ -79,6 +79,10 @@ async function alocarAtendenteHumano(companyId: number, clientId: number): Promi
 export async function processIncomingMessage(input: OrchestratorInput): Promise<OrchestratorOutput> {
   const { companyId, clientPhone, clientName, userMessage, mediaUrl } = input;
 
+  // Carrega regras específicas desta empresa
+  const companyRules = loadRules(companyId);
+  const isClinic = !!companyRules.isClinic;
+
   // 1. Busca cliente no CRM
   const allClients = await db.listAllClients();
   let client = allClients.find(c => c.userId === companyId && c.phone === clientPhone);
@@ -149,7 +153,7 @@ export async function processIncomingMessage(input: OrchestratorInput): Promise<
     };
   }
 
-  // 4. Se houver mídia de imagem (Carteirinha de convênio), processa com visão e filtro de negativos
+  // 4. Se houver mídia de imagem (Carteirinha de convênio ou documento), processa com visão e filtro de negativos
   if (mediaUrl && (mediaUrl.match(/\.(jpg|jpeg|png|webp)/i) || userMessage.toLowerCase().includes("[imagem]"))) {
     try {
       const cardResult = await processarCarteirinha({
@@ -176,15 +180,20 @@ export async function processIncomingMessage(input: OrchestratorInput): Promise<
         };
       }
 
-      // Carteirinha válida
+      // Carteirinha / Documento válido
       const dados = cardResult.dadosExtraidos;
-      const replyText = `Carteirinha recebida e validada com sucesso!
+      const replyText = isClinic
+        ? `Carteirinha recebida e validada com sucesso!
 Beneficiário: ${dados.nome_paciente || clientName}
 Convênio: ${dados.operadora || "Identificado"}
 Plano/Categoria: ${dados.categoria || dados.plano || "Padrão"}
 Número: ${dados.numero_carteirinha || "OK"}
 
-Para qual procedimento e em qual unidade (Asa Norte, Asa Sul, Noroeste ou Lago Sul) você gostaria de agendar?`;
+Para qual procedimento e em qual unidade (Asa Norte, Asa Sul, Noroeste ou Lago Sul) você gostaria de agendar?`
+        : `Documento recebido e validado com sucesso!
+Beneficiário/Titular: ${dados.nome_paciente || clientName}
+Identificação: ${dados.operadora || "Identificado"}
+Como podemos te auxiliar hoje?`;
 
       logAIOperation({
         companyId,
@@ -204,7 +213,7 @@ Para qual procedimento e em qual unidade (Asa Norte, Asa Sul, Noroeste ou Lago S
     } catch (err: any) {
       console.warn("[Orchestrator] Falha no OCR da carteirinha, acionando fail-safe humano:", err.message);
       const attendant = await alocarAtendenteHumano(companyId, clientId);
-      const replyText = "Recebi sua imagem, mas não consegui ler os dados da carteirinha com nitidez. Já transferi sua conversa para nossa recepção humana verificar.";
+      const replyText = "Recebi sua imagem, mas não consegui ler os dados com nitidez. Já transferi sua conversa para nossa recepção humana verificar.";
       
       logAIOperation({
         companyId,
@@ -238,21 +247,27 @@ Para qual procedimento e em qual unidade (Asa Norte, Asa Sul, Noroeste ou Lago S
         function_declarations: [
           {
             name: "consultar_regras",
-            description: "Consulta a cobertura, autorização, restrições e regras de convênios médicos e unidades de atendimento da clínica.",
+            description: isClinic
+              ? "Consulta a cobertura, autorização, restrições e regras de convênios médicos e unidades de atendimento da clínica Espaço Physio."
+              : "Consulta regras comerciais, políticas de atendimento e parcerias cadastradas para a empresa.",
             parameters: {
               type: "OBJECT",
               properties: {
                 convenioNome: {
                   type: "STRING",
-                  description: "Nome do convênio médico (ex: Bradesco, CASSI, CBM, Unimed, TotalPass, etc.)",
+                  description: isClinic
+                    ? "Nome do convênio médico (ex: Bradesco, CASSI, CBM, Unimed, TotalPass, etc.)"
+                    : "Nome do parceiro, plano ou regra a consultar",
                 },
                 procedimento: {
                   type: "STRING",
-                  description: "Nome do procedimento solicitado (ex: Fisioterapia, Pilates, RPG, Acupuntura, ATM/DTM, etc.)",
+                  description: "Nome do procedimento ou serviço solicitado",
                 },
                 unidade: {
                   type: "STRING",
-                  description: "Unidade desejada (Asa Norte, Asa Sul, Noroeste, Lago Sul)",
+                  description: isClinic
+                    ? "Unidade desejada (Asa Norte, Asa Sul, Noroeste, Lago Sul)"
+                    : "Unidade ou filial da empresa",
                 },
               },
               required: ["convenioNome"],
@@ -260,13 +275,13 @@ Para qual procedimento e em qual unidade (Asa Norte, Asa Sul, Noroeste ou Lago S
           },
           {
             name: "buscar_cadastro",
-            description: "Consulta se o paciente já tem cadastro ativo e dados básicos no CRM.",
+            description: "Consulta se o cliente já tem cadastro ativo e dados básicos no CRM.",
             parameters: {
               type: "OBJECT",
               properties: {
                 telefone: {
                   type: "STRING",
-                  description: "Telefone do paciente",
+                  description: "Telefone do cliente",
                 },
               },
               required: ["telefone"],
@@ -276,11 +291,7 @@ Para qual procedimento e em qual unidade (Asa Norte, Asa Sul, Noroeste ou Lago S
       },
     ];
 
-    const systemInstruction = {
-      role: "system",
-      parts: [
-        {
-          text: `Você é a assistente virtual oficial da clínica de fisioterapia e reabilitação integrada.
+    const clinicSystemPrompt = `Você é a assistente virtual oficial da clínica de fisioterapia e reabilitação integrada (Espaço Physio).
 Regras fundamentais e inegociáveis:
 1. LGPD: Você é regida estritamente pelas leis de proteção de dados. Nunca exponha dados de outros pacientes e não peça senhas.
 2. CONVÊNIOS E REGRAS: Sempre que o cliente citar um convênio, plano de saúde, procedimento ou unidade, você DEVE chamar a ferramenta 'consultar_regras' para obter as regras oficiais antes de confirmar qualquer informação.
@@ -288,7 +299,21 @@ Regras fundamentais e inegociáveis:
 4. CBM e FUSEX: Se o convênio for CBM ou FUSEX, lembre-se de que não possuem carteirinha física. O CBM exige apenas documento oficial com foto e o FUSEX exige a guia autorizada.
 5. UNIMED: Nós só atendemos Unimed Nacional (SAW). Não atendemos Seguros Unimed.
 6. CASSI / MEDSÊNIOR: A categoria 'Essencial' NÃO é atendida.
-7. Seja empática, clara, acolhedora e prestativa. Sempre pergunte para qual unidade (Asa Norte, Asa Sul, Noroeste ou Lago Sul) o paciente prefere agendar.`,
+7. Seja empática, clara, acolhedora e prestativa. Sempre pergunte para qual unidade (Asa Norte, Asa Sul, Noroeste ou Lago Sul) o paciente prefere agendar.`;
+
+    const genericSystemPrompt = `Você é o assistente virtual de atendimento e vendas integrado ao CRM da empresa.
+Regras fundamentais:
+1. LGPD: Você é regido estritamente pelas leis de proteção de dados. Nunca exponha dados de outros clientes e não solicite senhas ou dados sigilosos.
+2. ATENDIMENTO E VENDAS: Seja educado, acolhedor, rápido e objetivo. Esclareça dúvidas sobre os serviços, produtos e agendamentos.
+3. REGRAS DA EMPRESA: Se o cliente perguntar sobre regras específicas, consulte a ferramenta 'consultar_regras'.
+4. SOLICITAÇÃO HUMANA: Se o cliente solicitar falar com um atendente humano ou se houver dúvida complexa, informe educadamente que você está repassando o atendimento para a equipe humana.
+5. Sempre responda em português brasileiro com excelência no atendimento.`;
+
+    const systemInstruction = {
+      role: "system",
+      parts: [
+        {
+          text: isClinic ? clinicSystemPrompt : genericSystemPrompt,
         },
       ],
     };
@@ -349,6 +374,7 @@ Regras fundamentais e inegociáveis:
           convenioNome: call.args?.convenioNome,
           procedimento: call.args?.procedimento,
           unidade: call.args?.unidade,
+          companyId,
         });
 
         // Gatilho de Handoff Imediato

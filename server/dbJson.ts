@@ -157,7 +157,13 @@ export async function getUserById(id: number): Promise<User | undefined> {
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
   const db = readJsonDb();
-  return db.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+  const cleanEmail = email.trim().toLowerCase();
+  const asciiEmail = cleanEmail.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return db.users.find(u => {
+    const uEmail = (u.email || "").toLowerCase();
+    const uAscii = uEmail.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return uEmail === cleanEmail || uAscii === asciiEmail || uEmail === asciiEmail || uAscii === cleanEmail;
+  });
 }
 
 export async function listUsers(): Promise<User[]> {

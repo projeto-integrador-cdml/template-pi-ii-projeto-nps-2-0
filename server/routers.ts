@@ -40,6 +40,11 @@ function getCreatorId(ctx: any): number {
   return 0;
 }
 
+const flexibleEmailSchema = z.string().min(3).refine(
+  (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+  { message: "Email inválido" }
+);
+
 export const appRouter = router({
   system: systemRouter,
 
@@ -74,7 +79,7 @@ export const appRouter = router({
     register: publicProcedure
       .input(z.object({
         name: z.string().min(1),
-        email: z.string().email(),
+        email: flexibleEmailSchema,
         password: z.string().min(6),
         phone: z.string().optional(),
       }))
@@ -128,7 +133,7 @@ export const appRouter = router({
       }),
     login: publicProcedure
       .input(z.object({
-        email: z.string().email(),
+        email: flexibleEmailSchema,
         password: z.string().min(1),
         twoFactorCode: z.string().optional(),
       }))
@@ -241,7 +246,7 @@ export const appRouter = router({
     // ── Esqueci a Senha endpoints ──
     requestPasswordReset: publicProcedure
       .input(z.object({
-        email: z.string().email(),
+        email: flexibleEmailSchema,
       }))
       .mutation(async ({ input }) => {
         const user = await db.getUserByEmail(input.email);
@@ -257,7 +262,7 @@ export const appRouter = router({
       }),
     resetPassword: publicProcedure
       .input(z.object({
-        email: z.string().email(),
+        email: flexibleEmailSchema,
         code: z.string().length(6),
         newPassword: z.string().min(6),
       }))
@@ -293,7 +298,7 @@ export const appRouter = router({
     createUser: adminProcedure
       .input(z.object({
         name: z.string().min(1),
-        email: z.string().email(),
+        email: flexibleEmailSchema,
         password: z.string().min(6),
         companyName: z.string().min(1),
         maxAttendants: z.number().int().min(1).default(5),
@@ -349,7 +354,7 @@ export const appRouter = router({
     // Login de atendente (email + senha) com sessão única
     login: publicProcedure
       .input(z.object({
-        email: z.string().email(),
+        email: flexibleEmailSchema,
         password: z.string().min(1),
         ip: z.string().optional(),
         userAgent: z.string().optional(),
@@ -449,7 +454,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
-        email: z.string().email(),
+        email: flexibleEmailSchema,
         password: z.string().min(6),
         phone: z.string().optional(),
         position: z.string().optional(),
@@ -492,7 +497,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         name: z.string().min(1).optional(),
-        email: z.string().email().optional(),
+        email: flexibleEmailSchema.optional(),
         password: z.string().min(6).optional(),
         phone: z.string().optional(),
         position: z.string().optional(),
@@ -600,7 +605,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
-        email: z.string().email().optional().or(z.literal("")),
+        email: flexibleEmailSchema.optional().or(z.literal("")),
         phone: z.string().optional(),
         company: z.string().optional(),
         position: z.string().optional(),
@@ -623,7 +628,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         name: z.string().min(1).optional(),
-        email: z.string().email().optional().or(z.literal("")),
+        email: flexibleEmailSchema.optional().or(z.literal("")),
         phone: z.string().optional(),
         company: z.string().optional(),
         position: z.string().optional(),
@@ -1120,9 +1125,24 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         return getAuditLogs(companyId, limit);
       }),
 
-    getRules: protectedProcedure.query(async () => {
-      return loadRules();
+    getRules: protectedProcedure.query(async ({ ctx }) => {
+      const companyId = getCreatorId(ctx);
+      return loadRules(companyId);
     }),
+
+    saveRules: protectedProcedure
+      .input(z.object({
+        rules: z.any(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.attendant) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem salvar regras" });
+        }
+        const companyId = getCreatorId(ctx);
+        const { saveCompanyRules } = await import("./services/rulesEngine");
+        await saveCompanyRules(companyId, input.rules);
+        return { success: true };
+      }),
   }),
 
   // ─── Mídias: Áudios, Imagens, Documentos, Textos ───

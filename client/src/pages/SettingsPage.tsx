@@ -622,19 +622,42 @@ export default function SettingsPage() {
               </select>
             </div>
 
-            {/* Painel de Regras Homologadas */}
-            <div className="p-3 bg-muted/20 border border-border/40 rounded-xl space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-bold text-foreground">
-                <span>Motor de Regras Clínicas Locais</span>
-                <span className="text-primary font-mono text-[10px]">regras_clinica.json</span>
+            {/* Painel de Regras Homologadas (Isolado por Empresa) */}
+            {clinicRules?.isClinic ? (
+              <div className="p-3 bg-primary/5 border border-primary/30 rounded-xl space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-bold text-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px] py-0">
+                      {clinicRules.profileName || "Espaço Physio (Clínica • 4 Unidades • 38 Convênios)"}
+                    </Badge>
+                  </span>
+                  <span className="text-primary font-mono text-[10px]">regras_clinica.json</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  ✅ <strong>4 Unidades:</strong> Asa Norte, Asa Sul, Noroeste, Lago Sul com matriz de restrições.<br />
+                  ✅ <strong>38 Convênios</strong> homologados com regras de elegibilidade.<br />
+                  🛑 <strong>Transbordo Imediato:</strong> TotalPass, Wellhub e ClassPass.<br />
+                  🛡️ <strong>Fail-Safe:</strong> Falhas ou limites transferem na hora para atendente humano.
+                </p>
               </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                ✅ <strong>4 Unidades:</strong> Asa Norte, Asa Sul, Noroeste, Lago Sul com matriz de restrições.<br />
-                ✅ <strong>38 Convênios</strong> homologados com regras de elegibilidade.<br />
-                🛑 <strong>Transbordo Imediato:</strong> TotalPass, Wellhub e ClassPass.<br />
-                🛡️ <strong>Fail-Safe:</strong> Falhas ou limites transferem na hora para atendente humano.
-              </p>
-            </div>
+            ) : (
+              <div className="p-3 bg-muted/20 border border-border/40 rounded-xl space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-bold text-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px] py-0">
+                      {clinicRules?.profileName || "CRM Empresarial (Personalizado)"}
+                    </Badge>
+                  </span>
+                  <span className="text-muted-foreground font-mono text-[10px]">regras isoladas</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  💼 <strong>Perfil Comercial:</strong> Atendimento personalizado sem restrições clínicas.<br />
+                  ⚡ <strong>IA Ágil:</strong> Foco em qualificação de leads, catálogo e conversão de vendas.<br />
+                  👥 <strong>Roteamento:</strong> Transferência direta para atendentes disponíveis da empresa.<br />
+                  🛡️ <strong>Fail-Safe:</strong> Falhas acionam imediatamente a equipe humana.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Test Feedback */}

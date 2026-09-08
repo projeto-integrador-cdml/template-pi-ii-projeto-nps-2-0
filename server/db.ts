@@ -154,7 +154,14 @@ export async function getUserByEmail(email: string) {
   const db = await getDb();
   if (useJsonDb) return jsonDb.getUserByEmail(email);
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const cleanEmail = email.trim().toLowerCase();
+  const asciiEmail = cleanEmail.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const result = await db.select().from(users).where(
+    or(
+      eq(users.email, cleanEmail),
+      eq(users.email, asciiEmail)
+    )
+  ).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -1090,6 +1097,29 @@ export async function seedTestUser() {
     } else {
       console.log(`[Seed] Test user ${email} already exists in JSON DB.`);
     }
+
+    const physioEmail = "espaçophysio@gmail.com";
+    const existingPhysio = await jsonDb.getUserByEmail(physioEmail);
+    if (!existingPhysio) {
+      const hashedPassword = await bcrypt.hash("Testevip123@", 10);
+      const openId = `local-${nanoid()}`;
+      await jsonDb.upsertUser({
+        openId,
+        name: "Espaço Physio",
+        email: physioEmail,
+        password: hashedPassword,
+        role: "admin",
+        isActive: true,
+        companyName: "Espaço Physio",
+        maxAttendants: 10,
+      });
+      const created = await jsonDb.getUserByEmail(physioEmail);
+      if (created) {
+        await upsertSetting(created.id, "company_type", "clinic");
+        await upsertSetting(created.id, "company_rules_profile", "regras_clinica_fisioterapia");
+      }
+      console.log(`[Seed] ✅ Espaço Physio criado com sucesso no JSON DB!`);
+    }
     return;
   }
 
@@ -1111,6 +1141,30 @@ export async function seedTestUser() {
     console.log(`[Seed] Test user ${email} created successfully in MySQL!`);
   } else {
     console.log(`[Seed] Test user ${email} already exists in MySQL.`);
+  }
+
+  const physioEmail = "espaçophysio@gmail.com";
+  const existingPhysio = await getUserByEmail(physioEmail);
+  if (!existingPhysio) {
+    console.log(`[Seed] Espaço Physio (${physioEmail}) não encontrado no MySQL. Criando...`);
+    const hashedPassword = await bcrypt.hash("Testevip123@", 10);
+    const openId = `local-${nanoid()}`;
+    await upsertUser({
+      openId,
+      name: "Espaço Physio",
+      email: physioEmail,
+      password: hashedPassword,
+      role: "admin",
+      isActive: true,
+      companyName: "Espaço Physio",
+      maxAttendants: 10,
+    });
+    const created = await getUserByEmail(physioEmail);
+    if (created) {
+      await upsertSetting(created.id, "company_type", "clinic");
+      await upsertSetting(created.id, "company_rules_profile", "regras_clinica_fisioterapia");
+    }
+    console.log(`[Seed] ✅ Espaço Physio criado com sucesso no MySQL!`);
   }
 }
 

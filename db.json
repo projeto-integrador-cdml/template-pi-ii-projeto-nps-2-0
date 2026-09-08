@@ -86,6 +86,31 @@
       "createdAt": "2026-08-05T10:45:59.729Z",
       "updatedAt": "2026-08-05T10:45:59.729Z",
       "lastSignedIn": "2026-08-05T10:45:59.729Z"
+    },
+    {
+      "id": 5,
+      "openId": "local-EzyGLuPYkDiRSOnq52Q4Z",
+      "name": "Espaço Physio",
+      "email": "espaçophysio@gmail.com",
+      "password": "$2b$10$eWQ.l/hz9VIss01STNEDweE1By72duYZ0Kyyyrkda1YoZihVIM.gG",
+      "loginMethod": null,
+      "role": "admin",
+      "isActive": true,
+      "phone": null,
+      "avatarUrl": null,
+      "preferences": null,
+      "companyName": "Espaço Physio",
+      "maxAttendants": 10,
+      "whatsappStatus": "disconnected",
+      "whatsappNumber": null,
+      "whatsappApiUrl": null,
+      "whatsappApiKey": null,
+      "whatsappQrCode": null,
+      "twoFactorSecret": null,
+      "twoFactorEnabled": false,
+      "createdAt": "2026-09-08T23:30:02.957Z",
+      "updatedAt": "2026-09-08T23:30:02.957Z",
+      "lastSignedIn": "2026-09-08T23:30:02.957Z"
     }
   ],
   "clients": [
@@ -602,6 +627,22 @@
       "settingValue": "round_robin",
       "createdAt": "2026-07-07T12:19:15.236Z",
       "updatedAt": "2026-07-29T11:48:24.455Z"
+    },
+    {
+      "id": 4,
+      "userId": 5,
+      "settingKey": "company_type",
+      "settingValue": "clinic",
+      "createdAt": "2026-09-08T23:30:02.970Z",
+      "updatedAt": "2026-09-08T23:30:02.970Z"
+    },
+    {
+      "id": 5,
+      "userId": 5,
+      "settingKey": "company_rules_profile",
+      "settingValue": "regras_clinica_fisioterapia",
+      "createdAt": "2026-09-08T23:30:02.973Z",
+      "updatedAt": "2026-09-08T23:30:02.973Z"
     }
   ]
 }
