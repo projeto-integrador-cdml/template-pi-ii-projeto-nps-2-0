@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
   Settings, Bell, Database, CheckCircle, Loader2, Save, Link, Plus, Trash2, 
-  Sparkles, Zap, ShieldCheck, ShieldAlert, KeyRound, QrCode, Lock,
-  Bot, Eye, EyeOff, Cpu, FileText, CheckCircle2, AlertCircle, ExternalLink
+  Sparkles, Zap, Shield, ShieldCheck, ShieldAlert, KeyRound, QrCode, Lock,
+  Bot, Eye, EyeOff, Cpu, FileText, CheckCircle2, AlertCircle, ExternalLink, Users
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 export default function SettingsPage() {
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const { data: currentUser, refetch: refetchUser } = trpc.auth.me.useQuery();
 
@@ -241,6 +243,49 @@ export default function SettingsPage() {
           <p className="text-muted-foreground mt-1">Gerencie as configurações do CRM</p>
         </div>
       </div>
+
+      {/* ACCOUNT & ROLE CARD */}
+      <Card className="glass-card border border-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Papel e Permissões da Conta</CardTitle>
+            </div>
+            <Badge variant={currentUser?.role === "admin" ? "default" : "secondary"} className="text-xs font-semibold">
+              {currentUser?.role === "admin" ? "Super Admin" : "Empresa"}
+            </Badge>
+          </div>
+          <CardDescription>
+            {currentUser?.role === "admin"
+              ? "Sua conta é Super Administrador, com controle total sobre todas as empresas, atendentes e usuários da plataforma."
+              : "Sua conta está configurada como Empresa, com ambiente isolado para sua organização, equipe e clientes."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/40 gap-3">
+            <div>
+              <p className="text-xs font-semibold text-foreground">Gestão de Empresas e Papéis</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {currentUser?.role === "admin"
+                  ? "Você pode alterar o papel de qualquer empresa entre 'Super Admin' e 'Empresa' no painel de Usuários."
+                  : "O papel da sua empresa é gerenciado pelos Super Administradores da plataforma."}
+              </p>
+            </div>
+            {currentUser?.role === "admin" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation("/admin/users")}
+                className="text-xs h-8 gap-1.5 shrink-0"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Painel de Usuários
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* WHATSAPP MESSAGE TEMPLATES CARD */}
       <Card className="glass-card border border-border">

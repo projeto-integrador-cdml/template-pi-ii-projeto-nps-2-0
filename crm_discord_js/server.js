@@ -728,12 +728,39 @@ const countersRouter = router({
 
 const adminRouter = router({
   listUsers: adminProcedure.query(async () => {
-    const [rows] = await pool.query('SELECT id, name, email, role, isActive, companyName, createdAt FROM users');
+    const [rows] = await pool.query('SELECT id, name, email, role, isActive, companyName, maxAttendants, lastSignedIn, createdAt FROM users ORDER BY id DESC');
     return rows;
   }),
-  toggleUserActive: adminProcedure.input(z.any()).mutation(() => ({ success: true })),
-  updateUserRole: adminProcedure.input(z.any()).mutation(() => ({ success: true })),
-  createUser: adminProcedure.input(z.any()).mutation(() => ({ success: true })),
+  toggleUserActive: adminProcedure
+    .input(z.object({ userId: z.number(), isActive: z.boolean() }))
+    .mutation(async ({ input }) => {
+      await pool.query('UPDATE users SET isActive = ? WHERE id = ?', [input.isActive ? 1 : 0, input.userId]);
+      return { success: true };
+    }),
+  updateUserRole: adminProcedure
+    .input(z.object({ userId: z.number(), role: z.enum(['user', 'admin']) }))
+    .mutation(async ({ input }) => {
+      await pool.query('UPDATE users SET role = ?, updatedAt = NOW() WHERE id = ?', [input.role, input.userId]);
+      return { success: true };
+    }),
+  updateUserCota: adminProcedure
+    .input(z.object({ userId: z.number(), companyName: z.string(), maxAttendants: z.number() }))
+    .mutation(async ({ input }) => {
+      await pool.query('UPDATE users SET companyName = ?, maxAttendants = ?, updatedAt = NOW() WHERE id = ?', [input.companyName, input.maxAttendants, input.userId]);
+      await pool.query('UPDATE clients SET company = ?, updatedAt = NOW() WHERE userId = ?', [input.companyName, input.userId]);
+      return { success: true };
+    }),
+  createUser: adminProcedure
+    .input(z.any())
+    .mutation(async ({ input }) => {
+      const hashed = await bcrypt.hash(input.password, 10);
+      const openId = `local-${Date.now()}`;
+      await pool.query(
+        'INSERT INTO users (openId, name, email, password, role, isActive, companyName, maxAttendants, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,NOW(),NOW())',
+        [openId, input.name, input.email, hashed, 'user', 1, input.companyName, input.maxAttendants || 5]
+      );
+      return { success: true };
+    }),
 });
 
 const appRouter = router({

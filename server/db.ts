@@ -183,7 +183,7 @@ export async function updateUserRole(id: number, role: "user" | "admin") {
   const db = await getDb();
   if (useJsonDb) return jsonDb.updateUserRole(id, role);
   if (!db) return;
-  await db.update(users).set({ role }).where(eq(users.id, id));
+  await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, id));
 }
 
 export async function updateUserCota(id: number, companyName: string, maxAttendants: number) {

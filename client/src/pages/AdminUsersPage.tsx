@@ -44,6 +44,7 @@ export default function AdminUsersPage() {
   // Form states for Edit User
   const [editCompanyName, setEditCompanyName] = useState("");
   const [editMaxAttendants, setEditMaxAttendants] = useState(5);
+  const [editRole, setEditRole] = useState<"user" | "admin">("user");
 
   const toggleActive = trpc.admin.toggleUserActive.useMutation({
     onSuccess: () => { utils.admin.listUsers.invalidate(); toast.success("Status atualizado!"); },
@@ -51,8 +52,12 @@ export default function AdminUsersPage() {
   });
 
   const updateRole = trpc.admin.updateUserRole.useMutation({
-    onSuccess: () => { utils.admin.listUsers.invalidate(); toast.success("Papel atualizado!"); },
-    onError: () => toast.error("Erro ao atualizar papel"),
+    onSuccess: () => {
+      utils.admin.listUsers.invalidate();
+      utils.auth.me.invalidate();
+      toast.success("Papel atualizado com sucesso!");
+    },
+    onError: (err) => toast.error(err.message || "Erro ao atualizar papel"),
   });
 
   const createUserMutation = trpc.admin.createUser.useMutation({
@@ -110,22 +115,39 @@ export default function AdminUsersPage() {
 
   const openEdit = (user: any) => {
     setEditingUser(user);
-    setEditCompanyName(user.companyName || "");
+    setEditCompanyName(user.companyName || user.name || "");
     setEditMaxAttendants(user.maxAttendants || 5);
+    setEditRole(user.role || "user");
     setEditOpen(true);
   };
 
-  const handleUpdateCota = (e: React.FormEvent) => {
+  const handleUpdateCota = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editCompanyName.trim()) {
       toast.error("O nome da empresa é obrigatório.");
       return;
     }
-    updateCotaMutation.mutate({
-      userId: editingUser.id,
-      companyName: editCompanyName,
-      maxAttendants: editMaxAttendants,
-    });
+    try {
+      if (editRole !== editingUser.role) {
+        if (editingUser.id === currentUser?.id && editRole === "user") {
+          const confirmed = window.confirm(
+            "Atenção: Você está alterando sua própria conta para 'Empresa'. Você perderá acesso a este painel administrativo de Super Admin. Deseja continuar?"
+          );
+          if (!confirmed) return;
+        }
+        await updateRole.mutateAsync({
+          userId: editingUser.id,
+          role: editRole,
+        });
+      }
+      await updateCotaMutation.mutateAsync({
+        userId: editingUser.id,
+        companyName: editCompanyName,
+        maxAttendants: editMaxAttendants,
+      });
+    } catch (err: any) {
+      console.error("[Update Error]:", err);
+    }
   };
 
   return (
@@ -178,24 +200,30 @@ export default function AdminUsersPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3.5 shrink-0">
-                    {u.role === "user" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEdit(u)}
-                        className="h-8 px-2.5 text-xs gap-1"
-                        title="Editar limites da empresa"
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                        Limites
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEdit(u)}
+                      className="h-8 px-2.5 text-xs gap-1"
+                      title="Editar limites e papel da empresa"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                      Editar
+                    </Button>
                     <Select
                       value={u.role}
-                      onValueChange={(v) => updateRole.mutate({ userId: u.id, role: v as "user" | "admin" })}
-                      disabled={u.id === currentUser?.id}
+                      onValueChange={(v) => {
+                        const newRole = v as "user" | "admin";
+                        if (u.id === currentUser?.id && newRole === "user") {
+                          if (window.confirm("Atenção: Você está alterando sua própria conta para 'Empresa'. Você perderá acesso a este painel de Super Admin. Deseja continuar?")) {
+                            updateRole.mutate({ userId: u.id, role: newRole });
+                          }
+                        } else {
+                          updateRole.mutate({ userId: u.id, role: newRole });
+                        }
+                      }}
                     >
-                      <SelectTrigger className="w-[115px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-[125px] h-8 text-xs font-medium"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Super Admin</SelectItem>
                         <SelectItem value="user">Empresa</SelectItem>
@@ -332,7 +360,22 @@ export default function AdminUsersPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-cota" className="text-xs">Cota Máxima de Atendentes</Label>
+                <Label htmlFor="edit-role" className="text-xs font-semibold">Papel da Conta no CRM *</Label>
+                <Select
+                  value={editRole}
+                  onValueChange={(v) => setEditRole(v as "user" | "admin")}
+                >
+                  <SelectTrigger id="edit-role" className="h-9 text-xs font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Super Admin (Acesso completo e gestão de usuários)</SelectItem>
+                    <SelectItem value="user">Empresa (Acesso restrito à própria organização)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-cota" className="text-xs font-semibold">Cota Máxima de Atendentes</Label>
                 <Input
                   id="edit-cota"
                   type="number"
