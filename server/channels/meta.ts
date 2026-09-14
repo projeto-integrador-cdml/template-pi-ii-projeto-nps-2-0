@@ -32,7 +32,7 @@ export const scopes = (type: "instagram" | "facebook") => [
   "pages_manage_metadata",
   ...(type === "facebook"
     ? ["pages_messaging"]
-    : ["instagram_business_basic", "instagram_business_manage_messages"]),
+    : ["instagram_basic", "instagram_manage_messages"]),
 ];
 
 // Never propagate Axios errors: they contain the Authorization header and URLs.
