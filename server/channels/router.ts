@@ -118,14 +118,20 @@ export const channelsRouter = router({
       const url = new URL(
         `https://www.facebook.com/${meta.graphVersion()}/dialog/oauth`
       );
-      url.search = new URLSearchParams({
+      const params: Record<string, string> = {
         client_id: process.env.META_APP_ID!,
         redirect_uri: meta.callbackUrl(),
         state,
         response_type: "code",
-        scope: meta.scopes(input.type).join(","),
-        auth_type: "rerequest",
-      }).toString();
+      };
+      const configId = process.env.META_CONFIG_ID;
+      if (configId) {
+        params.config_id = configId;
+      } else {
+        params.scope = meta.scopes(input.type).join(",");
+        params.auth_type = "rerequest";
+      }
+      url.search = new URLSearchParams(params).toString();
       return { url: url.toString() };
     }),
   socialChoices: ownerProcedure

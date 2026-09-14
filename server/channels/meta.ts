@@ -129,7 +129,7 @@ export async function socialCandidates(
     if (scope === "instagram_business_manage_messages" && granted.has("instagram_manage_messages")) return true;
     return false;
   };
-  if (scopes(type).some(scope => !isGranted(scope))) {
+  if (!process.env.META_CONFIG_ID && scopes(type).some(scope => !isGranted(scope))) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message:
