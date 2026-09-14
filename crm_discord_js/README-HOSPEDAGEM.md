@@ -26,9 +26,21 @@ Na pasta do bot, `npm run check:deploy` verifica as variáveis e o certificado s
 3. Instale as dependências com `npm install`. Preserve o mesmo `DATABASE_URL` e `JWT_SECRET` já usados pelo CRM. `MYSQL_*` continua sendo aceito quando `DATABASE_URL` estiver ausente.
 4. Acrescente ao `.env` os campos novos de `.env.example`: `PUBLIC_APP_URL`, `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` e `CHANNEL_ENCRYPTION_KEY`. Gere duas chaves aleatórias diferentes para os últimos dois campos. Não coloque os segredos no Git ou nas variáveis `VITE_*`.
 5. Execute `npm run channels:migrate` no console da hospedagem antes de iniciar a versão nova. A migração é repetível, preserva históricos e registra a alteração no controle do Drizzle. Ela pressupõe o banco existente do CRM; para uma instalação vazia, aplique primeiro as migrações completas na raiz.
-6. Inicie `npm start`. A API deve informar `Backend principal com canais reais ativo na porta 26653 (HTTPS)`. As contas precisam entrar novamente no site, porque o formato antigo de sessão era diferente.
+6. Inicie `npm start`. O bot testa o MySQL com `SELECT 1` antes de abrir a API: deve aparecer `[Database] Connected successfully to MySQL (Aiven Cloud)!`, seguido da confirmação do heartbeat a cada três horas e de `Backend principal com canais reais ativo na porta 26653 (HTTPS)`. Se o MySQL falhar, a inicialização é interrompida para não usar um banco JSON diferente. As contas precisam entrar novamente no site, porque o formato antigo de sessão era diferente.
 
 Os segredos do aplicativo Meta não são o token do bot Discord. O bot pode hospedar a API sem habilitar comandos de dados no Discord. `!clientes`, `!stats` e `!addcliente` só ficam disponíveis aos IDs de usuários em `DISCORD_ALLOWED_USER_IDS`, para a empresa em `DISCORD_COMPANY_ID`, por mensagem privada.
+
+## Migrar pelo painel, sem terminal
+
+Se o console da Blaze não aceita comandos de terminal, use o arquivo `setup.js` como ponto de entrada:
+
+1. Pare o servidor e extraia o pacote atualizado em `/home/container`, preservando o `.env` e seus arquivos.
+2. No painel da **Aiven**, abra seu serviço MySQL e baixe o **CA certificate** em **Overview / Connection information**. Envie esse arquivo como `/home/container/certs/aiven-ca.pem`. Ele valida o banco; mantenha também `cert.pem` e `key.pem`, usados no HTTPS da API.
+3. Na aba de inicialização da **Blaze**, altere **MAIN_FILE** de `bot.js` para `setup.js` e inicie pelo botão do painel. Se o painel permitir editar somente o comando completo, use `node /home/container/setup.js`.
+4. Aguarde `Migração de canais concluída` e depois `[Setup] Banco atualizado. Iniciando o bot e a API...`. O mesmo processo inicia o bot automaticamente após a migração.
+5. Após o sucesso, pode voltar `MAIN_FILE` para `bot.js` nos próximos reinícios. Se mantiver `setup.js`, a migração repete as verificações; não apaga dados. Uma falha interrompe o início do bot e aparece no console.
+
+O certificado CA da Aiven não vem no ZIP: ele pertence ao seu projeto Aiven e deve ser baixado pelo painel. Para outro local do arquivo, configure `DATABASE_SSL_CA_PATH` no `.env`. Como alternativa, `DATABASE_SSL_CA_PEM` aceita o PEM completo. A validação de certificado da migração permanece habilitada por padrão.
 
 ## Erro de arquivo ausente ao iniciar
 
@@ -56,6 +68,14 @@ https://template-pi-ii-projeto-nps-2-0.vercel.app/api/health
 ```
 
 O retorno deve conter `backend: "crm-main"` e `channels: true`.
+
+### Site com erro 502 e backend iniciado
+
+Se `/api/health` funciona diretamente na Blaze, mas retorna 502 pelo domínio do site, confira o encaminhamento na Vercel. Esse endpoint não consulta o banco: o erro nessa etapa é de comunicação com o backend.
+
+No projeto da Vercel, em **Settings → Environment Variables**, defina `CRM_BACKEND_URL=https://sd-us1.blazebr.com:26653` e `CRM_BACKEND_CA_PEM` com o conteúdo inteiro de `certs/cert.pem`, incluindo `-----BEGIN CERTIFICATE-----`, `-----END CERTIFICATE-----` e as quebras de linha. Selecione o ambiente **Production**, salve e faça um **Redeploy**; salvar as variáveis não atualiza um deploy existente. O certificado precisa ser o mesmo enviado à Blaze, e a URL deve usar o domínio do certificado, não o IP.
+
+Teste novamente o `/api/health` do site. No proxy atualizado, `BACKEND_TLS_ERROR` identifica falha na verificação do certificado; `BACKEND_CONNECTION_ERROR` indica outro erro de conexão, como DNS, porta ou timeout. Os logs da função `api/proxy` informam também se `CRM_BACKEND_CA_PEM` foi configurado, sem mostrar seu conteúdo. O erro `Unable to transform response from server` no navegador é consequência de receber o erro 502 no lugar da resposta tRPC.
 
 ## Meta
 

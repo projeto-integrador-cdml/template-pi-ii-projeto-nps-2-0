@@ -2,21 +2,39 @@ import mysql from "mysql2/promise";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 
-// Deliberately separate from startup: run once before deploying the new server.
+// Run explicitly via migrate.js or the opt-in setup.js hosting entry point.
 // Additive and repeatable; it never removes legacy settings or chat history.
 export async function migrateChannels() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL ausente");
   const url = new URL(process.env.DATABASE_URL);
+  const caPath = process.env.DATABASE_SSL_CA_PATH || "certs/aiven-ca.pem";
+  let ca = process.env.DATABASE_SSL_CA_PEM?.replace(/\\n/g, "\n").trim();
+  if (!ca) {
+    try {
+      ca = await fs.readFile(caPath, "utf8");
+    } catch (error: any) {
+      if (process.env.DATABASE_SSL_CA_PATH || error.code !== "ENOENT") {
+        throw new Error("Nao foi possivel ler o certificado CA do banco. Confira DATABASE_SSL_CA_PATH.");
+      }
+    }
+  }
   const connection = await mysql.createConnection({
     host: url.hostname,
     port: Number(url.port || 3306),
     user: decodeURIComponent(url.username),
     password: decodeURIComponent(url.password),
-    database: url.pathname.slice(1),
+    database: decodeURIComponent(url.pathname.slice(1)),
+    connectTimeout: 10000,
     ssl: {
+      ...(ca ? { ca } : {}),
       rejectUnauthorized:
         process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
     },
+  }).catch((error: any) => {
+    if (["HANDSHAKE_SSL_ERROR", "DEPTH_ZERO_SELF_SIGNED_CERT", "SELF_SIGNED_CERT_IN_CHAIN", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "UNABLE_TO_GET_ISSUER_CERT_LOCALLY", "CERT_HAS_EXPIRED"].includes(error.code)) {
+      throw new Error("A conexao TLS com o MySQL falhou. Baixe o certificado CA do seu servico Aiven, salve em certs/aiven-ca.pem e tente novamente. Esse certificado e diferente do cert.pem da API.");
+    }
+    throw error;
   });
   try {
     await connection.execute(`CREATE TABLE IF NOT EXISTS companyChannels (

@@ -51,4 +51,26 @@ describe("proxy Vercel para o bot", () => {
     expect(second.res.statusCode).toBe(400);
     expect(https.request).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["DEPTH_ZERO_SELF_SIGNED_CERT", "BACKEND_TLS_ERROR"],
+    ["ECONNREFUSED", "BACKEND_CONNECTION_ERROR"],
+  ])("identifica %s sem expor dados sensiveis", async (failure, expectedCode) => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      vi.mocked(https.request).mockImplementation((() => {
+        const upstream = new PassThrough();
+        queueMicrotask(() => upstream.destroy(Object.assign(new Error("sensitive request details"), { code: failure })));
+        return upstream;
+      }) as any);
+      const { req, res, chunks } = exchange("api/trpc/auth.me");
+      const pending = proxy(req as any, res as any);
+      req.end();
+      await pending;
+      expect(res.statusCode).toBe(502);
+      expect(JSON.parse(Buffer.concat(chunks).toString()).code).toBe(expectedCode);
+      expect(log).toHaveBeenCalledWith(expect.stringContaining(expectedCode));
+      expect(JSON.stringify(log.mock.calls)).not.toContain("sensitive");
+    } finally { log.mockRestore(); }
+  });
 });

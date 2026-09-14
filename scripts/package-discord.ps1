@@ -10,7 +10,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $sourceDirectory 'backend.cjs'))) { 
 New-Item -ItemType Directory -Path $stagingDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $artifactDirectory -Force | Out-Null
 try {
-  foreach ($file in @('bot.js', 'server.js', 'backend.cjs', 'migrate.js', 'check-deploy.js', 'db.js', 'package.json', '.env.example', 'README-HOSPEDAGEM.md')) {
+  foreach ($file in @('bot.js', 'setup.js', 'server.js', 'backend.cjs', 'migrate.js', 'check-deploy.js', 'db.js', 'package.json', '.env.example', 'README-HOSPEDAGEM.md')) {
     Copy-Item -LiteralPath (Join-Path $sourceDirectory $file) -Destination (Join-Path $stagingDirectory $file)
   }
   foreach ($folder in @('commands', 'certs')) {
@@ -35,7 +35,7 @@ try {
   try {
     if ($archiveReader.Entries | Where-Object { $_.FullName -match '(^|/|\\)\.env$|node_modules' }) { throw 'O pacote contem arquivos que devem ficar fora da distribuicao.' }
     if ($archiveReader.Entries | Where-Object { $_.FullName -match '\\|^/|(^|/)\.\.(/|$)' }) { throw 'O pacote contem caminhos incompativeis com a hospedagem Linux.' }
-    foreach ($requiredEntry in @('bot.js', 'server.js', 'backend.cjs', 'db.js', 'package.json', 'migrate.js', 'check-deploy.js', '.env.example', 'commands/crm.js', 'certs/cert.pem', 'certs/key.pem', 'docs/CANAIS-META.md')) {
+    foreach ($requiredEntry in @('bot.js', 'setup.js', 'server.js', 'backend.cjs', 'db.js', 'package.json', 'migrate.js', 'check-deploy.js', '.env.example', 'commands/crm.js', 'certs/cert.pem', 'certs/key.pem', 'docs/CANAIS-META.md')) {
       if (-not $archiveReader.GetEntry($requiredEntry)) { throw ('Arquivo obrigatorio ausente no pacote: ' + $requiredEntry) }
     }
   } finally { $archiveReader.Dispose() }

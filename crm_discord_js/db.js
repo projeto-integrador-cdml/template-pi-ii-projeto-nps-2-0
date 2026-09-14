@@ -1,4 +1,4 @@
-import mysql from "mysql2/promise";
+  import mysql from "mysql2/promise";
 import "dotenv/config";
 
 const url = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL) : null;
@@ -13,16 +13,8 @@ export const pool = mysql.createPool({
   connectionLimit: 10,
 });
 
-// Keep-Alive a cada 3 horas para manter Aiven MySQL ativo
-const THREE_HOURS = 3 * 60 * 60 * 1000;
-setInterval(async () => {
-  try {
-    await pool.query("SELECT 1");
-    console.log("[Keep-Alive] 🟢 Aiven MySQL heartbeat (3h) OK!");
-  } catch (e) {
-    console.warn("[Keep-Alive] ⚠️ Heartbeat falhou:", e.message);
-  }
-}, THREE_HOURS);
+// O backend principal verifica o MySQL ao iniciar e executa o heartbeat de 3 horas.
+// Este pool atende apenas aos comandos privados do Discord.
 
 function companyId() {
   const id = Number(process.env.DISCORD_COMPANY_ID);

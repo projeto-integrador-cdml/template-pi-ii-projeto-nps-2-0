@@ -1,9 +1,11 @@
 import "dotenv/config";
 import { Client, GatewayIntentBits, Events, Partials } from "discord.js";
 import { commands } from "./commands/crm.js";
-import { startApiServer } from "./server.js";
+import { loadBackend, startApiServer } from "./server.js";
 
 // ─── 1. Iniciar o servidor API (Express + tRPC) ───────────────────────────────
+const backend = await loadBackend();
+await backend.initializeDatabase();
 const apiServer = await startApiServer();
 
 // ─── 2. Iniciar o Bot Discord ──────────────────────────────────────────────────

@@ -32,7 +32,7 @@ export const scopes = (type: "instagram" | "facebook") => [
   "pages_manage_metadata",
   ...(type === "facebook"
     ? ["pages_messaging"]
-    : ["instagram_basic", "instagram_manage_messages"]),
+    : ["instagram_business_basic", "instagram_business_manage_messages"]),
 ];
 
 // Never propagate Axios errors: they contain the Authorization header and URLs.
@@ -120,12 +120,16 @@ export async function socialCandidates(
     token,
     "permission,status"
   );
-  if (
-    scopes(type).some(
-      scope =>
-        !permissions.some(p => p.permission === scope && p.status === "granted")
-    )
-  ) {
+  const granted = new Set(
+    permissions.filter(p => p.status === "granted").map(p => p.permission)
+  );
+  const isGranted = (scope: string) => {
+    if (granted.has(scope)) return true;
+    if (scope === "instagram_business_basic" && granted.has("instagram_basic")) return true;
+    if (scope === "instagram_business_manage_messages" && granted.has("instagram_manage_messages")) return true;
+    return false;
+  };
+  if (scopes(type).some(scope => !isGranted(scope))) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message:
@@ -137,18 +141,29 @@ export async function socialCandidates(
       ? "id,name,access_token,tasks,instagram_business_account{id,username,name}"
       : "id,name,access_token,tasks";
   const pages = await graphList("me/accounts", token, fields);
+  console.log(`[Meta OAuth] ${type}: ${pages.length} página(s) retornada(s).`, pages.map(p => ({
+    id: p.id,
+    name: p.name,
+    hasToken: Boolean(p.access_token),
+    tasks: p.tasks,
+    hasInstagram: Boolean(p.instagram_business_account?.id),
+    igUsername: p.instagram_business_account?.username,
+  })));
   return pages
     .filter(
       p =>
         p.access_token &&
-        p.tasks?.some((t: string) =>
-          [
-            "MESSAGING",
-            "MANAGE",
-            "PROFILE_PLUS_MESSAGING",
-            "PROFILE_PLUS_FULL_CONTROL",
-          ].includes(t)
-        )
+        (!p.tasks?.length ||
+          p.tasks.some((t: string) =>
+            [
+              "MESSAGING",
+              "MANAGE",
+              "MODERATE",
+              "CREATE_CONTENT",
+              "PROFILE_PLUS_MESSAGING",
+              "PROFILE_PLUS_FULL_CONTROL",
+            ].includes(t)
+          ))
     )
     .filter(p => type === "facebook" || p.instagram_business_account?.id)
     .map(p => ({

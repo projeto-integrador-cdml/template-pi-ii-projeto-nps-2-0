@@ -46,14 +46,15 @@ export async function getDb() {
   connectionPromise = (async () => {
     const rawDbUrl = process.env.DATABASE_URL;
     if (rawDbUrl) {
+      let pool: ReturnType<typeof mysql.createPool> | undefined;
       try {
         const dbUrl = new URL(rawDbUrl);
-        const pool = mysql.createPool({
+        pool = mysql.createPool({
           host: dbUrl.hostname,
           port: parseInt(dbUrl.port || "3306", 10),
-          user: dbUrl.username,
+          user: decodeURIComponent(dbUrl.username),
           password: decodeURIComponent(dbUrl.password),
-          database: dbUrl.pathname.replace("/", ""),
+          database: decodeURIComponent(dbUrl.pathname.slice(1)),
           ssl: {
             rejectUnauthorized: false,
           },
@@ -69,31 +70,39 @@ export async function getDb() {
 
         // 3-hour Keep-Alive ping to prevent Aiven MySQL idle timeout/disconnect
         const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-        setInterval(async () => {
+        const heartbeat = setInterval(async () => {
           if (_db && !useJsonDb) {
             try {
               await _db.execute(sql`SELECT 1`);
               console.log("[Database Keep-Alive] 🟢 Aiven Cloud MySQL 3-hour heartbeat ping successful!");
             } catch (e: any) {
-              console.warn("[Database Keep-Alive] ⚠️ Heartbeat warning:", e.message);
+              console.warn("[Database Keep-Alive] Heartbeat falhou; confira a conexao MySQL.");
             }
           }
         }, THREE_HOURS_MS);
+        heartbeat.unref();
 
         return _db;
       } catch (error) {
-        console.warn("[Database] Failed to connect to MySQL, falling back to JSON database.", error);
-        useJsonDb = true;
-        return null;
+        await pool?.end().catch(() => {});
+        console.warn("[Database] Nao foi possivel conectar ao MySQL. Confira as credenciais e o acesso de rede da hospedagem.");
+        throw new Error("Banco MySQL indisponivel. A conexao pode ser tentada novamente.");
       }
     } else {
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("Configure DATABASE_URL para usar o MySQL em producao.");
+      }
       console.warn("[Database] DATABASE_URL not set, falling back to JSON database.");
       useJsonDb = true;
       return null;
     }
   })();
   
-  return connectionPromise;
+  try {
+    return await connectionPromise;
+  } finally {
+    connectionPromise = null;
+  }
 }
 
 

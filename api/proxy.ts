@@ -73,12 +73,21 @@ export default function proxy(
     upstream.on("timeout", () =>
       upstream.destroy(new Error("Backend timeout"))
     );
-    upstream.on("error", () => {
+    upstream.on("error", (error: NodeJS.ErrnoException) => {
+      const tlsError = [
+        "DEPTH_ZERO_SELF_SIGNED_CERT", "SELF_SIGNED_CERT_IN_CHAIN",
+        "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+        "CERT_HAS_EXPIRED", "ERR_TLS_CERT_ALTNAME_INVALID",
+      ].includes(error.code || "");
+      const code = tlsError ? "BACKEND_TLS_ERROR" : "BACKEND_CONNECTION_ERROR";
+      // Log only a category and configuration presence; never cookies, URLs or PEMs.
+      console.error(`[CRM Proxy] ${code}; CRM_BACKEND_CA_PEM configurado: ${Boolean(ca)}`);
       if (!res.headersSent) {
         res.statusCode = 502;
         res.setHeader("Content-Type", "application/json");
         res.end(
           JSON.stringify({
+            code,
             error:
               "Backend indisponível. Confira a hospedagem e o certificado HTTPS.",
           })
