@@ -8,6 +8,10 @@
     "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",
+    "channels:migrate": "tsx scripts/migrate-channels.ts",
+    "build:discord": "node scripts/build-discord.mjs",
+    "cert:discord": "node scripts/generate-backend-cert.mjs",
+    "test:discord": "node scripts/smoke-discord.mjs",
     "format": "prettier --write .",
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate"

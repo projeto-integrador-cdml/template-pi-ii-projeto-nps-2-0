@@ -6,8 +6,11 @@
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
+    "channels:migrate": "node migrate.js",
+    "check:deploy": "node check-deploy.js",
     "dev": "node --watch bot.js"
   },
+  "engines": { "node": ">=22" },
   "dependencies": {
     "@trpc/server": "^10.45.2",
     "bcryptjs": "^3.0.2",

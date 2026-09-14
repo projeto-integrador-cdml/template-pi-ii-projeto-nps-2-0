@@ -1,112 +1,54 @@
 import * as db from './db';
 import axios from 'axios';
 import { storagePut } from './storage';
+import * as repo from './channels/repository';
+import { decryptSecret } from './channels/crypto';
+import { graph, graphBase, sendThroughChannel } from './channels/meta';
 
-/**
- * Inicialização de sessões (no-op para a API Oficial do WhatsApp)
- */
-export async function initializeAllClients(): Promise<void> {
-  // A API Oficial é stateless
-}
+export async function initializeAllClients(): Promise<void> {}
 
-/**
- * Conexão do cliente (no-op para a API Oficial do WhatsApp)
- */
-export async function startConnection(companyId: number): Promise<void> {
-  // Conexão instantânea via salvamento de configurações
-}
-
-/**
- * Envia uma mensagem de texto usando a API de Nuvem Oficial do WhatsApp (Meta)
- * @param companyId ID do administrador da empresa
- * @param phone Telefone do destinatário
- * @param body Texto da mensagem
- */
-export async function sendMessage(
-  companyId: number,
-  phone: string,
-  body: string
-): Promise<{ success: boolean; messageId?: string }> {
-  try {
-    const user = await db.getUserById(companyId);
-    if (!user) {
-      console.error(`[WhatsApp API] Empresa ID ${companyId} não encontrada.`);
-      return { success: false };
-    }
-
-    const { whatsappApiUrl, whatsappApiKey } = user;
-    if (!whatsappApiUrl || !whatsappApiKey) {
-      console.error(`[WhatsApp API] Credenciais oficiais da Meta não configuradas para a empresa ID ${companyId}`);
-      return { success: false };
-    }
-
-    // Formata o número do telefone (mantém apenas dígitos)
-    const normalizedPhone = phone.replace(/\D/g, '').trim();
-
-    console.log(`[WhatsApp API] Enviando mensagem oficial para ${normalizedPhone} (Empresa ID: ${companyId})`);
-
-    const response = await axios.post(
-      `https://graph.facebook.com/v20.0/${whatsappApiUrl}/messages`,
-      {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: normalizedPhone,
-        type: "text",
-        text: {
-          preview_url: false,
-          body: body
-        }
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${whatsappApiKey}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    if (response.status === 200 || response.status === 201) {
-      const msgId = response.data?.messages?.[0]?.id;
-      console.log(`[WhatsApp API] Mensagem enviada com sucesso para ${normalizedPhone}. ID: ${msgId}`);
-      return { success: true, messageId: msgId };
-    }
-
-    console.error(`[WhatsApp API] Resposta com erro da API da Meta. Status: ${response.status}`, response.data);
-    return { success: false };
-  } catch (err: any) {
-    console.error(
-      `[WhatsApp API] Falha na requisição para a API da Meta ao enviar para ${phone}:`,
-      err.response?.data || err.message
-    );
-    return { success: false };
+async function resolve(companyId: number, phone: string, channelId?: string) {
+  const channels = (await repo.listChannels(companyId)).filter(c => c.type === "whatsapp" && ["verified", "connected"].includes(c.status));
+  if (channelId) {
+    const selected = channels.find(c => c.id === channelId);
+    if (!selected) throw new Error("Canal não disponível nesta empresa.");
+    return selected;
   }
+  const normalized = phone.replace(/\D/g, "");
+  const clients = (await db.listAllClients()).filter(c => c.userId === companyId && c.channelId && c.phone?.replace(/\D/g, "") === normalized);
+  const matches = channels.filter(c => clients.some(client => client.channelId === c.id));
+  if (matches.length === 1) return matches[0];
+  if (!matches.length && channels.length === 1) return channels[0];
+  throw new Error("Selecione explicitamente o número de WhatsApp desta conversa.");
 }
 
-/**
- * Desconecta o WhatsApp da empresa, limpando as credenciais do banco de dados
- * @param companyId ID do administrador da empresa
- */
-export async function disconnectSession(companyId: number): Promise<void> {
-  console.log(`[WhatsApp API] Desconectando e limpando configurações da API Oficial da empresa ID ${companyId}...`);
+export async function sendMessage(companyId: number, phone: string, body: string, channelId?: string): Promise<{ success: boolean; messageId?: string }> {
   try {
-    await db.updateUserWhatsappConfig(companyId, {
-      whatsappStatus: 'disconnected',
-      whatsappQrCode: null,
-      whatsappNumber: null,
-      whatsappApiUrl: null,
-      whatsappApiKey: null,
+    const channel = await resolve(companyId, phone, channelId);
+    const messageId = await sendThroughChannel(channel, decryptSecret(channel.tokenEncrypted), phone, body);
+    return { success: true, messageId };
+  } catch { return { success: false }; }
+}
+
+export async function sendMediaMessage(companyId: number, phone: string, mediaUrl: string, mediaType: "image" | "document" | "audio", caption?: string, channelId?: string): Promise<{ success: boolean; messageId?: string }> {
+  try {
+    const channel = await resolve(companyId, phone, channelId);
+    const messageId = await sendThroughChannel(channel, decryptSecret(channel.tokenEncrypted), phone, caption || "", { url: mediaUrl, type: mediaType });
+    return { success: true, messageId };
+  } catch { return { success: false }; }
+}
+
+export async function sendTemplateMessage(companyId: number, phone: string, templateName: string, languageCode: string, parameters: string[], channelId?: string): Promise<{ success: boolean; messageId?: string }> {
+  try {
+    const channel = await resolve(companyId, phone, channelId);
+    const response = await graph("POST", channel.externalId + "/messages", decryptSecret(channel.tokenEncrypted), {
+      messaging_product: "whatsapp", to: phone.replace(/\D/g, ""), type: "template",
+      template: { name: templateName, language: { code: languageCode }, ...(parameters.length ? { components: [{ type: "body", parameters: parameters.map(text => ({ type: "text", text })) }] } : {}) },
     });
-  } catch (err) {
-    console.error(`[WhatsApp API] Erro ao limpar credenciais no banco da empresa ID ${companyId}:`, err);
-  }
+    return { success: !!response.messages?.[0]?.id, messageId: response.messages?.[0]?.id };
+  } catch { return { success: false }; }
 }
 
-/**
- * Baixa arquivos de mídia recebidos via Webhook da Meta e salva no Storage Local/Nuvem
- * @param mediaId ID da mídia gerado pela Meta
- * @param accessToken Token de Acesso da Meta da empresa
- * @param mimeType MIME Type da mídia
- */
 export async function downloadMetaMedia(
   mediaId: string,
   accessToken: string,
@@ -114,8 +56,8 @@ export async function downloadMetaMedia(
 ): Promise<string> {
   try {
     // 1. Consultar dados do arquivo na Meta
-    const res = await axios.get(`https://graph.facebook.com/v20.0/${mediaId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+    const res = await axios.get(`${graphBase()}/${mediaId}`, {
+      timeout: 20000, headers: { Authorization: `Bearer ${accessToken}` }
     });
 
     const downloadUrl = res.data?.url;
@@ -127,7 +69,7 @@ export async function downloadMetaMedia(
     // 2. Baixar buffer de mídia
     const fileRes = await axios.get(downloadUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      responseType: 'arraybuffer'
+      timeout: 20000, maxContentLength: 25 * 1024 * 1024, responseType: 'arraybuffer'
     });
 
     const buffer = Buffer.from(fileRes.data);
@@ -151,166 +93,8 @@ export async function downloadMetaMedia(
   } catch (err: any) {
     console.error(
       `[WhatsApp API] Falha no download da mídia Meta (${mediaId}):`,
-      err.response?.data || err.message
+      "Falha ao baixar arquivo"
     );
     return "";
-  }
-}
-
-/**
- * Envia uma mensagem com modelo (Template) parametrizado
- */
-export async function sendTemplateMessage(
-  companyId: number,
-  phone: string,
-  templateName: string,
-  languageCode: string,
-  parameters: string[]
-): Promise<{ success: boolean; messageId?: string }> {
-  try {
-    const user = await db.getUserById(companyId);
-    if (!user) {
-      console.error(`[WhatsApp API] Empresa ID ${companyId} não encontrada.`);
-      return { success: false };
-    }
-
-    const { whatsappApiUrl, whatsappApiKey } = user;
-    if (!whatsappApiUrl || !whatsappApiKey) {
-      console.error(`[WhatsApp API] Credenciais oficiais da Meta não configuradas para a empresa ID ${companyId}`);
-      return { success: false };
-    }
-
-    const normalizedPhone = phone.replace(/\D/g, '').trim();
-
-    console.log(`[WhatsApp API] Enviando template "${templateName}" para ${normalizedPhone} (Empresa ID: ${companyId})`);
-
-    const formattedParams = parameters.map(p => ({
-      type: "text",
-      text: p
-    }));
-
-    const components = formattedParams.length > 0 ? [
-      {
-        type: "body",
-        parameters: formattedParams
-      }
-    ] : [];
-
-    const response = await axios.post(
-      `https://graph.facebook.com/v20.0/${whatsappApiUrl}/messages`,
-      {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: normalizedPhone,
-        type: "template",
-        template: {
-          name: templateName,
-          language: {
-            code: languageCode
-          },
-          components
-        }
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${whatsappApiKey}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    if (response.status === 200 || response.status === 201) {
-      const msgId = response.data?.messages?.[0]?.id;
-      console.log(`[WhatsApp API] Template enviado com sucesso. ID: ${msgId}`);
-      return { success: true, messageId: msgId };
-    }
-
-    console.error(`[WhatsApp API] Erro ao enviar template. Meta status: ${response.status}`, response.data);
-    return { success: false };
-  } catch (err: any) {
-    console.error(
-      `[WhatsApp API] Erro no envio de template para ${phone}:`,
-      err.response?.data || err.message
-    );
-    return { success: false };
-  }
-}
-
-/**
- * Envia mensagens contendo mídia (imagens, documentos ou áudio) via links públicos ou locais
- */
-export async function sendMediaMessage(
-  companyId: number,
-  phone: string,
-  mediaUrl: string,
-  mediaType: "image" | "document" | "audio",
-  caption?: string
-): Promise<{ success: boolean; messageId?: string }> {
-  try {
-    const user = await db.getUserById(companyId);
-    if (!user) {
-      console.error(`[WhatsApp API] Empresa ID ${companyId} não encontrada.`);
-      return { success: false };
-    }
-
-    const { whatsappApiUrl, whatsappApiKey } = user;
-    if (!whatsappApiUrl || !whatsappApiKey) {
-      console.error(`[WhatsApp API] Credenciais oficiais da Meta não configuradas para a empresa ID ${companyId}`);
-      return { success: false };
-    }
-
-    const normalizedPhone = phone.replace(/\D/g, '').trim();
-
-    // Determinar URL absoluta para a Meta conseguir baixar (em ambientes locais ela utilizará localhost do backend)
-    let absoluteMediaUrl = mediaUrl;
-    if (mediaUrl.startsWith("/")) {
-      const port = process.env.PORT || "3000";
-      const host = process.env.SERVER_URL || `http://localhost:${port}`;
-      absoluteMediaUrl = `${host}${mediaUrl}`;
-    }
-
-    console.log(`[WhatsApp API] Enviando mídia (${mediaType}) para ${normalizedPhone}. URL: ${absoluteMediaUrl}`);
-
-    const mediaPayload: Record<string, any> = {
-      link: absoluteMediaUrl
-    };
-
-    if (mediaType === "image" && caption) {
-      mediaPayload.caption = caption;
-    } else if (mediaType === "document" && caption) {
-      mediaPayload.filename = caption;
-    }
-
-    const response = await axios.post(
-      `https://graph.facebook.com/v20.0/${whatsappApiUrl}/messages`,
-      {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: normalizedPhone,
-        type: mediaType,
-        [mediaType]: mediaPayload
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${whatsappApiKey}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    if (response.status === 200 || response.status === 201) {
-      const msgId = response.data?.messages?.[0]?.id;
-      console.log(`[WhatsApp API] Mídia enviada com sucesso. ID: ${msgId}`);
-      return { success: true, messageId: msgId };
-    }
-
-    console.error(`[WhatsApp API] Erro ao enviar mídia. Meta status: ${response.status}`, response.data);
-    return { success: false };
-  } catch (err: any) {
-    console.error(
-      `[WhatsApp API] Erro no envio de mídia para ${phone}:`,
-      err.response?.data || err.message
-    );
-    return { success: false };
   }
 }

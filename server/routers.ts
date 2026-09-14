@@ -18,26 +18,29 @@ import QRCode from "qrcode";
 import { sendPasswordResetEmail } from "./emailService";
 import { getAuditLogs } from "./services/aiLogger";
 import { loadRules } from "./services/rulesEngine";
+import { channelsRouter, channelCompanyId } from "./channels/router";
+import * as channelService from "./channels/service";
+import * as channelRepo from "./channels/repository";
+import * as metaApi from "./channels/meta";
+import { decryptSecret } from "./channels/crypto";
 import { processIncomingMessage } from "./services/aiOrchestrator";
 
+function publicUser<T extends { password?: any; whatsappApiKey?: any; twoFactorSecret?: any; whatsappQrCode?: any }>(user: T) {
+  return { ...user, password: null, whatsappApiKey: null, twoFactorSecret: null, whatsappQrCode: null };
+}
+
 function getCompanyAdminId(ctx: any): number {
-  if (ctx.user) {
-    return ctx.user.role === 'admin' ? 0 : ctx.user.id;
-  }
   if (ctx.attendant) {
     return ctx.attendant.companyId;
   }
-  return 0;
+  return ctx.user?.id || 0;
 }
 
 function getCreatorId(ctx: any): number {
-  if (ctx.user) {
-    return ctx.user.id;
-  }
   if (ctx.attendant) {
     return ctx.attendant.companyId;
   }
-  return 0;
+  return ctx.user?.id || 0;
 }
 
 const flexibleEmailSchema = z.string().min(3).refine(
@@ -47,6 +50,7 @@ const flexibleEmailSchema = z.string().min(3).refine(
 
 export const appRouter = router({
   system: systemRouter,
+  channels: channelsRouter,
 
   auth: router({
     me: publicProcedure.query(opts => {
@@ -54,7 +58,7 @@ export const appRouter = router({
         if (!opts.ctx.user.isActive) {
           return null;
         }
-        return opts.ctx.user;
+        return publicUser(opts.ctx.user);
       }
       if (opts.ctx.attendant) {
         if (!opts.ctx.attendant.isActive) {
@@ -129,7 +133,7 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
         const user = await db.getUserByOpenId(openId);
-        return { success: true, user };
+        return { success: true, user: user ? publicUser(user) : user };
       }),
     login: publicProcedure
       .input(z.object({
@@ -178,7 +182,7 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-        return { success: true, user };
+        return { success: true, user: user ? publicUser(user) : user };
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -281,7 +285,7 @@ export const appRouter = router({
   // ─── Admin: Gestão de Usuários ───
   admin: router({
     listUsers: adminProcedure.query(async () => {
-      return db.listUsers();
+      return (await db.listUsers()).map(publicUser);
     }),
     toggleUserActive: adminProcedure
       .input(z.object({ userId: z.number(), isActive: z.boolean() }))
@@ -1834,9 +1838,9 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
   // ─── WhatsApp e Multiatendimento ───
   whatsapp: router({
     listChats: protectedProcedure.query(async ({ ctx }) => {
-      const companyId = getCompanyAdminId(ctx);
+      const companyId = channelCompanyId(ctx);
       const allClients = await db.listAllClients();
-      let companyClients = allClients.filter(c => companyId === 0 || c.userId === companyId);
+      let companyClients = allClients.filter(c => c.userId === companyId);
       
       // Se for atendente, filtra para apenas os atribuídos a ele
       if (ctx.attendant) {
@@ -1848,7 +1852,7 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       
       const chats = [];
       for (const client of companyClients) {
-        const clientMessages = allMessages.filter(m => m.clientId === client.id);
+        const clientMessages = allMessages.filter(m => m.userId === companyId && m.clientId === client.id);
         if (clientMessages.length === 0) continue;
         
         clientMessages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -1866,6 +1870,7 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
             name: client.name,
             phone: client.phone,
             source: client.source || "whatsapp",
+            channelId: client.channelId || null,
             assignedAttendantId: client.assignedAttendantId,
             attendantName,
           },
@@ -1884,7 +1889,7 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
     listMessages: protectedProcedure
       .input(z.object({ clientId: z.number() }))
       .query(async ({ ctx, input }) => {
-        const companyId = getCompanyAdminId(ctx);
+        const companyId = channelCompanyId(ctx);
         const client = await db.getClientById(input.clientId, companyId);
         if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Contato não encontrado" });
         
@@ -1896,79 +1901,17 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       }),
 
     sendMessage: protectedProcedure
-      .input(z.object({
-        clientId: z.number(),
-        message: z.string().optional().default(""),
-        mediaUrl: z.string().optional(),
-        mediaType: z.enum(["image", "document", "audio"]).optional(),
-      }))
+      .input(z.object({ clientId: z.number(), channelId: z.string().uuid().optional(), message: z.string().max(4000).default(""), mediaUrl: z.string().optional(), mediaType: z.enum(["image", "document", "audio"]).optional(), internalNote: z.boolean().default(false) }))
       .mutation(async ({ ctx, input }) => {
-        const companyId = getCompanyAdminId(ctx);
+        const companyId = channelCompanyId(ctx);
         const client = await db.getClientById(input.clientId, companyId);
-        if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Contato não encontrado" });
-        
-        if (ctx.attendant && client.assignedAttendantId !== ctx.attendant.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para este contato" });
-        }
-        
-        const attendantId = ctx.attendant ? ctx.attendant.id : null;
-        const finalMsgText = input.message || (input.mediaType === "image" ? "[Imagem]" : input.mediaType === "audio" ? "[Áudio]" : "[Documento]");
-
-        const msg = await db.createWhatsappMessage({
-          userId: client.userId,
-          clientId: client.id,
-          attendantId,
-          direction: "outbound",
-          message: finalMsgText,
-          status: "sent",
-          mediaUrl: input.mediaUrl || null,
-        });
-        
-        await db.createInteraction({
-          userId: client.userId,
-          clientId: client.id,
-          type: "whatsapp",
-          subject: input.mediaUrl ? `Arquivo de WhatsApp enviado (${input.mediaType})` : "Mensagem de WhatsApp enviada",
-          content: finalMsgText,
-        });
-
-        // Envia pelo WhatsApp se houver número cadastrado
-        if (client.phone) {
-          const sendPromise = input.mediaUrl && input.mediaType
-            ? whatsappService.sendMediaMessage(client.userId, client.phone, input.mediaUrl, input.mediaType, input.message)
-            : whatsappService.sendMessage(client.userId, client.phone, finalMsgText);
-
-          sendPromise
-            .then(async (res) => {
-              if (res.success && res.messageId && msg.id) {
-                if (db.useJsonDb) {
-                  const jsonDb = await import("./dbJson");
-                  const dbData = (jsonDb as any).readJsonDb();
-                  const m = dbData.whatsappMessages?.find((x: any) => x.id === msg.id);
-                  if (m) {
-                    m.externalId = res.messageId;
-                    (jsonDb as any).writeJsonDb(dbData);
-                  }
-                } else {
-                  const { whatsappMessages } = await import("../drizzle/schema");
-                  const { eq } = await import("drizzle-orm");
-                  const mysqlDb = await db.getDb();
-                  if (mysqlDb) {
-                    await mysqlDb.update(whatsappMessages).set({ externalId: res.messageId }).where(eq(whatsappMessages.id, msg.id));
-                  }
-                }
-              }
-            })
-            .catch(err => {
-              console.error("[WhatsApp API] Erro ao disparar mensagem de saída:", err);
-            });
-        }
-        
-        return msg;
+        if (!client || client.userId !== companyId) throw new TRPCError({ code: "NOT_FOUND", message: "Contato não encontrado" });
+        if (ctx.attendant && client.assignedAttendantId !== ctx.attendant.id) throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para este contato" });
+        return channelService.sendClientMessage(companyId, client, input, ctx.attendant?.id || null);
       }),
 
     listTemplates: protectedProcedure.query(async ({ ctx }) => {
-      const companyId = getCompanyAdminId(ctx);
+      const companyId = channelCompanyId(ctx);
       const setting = await db.getSetting(companyId, "whatsapp_templates");
       if (setting && setting.settingValue) {
         try {
@@ -2008,13 +1951,13 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       })))
       .mutation(async ({ ctx, input }) => {
         if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem salvar templates" });
-        const companyId = getCreatorId(ctx);
+        const companyId = channelCompanyId(ctx);
         await db.upsertSetting(companyId, "whatsapp_templates", JSON.stringify(input));
         return { success: true };
       }),
 
     listQuickReplies: protectedProcedure.query(async ({ ctx }) => {
-      const companyId = getCompanyAdminId(ctx);
+      const companyId = channelCompanyId(ctx);
       const setting = await db.getSetting(companyId, "quick_replies");
       if (setting && setting.settingValue) {
         try {
@@ -2040,104 +1983,29 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       })))
       .mutation(async ({ ctx, input }) => {
         if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerenciar respostas rápidas" });
-        const companyId = getCreatorId(ctx);
+        const companyId = channelCompanyId(ctx);
         await db.upsertSetting(companyId, "quick_replies", JSON.stringify(input));
         return { success: true };
       }),
 
     sendTemplate: protectedProcedure
-      .input(z.object({
-        clientId: z.number(),
-        templateName: z.string(),
-        languageCode: z.string().default("pt_BR"),
-        parameters: z.array(z.string()),
-      }))
+      .input(z.object({ clientId: z.number(), channelId: z.string().uuid().optional(), templateName: z.string().min(1), languageCode: z.string().default("pt_BR"), parameters: z.array(z.string()) }))
       .mutation(async ({ ctx, input }) => {
-        const companyId = getCompanyAdminId(ctx);
+        const companyId = channelCompanyId(ctx);
         const client = await db.getClientById(input.clientId, companyId);
-        if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Contato não encontrado" });
-
-        if (ctx.attendant && client.assignedAttendantId !== ctx.attendant.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para este contato" });
-        }
-
-        const attendantId = ctx.attendant ? ctx.attendant.id : null;
-        const templates = await db.getSetting(companyId, "whatsapp_templates");
-        let bodyText = `Template: ${input.templateName}`;
-        if (templates && templates.settingValue) {
-          try {
-            const list = JSON.parse(templates.settingValue);
-            const found = list.find((t: any) => t.name === input.templateName);
-            if (found) {
-              bodyText = found.bodyText;
-              input.parameters.forEach((val, idx) => {
-                bodyText = bodyText.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), val);
-              });
-            }
-          } catch (e) {}
-        } else {
-          const defaults: Record<string, string> = {
-            boas_vindas: "Olá {{1}}, obrigado pelo contato! Como podemos te ajudar hoje?",
-            lembrete_reuniao: "Olá {{1}}, este é um lembrete da nossa reunião agendada para {{2}}. Até lá!",
-            proposta_enviada: "Olá {{1}}, enviamos a proposta comercial para o seu e-mail: {{2}}. Fique à vontade para tirar dúvidas."
-          };
-          if (defaults[input.templateName]) {
-            bodyText = defaults[input.templateName];
-            input.parameters.forEach((val, idx) => {
-              bodyText = bodyText.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), val);
-            });
-          }
-        }
-
-        const msg = await db.createWhatsappMessage({
-          userId: client.userId,
-          clientId: client.id,
-          attendantId,
-          direction: "outbound",
-          message: bodyText,
-          status: "sent",
+        if (!client || client.userId !== companyId) throw new TRPCError({ code: "NOT_FOUND", message: "Contato não encontrado" });
+        if (ctx.attendant && client.assignedAttendantId !== ctx.attendant.id) throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para este contato" });
+        const channel = await channelService.resolveClientChannel(companyId, client, input.channelId);
+        if (channel.type !== "whatsapp") throw new TRPCError({ code: "BAD_REQUEST", message: "Templates estão disponíveis somente para WhatsApp." });
+        const recipient = client.externalContactId || client.phone;
+        if (!recipient) throw new TRPCError({ code: "BAD_REQUEST", message: "Contato sem número." });
+        await db.bindClientChannel(companyId, client.id, channel.id, recipient.replace(/\D/g, ""));
+        const result = await metaApi.graph("POST", channel.externalId + "/messages", decryptSecret(channel.tokenEncrypted), {
+          messaging_product: "whatsapp", to: recipient.replace(/\D/g, ""), type: "template",
+          template: { name: input.templateName, language: { code: input.languageCode }, ...(input.parameters.length ? { components: [{ type: "body", parameters: input.parameters.map(text => ({ type: "text", text })) }] } : {}) },
         });
-
-        await db.createInteraction({
-          userId: client.userId,
-          clientId: client.id,
-          type: "whatsapp",
-          subject: `Template disparado (${input.templateName})`,
-          content: bodyText,
-        });
-
-        if (client.phone) {
-          whatsappService.sendTemplateMessage(
-            client.userId,
-            client.phone,
-            input.templateName,
-            input.languageCode,
-            input.parameters
-          ).then(async (res) => {
-            if (res.success && res.messageId && msg.id) {
-              if (db.useJsonDb) {
-                const jsonDb = await import("./dbJson");
-                const dbData = (jsonDb as any).readJsonDb();
-                const m = dbData.whatsappMessages?.find((x: any) => x.id === msg.id);
-                if (m) {
-                  m.externalId = res.messageId;
-                  (jsonDb as any).writeJsonDb(dbData);
-                }
-              } else {
-                const { whatsappMessages } = await import("../drizzle/schema");
-                const { eq } = await import("drizzle-orm");
-                const mysqlDb = await db.getDb();
-                if (mysqlDb) {
-                  await mysqlDb.update(whatsappMessages).set({ externalId: res.messageId }).where(eq(whatsappMessages.id, msg.id));
-                }
-              }
-            }
-          }).catch(err => {
-            console.error("[tRPC] Erro ao disparar template WhatsApp:", err);
-          });
-        }
-
-        return msg;
+        if (!result.messages?.[0]?.id) throw new TRPCError({ code: "BAD_REQUEST", message: "A Meta não confirmou o envio." });
+        return db.createWhatsappMessage({ userId: companyId, clientId: client.id, channelId: channel.id, attendantId: ctx.attendant?.id || null, direction: "outbound", message: "Template: " + input.templateName, externalId: result.messages[0].id, status: "sent" });
       }),
 
     transferChat: protectedProcedure
@@ -2146,7 +2014,7 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         targetAttendantId: z.number().nullable(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const companyId = getCompanyAdminId(ctx);
+        const companyId = channelCompanyId(ctx);
         const client = await db.getClientById(input.clientId, companyId);
         if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Contato não encontrado" });
         
@@ -2189,7 +2057,7 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         channel: z.enum(["whatsapp", "instagram", "messenger"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const companyId = getCompanyAdminId(ctx);
+        const companyId = channelCompanyId(ctx);
         try {
           const routeRes = await db.routeIncomingWhatsappMessage(companyId, input.phone, input.name, input.message, input.mediaUrl);
 
@@ -2234,65 +2102,6 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         }
       }),
 
-    getConnectionConfig: protectedProcedure.query(async ({ ctx }) => {
-      const companyId = getCreatorId(ctx);
-      const user = await db.getUserById(companyId);
-      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
-      return {
-        whatsappStatus: user.whatsappStatus,
-        whatsappNumber: user.whatsappNumber,
-        whatsappApiUrl: user.whatsappApiUrl,
-        whatsappApiKey: user.whatsappApiKey,
-        whatsappQrCode: user.whatsappQrCode,
-      };
-    }),
-
-    generateQrCode: protectedProcedure
-      .mutation(async ({ ctx }) => {
-        if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerar QR Code" });
-        const companyId = getCreatorId(ctx);
-        
-        // Inicia a conexão real em background.
-        // O serviço vai atualizar o banco com o QR code real e mudar o status para connected quando pronto!
-        whatsappService.startConnection(companyId).catch(err => {
-          console.error(`[WhatsApp Web] Erro ao iniciar conexão real para empresa ID ${companyId}:`, err);
-        });
-
-        return { success: true };
-      }),
-
-    disconnect: protectedProcedure
-      .mutation(async ({ ctx }) => {
-        if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem desconectar o WhatsApp" });
-        const companyId = getCreatorId(ctx);
-        
-        await whatsappService.disconnectSession(companyId);
-        return { success: true };
-      }),
-
-    updateConnectionConfig: protectedProcedure
-      .input(z.object({
-        whatsappNumber: z.string().nullable().optional(),
-        whatsappApiUrl: z.string().nullable().optional(),
-        whatsappApiKey: z.string().nullable().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerenciar configurações de WhatsApp" });
-        const companyId = getCreatorId(ctx);
-
-        const hasCredentials = !!(input.whatsappNumber && input.whatsappApiUrl && input.whatsappApiKey);
-        const whatsappStatus = hasCredentials ? "connected" : "disconnected";
-
-        await db.updateUserWhatsappConfig(companyId, {
-          whatsappNumber: input.whatsappNumber || null,
-          whatsappApiUrl: input.whatsappApiUrl || null,
-          whatsappApiKey: input.whatsappApiKey || null,
-          whatsappStatus,
-          whatsappQrCode: null,
-        });
-        return { success: true };
-      }),
-
     updateStatus: protectedProcedure
       .input(z.object({ status: z.enum(["available", "busy", "offline"]) }))
       .mutation(async ({ ctx, input }) => {
@@ -2301,95 +2110,10 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
         return { success: true };
       }),
 
-    listChannels: protectedProcedure.query(async ({ ctx }) => {
-      const companyId = getCompanyAdminId(ctx);
-      const setting = await db.getSetting(companyId, "company_channels");
-      if (setting && setting.settingValue) {
-        try {
-          return JSON.parse(setting.settingValue);
-        } catch (err) {
-          console.error("[tRPC] Erro ao carregar canais:", err);
-        }
-      }
-      
-      const user = await db.getUserById(companyId);
-      const hasConfig = user && user.whatsappNumber;
-
-      return [
-        {
-          id: 1,
-          name: "WhatsApp Vendas",
-          type: "whatsapp",
-          identifier: hasConfig ? user.whatsappNumber : "+55 11 98888-8888",
-          status: hasConfig ? user.whatsappStatus || "connected" : "connected",
-          phoneNumberId: hasConfig ? user.whatsappApiUrl || "" : "",
-          accessToken: hasConfig ? user.whatsappApiKey || "" : "",
-          contacts: 64073,
-          departments: 1,
-          attendants: 11
-        },
-        {
-          id: 2,
-          name: "@EmpresaExemplo",
-          type: "instagram",
-          identifier: "@empresa_digital",
-          status: "connected",
-          instagramAccountId: "",
-          pageAccessToken: "",
-          contacts: 1700,
-          departments: 1,
-          attendants: 10
-        }
-      ];
-    }),
-
-    saveChannels: protectedProcedure
-      .input(z.array(z.object({
-        id: z.number(),
-        name: z.string().min(1),
-        type: z.enum(["whatsapp", "instagram", "facebook"]),
-        identifier: z.string().min(1),
-        status: z.string(),
-        phoneNumberId: z.string().optional().nullable(),
-        instagramAccountId: z.string().optional().nullable(),
-        pageId: z.string().optional().nullable(),
-        accessToken: z.string().optional().nullable(),
-        pageAccessToken: z.string().optional().nullable(),
-        contacts: z.number(),
-        departments: z.number(),
-        attendants: z.number(),
-      })))
-      .mutation(async ({ ctx, input }) => {
-        if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerenciar canais" });
-        const companyId = getCreatorId(ctx);
-
-        const whatsappChannel = input.find(c => c.type === "whatsapp");
-        if (whatsappChannel && whatsappChannel.phoneNumberId && whatsappChannel.accessToken) {
-          await db.updateUserWhatsappConfig(companyId, {
-            whatsappNumber: whatsappChannel.identifier,
-            whatsappApiUrl: whatsappChannel.phoneNumberId || null,
-            whatsappApiKey: whatsappChannel.accessToken || null,
-            whatsappStatus: "connected",
-            whatsappQrCode: null,
-          });
-        } else if (!input.some(c => c.type === "whatsapp")) {
-          await db.updateUserWhatsappConfig(companyId, {
-            whatsappNumber: null,
-            whatsappApiUrl: null,
-            whatsappApiKey: null,
-            whatsappStatus: "disconnected",
-            whatsappQrCode: null,
-          });
-        }
-
-        await db.upsertSetting(companyId, "company_channels", JSON.stringify(input));
-        return { success: true };
-      }),
-
     generateAIDraft: protectedProcedure
       .input(z.object({ clientId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const companyId = getCreatorId(ctx);
+        const companyId = channelCompanyId(ctx);
         const messages = await db.listWhatsappMessages(companyId, input.clientId);
         const inboundMessages = messages.filter(m => m.direction === "inbound");
         const lastInbound = inboundMessages[inboundMessages.length - 1];
@@ -2417,7 +2141,7 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       }),
 
     getDistributionRule: protectedProcedure.query(async ({ ctx }) => {
-      const companyId = getCreatorId(ctx);
+      const companyId = channelCompanyId(ctx);
       const setting = await db.getSetting(companyId, "lead_distribution_rule");
       return { rule: setting?.settingValue || "least_busy" };
     }),
@@ -2426,7 +2150,7 @@ Forneça sugestões específicas e acionáveis em português brasileiro.`;
       .input(z.object({ rule: z.enum(["least_busy", "round_robin"]) }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.attendant) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem alterar a regra de distribuição" });
-        const companyId = getCreatorId(ctx);
+        const companyId = channelCompanyId(ctx);
         await db.upsertSetting(companyId, "lead_distribution_rule", input.rule);
         return { success: true };
       }),

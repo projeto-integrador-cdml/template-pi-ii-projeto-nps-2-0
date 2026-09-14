@@ -176,6 +176,7 @@ export default function WhatsAppPage() {
 
         try {
           await sendMessageMutation.mutateAsync({
+          channelId: outboundChannelId || undefined,
             clientId: activeChatId,
             message: "[Áudio]",
             mediaUrl: base64Audio,
@@ -222,6 +223,7 @@ export default function WhatsAppPage() {
             const base64Image = reader.result as string;
             try {
               await sendMessageMutation.mutateAsync({
+          channelId: outboundChannelId || undefined,
                 clientId: activeChatId,
                 message: "[Imagem]",
                 mediaUrl: base64Image,
@@ -306,6 +308,10 @@ export default function WhatsAppPage() {
 
   // Reference to store previous chats state for notification comparison
   const prevChatsRef = useRef<any[]>([]);
+
+  const [outboundChannelId, setOutboundChannelId] = useState("");
+  const { data: companyChannels } = trpc.channels.list.useQuery();
+  useEffect(() => { setOutboundChannelId(""); }, [activeChatId]);
 
   // Queries
   const { data: me } = trpc.auth.me.useQuery(undefined, { retry: false });
@@ -475,8 +481,10 @@ export default function WhatsAppPage() {
       if (isPrivateNote) {
         // Envia como Nota Interna Confidencial (Sem disparar no WhatsApp do cliente)
         await sendMessageMutation.mutateAsync({
+          channelId: outboundChannelId || undefined,
           clientId: activeChatId,
-          message: `🔒 [Nota Interna]: ${messageText}`,
+          message: messageText,
+          internalNote: true,
         });
         await createInteractionMutation.mutateAsync({
           clientId: activeChatId,
@@ -487,6 +495,7 @@ export default function WhatsAppPage() {
         toast.warning("🔒 Nota interna registrada! (Não foi enviada ao WhatsApp do cliente)");
       } else {
         await sendMessageMutation.mutateAsync({
+          channelId: outboundChannelId || undefined,
           clientId: activeChatId,
           message: messageText,
         });
@@ -539,6 +548,7 @@ export default function WhatsAppPage() {
 
         if (url) {
           await sendMessageMutation.mutateAsync({
+          channelId: outboundChannelId || undefined,
             clientId: activeChatId,
             message: file.name,
             mediaUrl: url,
@@ -568,6 +578,7 @@ export default function WhatsAppPage() {
 
     try {
       await sendTemplateMutation.mutateAsync({
+        channelId: outboundChannelId || undefined,
         clientId: activeChatId,
         templateName: selectedTemplateName,
         parameters: templateParams,
@@ -597,8 +608,10 @@ export default function WhatsAppPage() {
 
       // Registra a nota interna amarela privada para a equipe
       await sendMessageMutation.mutateAsync({
+          channelId: outboundChannelId || undefined,
         clientId: activeChatId,
-        message: `🔒 [Nota Interna]: 🔄 Conversa transferida por ${senderName} para ${targetName}.`,
+        message: `🔄 Conversa transferida por ${senderName} para ${targetName}.`,
+        internalNote: true,
       });
 
       toast.success(`Conversa transferida para ${targetName}! (Nota registrada apenas para a equipe)`);
@@ -1048,6 +1061,15 @@ export default function WhatsAppPage() {
                 <div ref={messagesEndRef} />
               </div>
 
+              <div className="flex items-center gap-2 border-t px-4 py-2 text-xs">
+                <Label htmlFor="outbound-channel">Canal da conversa</Label>
+                {activeChat.client.channelId
+                  ? <span className="text-muted-foreground">{companyChannels?.find(c => c.id === activeChat.client.channelId)?.name || "Canal desconectado"}</span>
+                  : <select id="outbound-channel" className="rounded border bg-background p-2" value={outboundChannelId} onChange={e => setOutboundChannelId(e.target.value)}>
+                    <option value="">Selecione o WhatsApp</option>
+                    {companyChannels?.filter(c => c.type === "whatsapp" && ["verified", "connected"].includes(c.status)).map(c => <option key={c.id} value={c.id}>{c.name} ? {c.identifier}</option>)}
+                  </select>}
+              </div>
               {/* MESSAGE INPUT FORM */}
               <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-card/25 shrink-0 flex items-center gap-2 relative">
                 <input

@@ -32,6 +32,39 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+// Tokens never leave the server; provider identities have one company owner.
+export const companyChannels = mysqlTable("companyChannels", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  companyId: int("companyId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 16 }).notNull(),
+  externalId: varchar("externalId", { length: 191 }).notNull(),
+  socialSlot: varchar("socialSlot", { length: 64 }),
+  name: varchar("name", { length: 150 }).notNull(),
+  identifier: varchar("identifier", { length: 191 }).notNull(),
+  pageId: varchar("pageId", { length: 191 }),
+  businessAccountId: varchar("businessAccountId", { length: 191 }),
+  tokenEncrypted: text("tokenEncrypted").notNull(),
+  status: varchar("status", { length: 32 }).notNull(),
+  lastVerifiedAt: timestamp("lastVerifiedAt"),
+  lastWebhookAt: timestamp("lastWebhookAt"),
+}, table => [
+  uniqueIndex("uq_channel_identity").on(table.type, table.externalId),
+  uniqueIndex("uq_company_social_slot").on(table.socialSlot),
+  index("idx_channel_company").on(table.companyId),
+]);
+
+export const channelResourceClaims = mysqlTable("channelResourceClaims", {
+  resource: varchar("resource", { length: 191 }).primaryKey(),
+  companyId: int("companyId").notNull().references(() => users.id, { onDelete: "cascade" }),
+});
+
+export const channelAuthFlows = mysqlTable("channelAuthFlows", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  companyId: int("companyId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  payload: text("payload").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+});
+
 // ─── Clientes ───
 export const clients = mysqlTable("clients", {
   id: int("id").autoincrement().primaryKey(),
@@ -45,6 +78,8 @@ export const clients = mysqlTable("clients", {
   notes: text("notes"),
   tags: text("tags"),
   source: varchar("source", { length: 100 }),
+  channelId: varchar("channelId", { length: 36 }),
+  externalContactId: varchar("externalContactId", { length: 191 }),
   status: mysqlEnum("clientStatus", ["active", "inactive", "prospect"]).default("prospect").notNull(),
   assignedAttendantId: int("assignedAttendantId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -53,6 +88,7 @@ export const clients = mysqlTable("clients", {
   index("idx_clients_userId").on(table.userId),
   index("idx_clients_assignedAttendantId").on(table.assignedAttendantId),
   index("idx_clients_userId_status").on(table.userId, table.status),
+  uniqueIndex("uq_client_channel_contact").on(table.channelId, table.externalContactId),
 ]);
 
 export type Client = typeof clients.$inferSelect;
@@ -195,6 +231,7 @@ export const whatsappMessages = mysqlTable("whatsappMessages", {
   mediaUrl: text("mediaUrl"),
   status: mysqlEnum("whatsappStatus", ["sent", "delivered", "read", "failed"]).default("sent").notNull(),
   externalId: varchar("externalId", { length: 255 }),
+  channelId: varchar("channelId", { length: 36 }),
   transcription: text("transcription"),
   transcriptionStatus: varchar("transcriptionStatus", { length: 50 }),
   sentiment: varchar("sentiment", { length: 50 }),
@@ -202,6 +239,7 @@ export const whatsappMessages = mysqlTable("whatsappMessages", {
 }, (table) => [
   index("idx_whatsappMessages_userId_clientId").on(table.userId, table.clientId),
   index("idx_whatsappMessages_externalId").on(table.externalId),
+  uniqueIndex("uq_channel_message").on(table.channelId, table.externalId),
 ]);
 
 export type WhatsappMessage = typeof whatsappMessages.$inferSelect;

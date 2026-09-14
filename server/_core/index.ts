@@ -1,18 +1,20 @@
 import "dotenv/config";
-import express from "express";
+import { app } from "./app";
+export { app, createApp } from "./app";
+
 import { createServer as createHttpServer } from "http";
 import { createServer as createHttpsServer } from "https";
 import fs from "fs";
 import net from "net";
 import path from "node:path";
-import crypto from "crypto";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
-import { appRouter } from "../routers";
+
+
+
+
 import * as db from "../db";
-import { downloadMetaMedia, sendMessage as sendWhatsappMessage } from "../whatsappService";
-import { processIncomingMessage } from "../services/aiOrchestrator";
-import { createContext } from "./context";
+
+
+
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -33,189 +35,6 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   }
   throw new Error(`No available port found starting from ${startPort}`);
 }
-
-export function createApp() {
-  const app = express();
-
-  // Enable CORS & Disable Cache Headers (force latest version always)
-  app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-trpc-source");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
-    }
-    next();
-  });
-
-  // Serve static uploaded files locally
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
-  // Configure body parser with larger size limit for file uploads and rawBody capture
-  app.use(express.json({ 
-    limit: "50mb",
-    verify: (req: any, res, buf) => {
-      req.rawBody = buf;
-    }
-  }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
-  // OAuth callback under /api/oauth/callback
-  registerOAuthRoutes(app);
-
-  // Webhook da API Oficial do WhatsApp
-  app.get("/api/whatsapp/webhook", (req, res) => {
-    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || "crm_whatsapp_verify_token";
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
-
-    if (mode === "subscribe" && token === verifyToken) {
-      console.log("[WhatsApp Webhook] Webhook verificado com sucesso!");
-      return res.status(200).send(challenge);
-    }
-    console.warn("[WhatsApp Webhook] Falha ao verificar token do Webhook.");
-    return res.sendStatus(403);
-  });
-
-  app.post("/api/whatsapp/webhook", async (req, res) => {
-    try {
-      const signature = req.headers["x-hub-signature-256"] as string;
-      const appSecret = process.env.WHATSAPP_APP_SECRET;
-      
-      if (appSecret && signature) {
-        const [algo, hash] = signature.split("=");
-        const expectedHash = crypto
-          .createHmac("sha256", appSecret)
-          .update((req as any).rawBody || "")
-          .digest("hex");
-        if (hash !== expectedHash) {
-          console.warn("[WhatsApp Webhook] Falha na assinatura HMAC SHA256!");
-          return res.sendStatus(401);
-        }
-      }
-
-      const body = req.body;
-      if (body.object === "whatsapp_business_account") {
-        const entry = body.entry?.[0];
-        const change = entry?.changes?.[0];
-        const value = change?.value;
-        const metadata = value?.metadata;
-        const phoneNumberId = metadata?.phone_number_id;
-
-        if (phoneNumberId) {
-          const usersList = await db.listUsers();
-          const user = usersList.find(u => u.whatsappApiUrl === phoneNumberId);
-          
-          if (user) {
-            if (value.statuses) {
-              for (const statusObj of value.statuses) {
-                const msgId = statusObj.id;
-                const status = statusObj.status;
-                console.log(`[WhatsApp Webhook] Atualizando status da mensagem ${msgId} para ${status}`);
-                await db.updateWhatsappMessageStatus(msgId, status);
-              }
-            }
-
-            if (value.messages) {
-              for (const msg of value.messages) {
-                const fromNumber = "+" + msg.from;
-                const contact = value.contacts?.find((c: any) => c.wa_id === msg.from);
-                const name = contact?.profile?.name || "Contato WhatsApp";
-                
-                let textContent = "";
-                let mediaUrl = "";
-
-                if (msg.type === "text" && msg.text?.body) {
-                  textContent = msg.text.body;
-                } else if (msg.type === "image" && msg.image?.id) {
-                  textContent = msg.image.caption || "[Imagem]";
-                  console.log(`[WhatsApp Webhook] Baixando imagem ID ${msg.image.id}...`);
-                  mediaUrl = await downloadMetaMedia(msg.image.id, user.whatsappApiKey || "", msg.image.mime_type);
-                } else if (msg.type === "audio" && msg.audio?.id) {
-                  textContent = "[Áudio]";
-                  console.log(`[WhatsApp Webhook] Baixando áudio ID ${msg.audio.id}...`);
-                  mediaUrl = await downloadMetaMedia(msg.audio.id, user.whatsappApiKey || "", msg.audio.mime_type);
-                } else if (msg.type === "document" && msg.document?.id) {
-                  textContent = msg.document.filename || "[Documento]";
-                  console.log(`[WhatsApp Webhook] Baixando documento ID ${msg.document.id}...`);
-                  mediaUrl = await downloadMetaMedia(msg.document.id, user.whatsappApiKey || "", msg.document.mime_type);
-                }
-
-                if (textContent || mediaUrl) {
-                  console.log(`[WhatsApp Webhook] Mensagem recebida de ${name} (${fromNumber}): ${textContent} | Mídia: ${mediaUrl}`);
-                  await db.routeIncomingWhatsappMessage(user.id, fromNumber, name, textContent, mediaUrl);
-
-                  // Processamento com Orquestrador de IA
-                  try {
-                    const aiRes = await processIncomingMessage({
-                      companyId: user.id,
-                      clientPhone: fromNumber,
-                      clientName: name,
-                      userMessage: textContent,
-                      mediaUrl,
-                    });
-
-                    if (aiRes?.replyText) {
-                      const allClients = await db.listAllClients();
-                      const client = allClients.find(c => c.userId === user.id && c.phone === fromNumber);
-                      if (client) {
-                        await db.createWhatsappMessage({
-                          userId: user.id,
-                          clientId: client.id,
-                          direction: "outbound",
-                          message: aiRes.replyText,
-                          status: "delivered",
-                        });
-                      }
-
-                      if (user.whatsappNumber && user.whatsappApiKey) {
-                        await sendWhatsappMessage(user.id, fromNumber, aiRes.replyText).catch(e => {
-                          console.warn("[WhatsApp Webhook] Erro ao enviar resposta da IA via API:", e.message);
-                        });
-                      }
-                    }
-                  } catch (aiErr: any) {
-                    console.error("[WhatsApp Webhook AI Error]:", aiErr.message);
-                  }
-                }
-              }
-            }
-          } else {
-            console.warn(`[WhatsApp Webhook] Nenhuma empresa encontrada com o Phone Number ID: ${phoneNumberId}`);
-          }
-        }
-      }
-      return res.sendStatus(200);
-    } catch (err) {
-      console.error("[WhatsApp Webhook] Erro ao processar payload:", err);
-      return res.sendStatus(500);
-    }
-  });
-
-  // tRPC API
-  app.use(
-    "/api/trpc",
-    createExpressMiddleware({
-      router: appRouter,
-      createContext,
-    })
-  );
-
-  // Global JSON Error Handler (Guarantees valid JSON response for Vercel Serverless)
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error("[Express Error Handler]", err);
-    res.status(500).json({ error: err?.message || "Internal Server Error" });
-  });
-
-  return app;
-}
-
-export const app = createApp();
 
 async function startServer() {
   // Check certs/ in both root and crm_discord_python/ (where bot generates them on Blaze Host)

@@ -5,6 +5,7 @@ import { logAIOperation } from "./aiLogger";
 
 export interface OrchestratorInput {
   companyId: number;
+  channelClientId?: number;
   clientPhone: string;
   clientName: string;
   userMessage: string;
@@ -85,7 +86,8 @@ export async function processIncomingMessage(input: OrchestratorInput): Promise<
 
   // 1. Busca cliente no CRM
   const allClients = await db.listAllClients();
-  let client = allClients.find(c => c.userId === companyId && c.phone === clientPhone);
+  let client = allClients.find(c => c.userId === companyId && (input.channelClientId ? c.id === input.channelClientId : c.phone === clientPhone));
+  if (input.channelClientId && !client) throw new Error("Contato não pertence à empresa.");
   if (!client) {
     const newClient = await db.createClient({
       userId: companyId,

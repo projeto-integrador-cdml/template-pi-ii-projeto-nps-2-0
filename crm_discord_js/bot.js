@@ -1,31 +1,33 @@
-import 'dotenv/config';
-import { Client, GatewayIntentBits, Events } from 'discord.js';
-import { commands } from './commands/crm.js';
-import { startApiServer } from './server.js';
+import "dotenv/config";
+import { Client, GatewayIntentBits, Events, Partials } from "discord.js";
+import { commands } from "./commands/crm.js";
+import { startApiServer } from "./server.js";
 
 // ─── 1. Iniciar o servidor API (Express + tRPC) ───────────────────────────────
-startApiServer();
+const apiServer = await startApiServer();
 
 // ─── 2. Iniciar o Bot Discord ──────────────────────────────────────────────────
-const PREFIX = '!';
+const PREFIX = "!";
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
   ],
+  partials: [Partials.Channel],
 });
 
-client.once(Events.ClientReady, (c) => {
-  console.log('═══════════════════════════════════════════════════');
+client.once(Events.ClientReady, c => {
+  console.log("═══════════════════════════════════════════════════");
   console.log(`[Discord Bot] 🤖 Conectado como: ${c.user.tag}`);
   console.log(`[Discord Bot] 📡 Servidores: ${c.guilds.cache.size}`);
-  console.log('═══════════════════════════════════════════════════');
-  c.user.setActivity('CRM Project | !help');
+  console.log("═══════════════════════════════════════════════════");
+  c.user.setActivity("CRM Project | !help");
 });
 
-client.on(Events.MessageCreate, async (message) => {
+client.on(Events.MessageCreate, async message => {
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
 
@@ -35,17 +37,46 @@ client.on(Events.MessageCreate, async (message) => {
   const command = commands[commandName];
   if (!command) return;
 
+  // CRM data is private: hosting the API does not grant Discord users access.
+  if (!["ping", "help"].includes(commandName)) {
+    const allowed = (process.env.DISCORD_ALLOWED_USER_IDS || "")
+      .split(",")
+      .map(id => id.trim());
+    if (!allowed.includes(message.author.id) || !process.env.DISCORD_COMPANY_ID)
+      return;
+    if (message.guild) {
+      await message.reply(
+        "Use este comando em uma mensagem privada com o bot."
+      );
+      return;
+    }
+  }
+
   try {
     await command.execute(message, args);
   } catch (error) {
-    console.error(`[Discord Bot] ❌ Erro no comando !${commandName}:`, error.message);
-    await message.reply('❌ Ocorreu um erro ao executar o comando. Tente novamente.');
+    console.error(
+      `[Discord Bot] ❌ Erro no comando !${commandName}:`,
+      error.message
+    );
+    await message.reply(
+      "❌ Ocorreu um erro ao executar o comando. Tente novamente."
+    );
   }
 });
 
 const token = process.env.DISCORD_BOT_TOKEN;
-if (!token || token.startsWith('COLE_O_TOKEN')) {
-  console.warn('[Discord Bot] ⚠️  DISCORD_BOT_TOKEN não configurado — bot Discord não iniciado.');
+if (!token || token.startsWith("COLE_O_TOKEN")) {
+  console.warn(
+    "[Discord Bot] ⚠️  DISCORD_BOT_TOKEN não configurado — bot Discord não iniciado."
+  );
 } else {
   client.login(token).catch(console.error);
 }
+
+for (const signal of ["SIGINT", "SIGTERM"])
+  process.on(signal, () => {
+    client.destroy();
+    apiServer.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 5000).unref();
+  });

@@ -88,6 +88,20 @@ function nextId(arr: { id: number }[]): number {
   return arr.length > 0 ? Math.max(...arr.map(x => x.id)) + 1 : 1;
 }
 
+export async function bindClientChannel(companyId: number, clientId: number, channelId: string, externalContactId: string) {
+  const db = readJsonDb();
+  const client = db.clients.find(c => c.id === clientId && c.userId === companyId);
+  if (!client || (client.channelId && client.channelId !== channelId)) throw new Error("O contato pertence a outro canal.");
+  if (db.clients.some(c => c.id !== clientId && c.channelId === channelId && c.externalContactId === externalContactId)) throw new Error("Já existe uma conversa deste contato neste canal.");
+  if (!client.channelId) { Object.assign(client, { channelId, externalContactId }); writeJsonDb(db); }
+}
+
+export async function updateChannelMessageStatus(companyId: number, channelId: string, externalId: string, status: string) {
+  const db = readJsonDb();
+  const msg = db.whatsappMessages.find(m => m.userId === companyId && m.channelId === channelId && m.externalId === externalId);
+  if (msg) { msg.status = status; writeJsonDb(db); }
+}
+
 // ─── Users ───
 export async function upsertUser(user: InsertUser): Promise<void> {
   const db = readJsonDb();
@@ -226,7 +240,7 @@ export async function updateUserCota(id: number, companyName: string, maxAttenda
         address: null,
         notes: null,
         tags: null,
-        source: null,
+        source: null, channelId: null, externalContactId: null,
         status: "active",
         assignedAttendantId: null,
         createdAt: new Date(),
@@ -241,6 +255,9 @@ export async function updateUserCota(id: number, companyName: string, maxAttenda
 // ─── Clients ───
 export async function createClient(data: InsertClient): Promise<{ id: number }> {
   const db = readJsonDb();
+  if (data.channelId && data.externalContactId && db.clients.some(c => c.channelId === data.channelId && c.externalContactId === data.externalContactId)) {
+    throw Object.assign(new Error("Contato já vinculado"), { code: "ER_DUP_ENTRY" });
+  }
   const id = nextId(db.clients);
   const now = new Date();
   const newClient: Client = {
@@ -255,6 +272,8 @@ export async function createClient(data: InsertClient): Promise<{ id: number }> 
     notes: data.notes ?? null,
     tags: data.tags ?? null,
     source: data.source ?? null,
+    channelId: data.channelId ?? null,
+    externalContactId: data.externalContactId ?? null,
     status: data.status ?? "prospect",
     assignedAttendantId: (data as any).assignedAttendantId ?? null,
     createdAt: now,
@@ -1219,6 +1238,9 @@ export async function countAssignedClients(attendantId: number): Promise<number>
 export async function createWhatsappMessage(data: any): Promise<any> {
   const db = readJsonDb();
   if (!db.whatsappMessages) db.whatsappMessages = [];
+  if (data.channelId && data.externalId && db.whatsappMessages.some(m => m.channelId === data.channelId && m.externalId === data.externalId)) {
+    throw Object.assign(new Error("Mensagem já recebida"), { code: "ER_DUP_ENTRY" });
+  }
   const id = nextId(db.whatsappMessages);
   const newMessage = {
     id,
@@ -1230,6 +1252,7 @@ export async function createWhatsappMessage(data: any): Promise<any> {
     mediaUrl: data.mediaUrl || null,
     status: data.status || "sent",
     externalId: data.externalId || null,
+    channelId: data.channelId || null,
     transcription: data.transcription || null,
     transcriptionStatus: data.transcriptionStatus || null,
     sentiment: data.sentiment || null,

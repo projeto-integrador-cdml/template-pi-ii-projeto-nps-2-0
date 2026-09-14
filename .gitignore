@@ -40,11 +40,16 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Runtime data
+data/channels.json*
+crm_discord_js/backend.cjs
+crm_discord_js/certs/
+crm_discord_js/uploads/
 pids
 *.pid
 *.seed
 *.pid.lock
 *.bak
+*.zip
 
 # Coverage directory used by tools like istanbul
 coverage/

@@ -3,10 +3,15 @@
   "buildCommand": "npm run build",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "outputDirectory": "dist/public",
+  "functions": { "api/proxy.ts": { "maxDuration": 60 } },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "http://147.135.65.231:26653/api/$1"
+      "destination": "/api/proxy?route=api/$1"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "/api/proxy?route=uploads/$1"
     },
     {
       "source": "/(.*)",

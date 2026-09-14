@@ -1,676 +1,673 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Radio, Plus, Trash2, Globe, MessageSquare, Instagram, Edit3, Copy, Info, Link, HelpCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Radio,
+  Plus,
+  MessageSquare,
+  Instagram,
+  Facebook,
+  RefreshCw,
+  Pencil,
+  Unplug,
+  Loader2,
+  Copy,
+} from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/_core/hooks/useAuth";
+import type { PublicChannel } from "@shared/channels";
 
-interface Channel {
-  id: number;
-  name: string;
-  type: "whatsapp" | "instagram" | "facebook";
-  identifier: string;
-  status: string;
-  phoneNumberId?: string | null;
-  instagramAccountId?: string | null;
-  pageId?: string | null;
-  accessToken?: string | null;
-  pageAccessToken?: string | null;
-  contacts: number;
-  departments: number;
-  attendants: number;
-}
+const labels = {
+  whatsapp: "WhatsApp",
+  instagram: "Instagram",
+  facebook: "Facebook Messenger",
+};
+const statusLabels = {
+  verified: "Credenciais validadas · aguardando mensagem",
+  connected: "Conectado · mensagens recebidas",
+  error: "Autorização precisa de atenção",
+  disconnected: "Desconectado",
+};
 
 export default function ChannelsPage() {
   const { user } = useAuth();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
-
-  // Form Fields
-  const [newChannelName, setNewChannelName] = useState("");
-  const [newChannelType, setNewChannelType] = useState<"whatsapp" | "instagram" | "facebook">("whatsapp");
-  const [newChannelIdentifier, setNewChannelIdentifier] = useState("");
-  
-  // Platform Credentials
+  const isOwner = !!user && user.role !== "attendant";
+  const utils = trpc.useUtils();
+  const list = trpc.channels.list.useQuery(undefined, {
+    refetchInterval: 15000,
+  });
+  const config = trpc.channels.configuration.useQuery(undefined, {
+    enabled: isOwner,
+    retry: false,
+  });
+  const distribution = trpc.whatsapp.getDistributionRule.useQuery();
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [editing, setEditing] = useState<PublicChannel | null>(null);
+  const [name, setName] = useState("");
   const [phoneNumberId, setPhoneNumberId] = useState("");
-  const [accessToken, setAccessToken] = useState("");
-  const [instagramAccountId, setInstagramAccountId] = useState("");
-  const [pageId, setPageId] = useState("");
-  const [pageAccessToken, setPageAccessToken] = useState("");
-
-  const { data: channels, isLoading, refetch } = trpc.whatsapp.listChannels.useQuery();
-
-  const { data: distributionData, refetch: refetchRule } = trpc.whatsapp.getDistributionRule.useQuery();
-  const setRuleMutation = trpc.whatsapp.setDistributionRule.useMutation({
-    onSuccess: () => {
-      refetchRule();
-      toast.success("Regra de distribuição atualizada com sucesso!");
-    },
-    onError: (err) => {
-      toast.error(`Erro ao atualizar regra: ${err.message}`);
-    }
-  });
-
-  const rule = distributionData?.rule || "least_busy";
-  const handleSetDistributionRule = (newRule: "least_busy" | "round_robin") => {
-    setRuleMutation.mutate({ rule: newRule });
+  const [businessAccountId, setBusinessAccountId] = useState("");
+  const [token, setToken] = useState("");
+  const [renameChannel, setRenameChannel] = useState<PublicChannel | null>(
+    null
+  );
+  const [removeChannel, setRemoveChannel] = useState<PublicChannel | null>(
+    null
+  );
+  const [flow, setFlow] = useState(
+    () => new URLSearchParams(window.location.search).get("meta_flow") || ""
+  );
+  const [choice, setChoice] = useState("");
+  const choices = trpc.channels.socialChoices.useQuery(
+    { flow },
+    { enabled: isOwner && /^[a-f0-9]{64}$/.test(flow), retry: false }
+  );
+  const refresh = () => {
+    void utils.channels.list.invalidate();
+    void utils.whatsapp.listChats.invalidate();
   };
-
-  const saveChannelsMutation = trpc.whatsapp.saveChannels.useMutation({
-    onSuccess: () => {
-      refetch();
-      toast.success(editingChannel ? "Canal atualizado com sucesso!" : "Canal cadastrado com sucesso!");
-      handleCloseModal();
-    },
-    onError: (err) => {
-      toast.error(`Erro ao salvar canal: ${err.message}`);
-    }
-  });
-
-  const activeCount = (channels as Channel[] | undefined)?.filter((c: Channel) => c.status === "connected").length || 0;
-
-  const handleCloseModal = () => {
-    setIsCreateOpen(false);
-    setEditingChannel(null);
-    setNewChannelName("");
-    setNewChannelType("whatsapp");
-    setNewChannelIdentifier("");
+  const onError = (err: { message: string }) => toast.error(err.message);
+  const closeWhatsapp = () => {
+    setWhatsappOpen(false);
+    setToken("");
+    setBusinessAccountId("");
     setPhoneNumberId("");
-    setAccessToken("");
-    setInstagramAccountId("");
-    setPageId("");
-    setPageAccessToken("");
+    setName("");
+    setEditing(null);
   };
-
-  const handleOpenEdit = (channel: Channel) => {
-    setEditingChannel(channel);
-    setNewChannelName(channel.name);
-    setNewChannelType(channel.type);
-    setNewChannelIdentifier(channel.identifier);
-    setPhoneNumberId(channel.phoneNumberId || "");
-    setAccessToken(channel.accessToken || "");
-    setInstagramAccountId(channel.instagramAccountId || "");
-    setPageId(channel.pageId || "");
-    setPageAccessToken(channel.pageAccessToken || "");
-    setIsCreateOpen(true);
+  const clearFlow = () => {
+    setFlow("");
+    setChoice("");
+    window.history.replaceState({}, "", "/channels");
   };
+  const connect = trpc.channels.connectWhatsapp.useMutation({
+    onError,
+    onSuccess: () => {
+      closeWhatsapp();
+      refresh();
+      toast.success(
+        "Número validado pela Meta. Envie uma mensagem para confirmar o recebimento."
+      );
+    },
+  });
+  const startLogin = trpc.channels.startSocialLogin.useMutation({
+    onError,
+    onSuccess: data => window.location.assign(data.url),
+  });
+  const completeLogin = trpc.channels.completeSocialLogin.useMutation({
+    onError,
+    onSuccess: () => {
+      clearFlow();
+      refresh();
+      toast.success("Conta autorizada e vinculada à sua empresa.");
+    },
+  });
+  const verify = trpc.channels.verify.useMutation({
+    onError,
+    onSuccess: () => {
+      refresh();
+      toast.success("Autorização verificada com a Meta.");
+    },
+  });
+  const rename = trpc.channels.rename.useMutation({
+    onError,
+    onSuccess: () => {
+      setRenameChannel(null);
+      refresh();
+      toast.success("Nome atualizado.");
+    },
+  });
+  const disconnect = trpc.channels.disconnect.useMutation({
+    onError,
+    onSuccess: () => {
+      setRemoveChannel(null);
+      refresh();
+      toast.success("Canal desconectado desta empresa.");
+    },
+  });
+  const setRule = trpc.whatsapp.setDistributionRule.useMutation({
+    onError,
+    onSuccess: () => {
+      void distribution.refetch();
+      toast.success("Distribuição atualizada.");
+    },
+  });
+  const busy =
+    connect.isPending ||
+    startLogin.isPending ||
+    completeLogin.isPending ||
+    verify.isPending ||
+    disconnect.isPending;
 
-  const handleSaveChannel = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newChannelName || !newChannelIdentifier) {
-      toast.error("Por favor, preencha todos os campos obrigatórios.");
-      return;
-    }
+  useEffect(() => {
+    const error = new URLSearchParams(window.location.search).get("meta_error");
+    if (!error) return;
+    toast.error(
+      error === "cancelled"
+        ? "Login cancelado. Nenhuma conta foi conectada."
+        : error === "no_accounts"
+          ? "Nenhuma conta elegível encontrada. Para Instagram, use uma conta profissional vinculada a uma Página que você gerencia."
+          : "Não foi possível concluir a autorização. Entre novamente e confira as permissões do aplicativo da Meta."
+    );
+    window.history.replaceState({}, "", "/channels");
+  }, []);
 
-    if (user?.role === "attendant") {
-      toast.error("Apenas administradores podem gerenciar canais.");
-      return;
-    }
-
-    const currentChannels = (channels as Channel[]) || [];
-
-    if (editingChannel) {
-      const updated = currentChannels.map((c: Channel) => {
-        if (c.id === editingChannel.id) {
-          return {
-            ...c,
-            name: newChannelName,
-            type: newChannelType,
-            identifier: newChannelIdentifier,
-            phoneNumberId: newChannelType === "whatsapp" ? phoneNumberId : null,
-            accessToken: newChannelType === "whatsapp" ? accessToken : null,
-            instagramAccountId: newChannelType === "instagram" ? instagramAccountId : null,
-            pageId: newChannelType === "facebook" ? pageId : null,
-            pageAccessToken: (newChannelType === "instagram" || newChannelType === "facebook") ? pageAccessToken : null,
-          };
-        }
-        return c;
-      });
-      saveChannelsMutation.mutate(updated);
-    } else {
-      const nextId = currentChannels.length > 0 ? Math.max(...currentChannels.map((c: Channel) => c.id)) + 1 : 1;
-      const newChannel: Channel = {
-        id: nextId,
-        name: newChannelName,
-        type: newChannelType,
-        identifier: newChannelIdentifier,
-        status: "connected",
-        phoneNumberId: newChannelType === "whatsapp" ? phoneNumberId : null,
-        accessToken: newChannelType === "whatsapp" ? accessToken : null,
-        instagramAccountId: newChannelType === "instagram" ? instagramAccountId : null,
-        pageId: newChannelType === "facebook" ? pageId : null,
-        pageAccessToken: (newChannelType === "instagram" || newChannelType === "facebook") ? pageAccessToken : null,
-        contacts: 0,
-        departments: 1,
-        attendants: newChannelType === "whatsapp" ? 5 : 3
-      };
-      saveChannelsMutation.mutate([...currentChannels, newChannel]);
-    }
+  const openWhatsapp = (channel?: PublicChannel) => {
+    setEditing(channel || null);
+    setName(channel?.name || "");
+    setPhoneNumberId(channel?.externalId || "");
+    setToken("");
+    setBusinessAccountId("");
+    setWhatsappOpen(true);
   };
-
-  const handleDeleteChannel = (id: number) => {
-    if (user?.role === "attendant") {
-      toast.error("Apenas administradores podem gerenciar canais.");
-      return;
-    }
-
-    const currentChannels = (channels as Channel[]) || [];
-    const updated = currentChannels.filter((c: Channel) => c.id !== id);
-    saveChannelsMutation.mutate(updated);
-  };
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "instagram": return Instagram;
-      case "facebook": return Globe;
-      default: return MessageSquare;
-    }
-  };
-
-  const getBadgeColor = (type: string) => {
-    switch (type) {
-      case "instagram": return "bg-pink-500/10 text-pink-500 border border-pink-500/20";
-      case "facebook": return "bg-blue-500/10 text-blue-500 border border-blue-500/20";
-      default: return "bg-green-500/10 text-green-500 border border-green-500/20";
+  const copy = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("Endereço copiado.");
+    } catch {
+      toast.error("Não foi possível copiar. Selecione o endereço manualmente.");
     }
   };
-
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copiado para a área de transferência!`);
-  };
-
-  const webhookUrl = `${window.location.origin}/api/whatsapp/webhook`;
-  const verifyToken = user ? `verify_${user.openId}` : "crm_whatsapp_verify_token";
+  const channels = list.data || [];
 
   return (
-    <div className="space-y-6 p-6">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center">
-            <Radio className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight">Canais</h1>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                ● {activeCount} Ativos
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">Gerencie os canais de atendimento e conexões API da sua empresa</p>
-          </div>
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl bg-primary/10 p-3">
+          <Radio className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold">Canais da empresa</h1>
+          <p className="text-sm text-muted-foreground">
+            Vários números de WhatsApp, um Instagram e um Facebook. Cada conta
+            pertence somente à sua empresa.
+          </p>
         </div>
       </div>
-
-      {/* CARD DE STATUS DA INSTÂNCIA WHATSAPP E CONEXÃO */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border border-emerald-500/30 bg-card/60 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-              🟢 Instância Conectada (API)
-            </span>
-          </div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-              <MessageSquare className="h-4 w-4 text-emerald-500" />
-              Status do Servidor WhatsApp Web
-            </CardTitle>
-            <CardDescription className="text-xs">Sincronização em tempo real de mensagens e contatos</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-1">
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase block">Número Conectado</span>
-                <span className="font-bold text-foreground">+55 (11) 99999-8888</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase block">Sinal da Bateria</span>
-                <span className="font-bold text-emerald-400">95% 🔋 (Carregando)</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-muted-foreground">Último ping do webhook: <b>Há 12 segundos</b></span>
+      {isOwner && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageSquare className="h-5 w-5 text-emerald-500" />
+                WhatsApp
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Conecte cada número da sua conta WhatsApp Business pela API
+                oficial.
+              </p>
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toast.success("Sinal de ping reenviado! Instância 100% online.")}
-                className="h-8 text-xs border-border gap-1.5"
+                disabled={busy || !config.data?.ready}
+                onClick={() => openWhatsapp()}
               >
-                🔄 Reconectar Instância
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar número
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* GERADOR DE LINKS WA.ME E QR CODE PARA CAMPANHAS */}
-        <Card className="border border-border/40 bg-card/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-              <Link className="h-4 w-4 text-sky-500" />
-              Gerador de Link wa.me & QR Code para Campanhas
-            </CardTitle>
-            <CardDescription className="text-xs">Crie links diretos e QR Codes para colocar na Bio do Instagram ou Anúncios</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <Label className="text-[10px] font-bold">Número WhatsApp (DDI + DDD)</Label>
-                <Input
-                  id="link-gen-phone"
-                  defaultValue="5511999998888"
-                  className="h-8 text-xs bg-muted/40"
-                />
-              </div>
-              <div>
-                <Label className="text-[10px] font-bold">Mensagem Pré-Preenchida</Label>
-                <Input
-                  id="link-gen-msg"
-                  defaultValue="Olá! Vim pelo Instagram e gostaria de informações."
-                  className="h-8 text-xs bg-muted/40"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <Button
-                size="sm"
-                onClick={() => {
-                  const phone = (document.getElementById("link-gen-phone") as HTMLInputElement)?.value || "5511999998888";
-                  const msg = (document.getElementById("link-gen-msg") as HTMLInputElement)?.value || "";
-                  const generatedLink = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
-                  navigator.clipboard.writeText(generatedLink);
-                  toast.success("Link wa.me gerado e copiado com sucesso!");
-                }}
-                className="h-8 text-xs bg-sky-500 hover:bg-sky-600 font-bold gap-1.5 text-white flex-1"
-              >
-                <Copy className="h-3.5 w-3.5" /> Copiar Link wa.me
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  toast.info("📱 QR Code pronto para download! Use em seus panfletos e posts.");
-                }}
-                className="h-8 text-xs border-border gap-1.5"
-              >
-                📱 Gerar QR Code
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Seletor de Distribuição de Leads */}
-      <Card className="border border-border/40 bg-card/30 backdrop-blur-md">
-        <CardContent className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="text-xs font-bold text-foreground flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary animate-pulse" />
-              Distribuição Automática de Leads
-            </h3>
-            <p className="text-[11px] text-muted-foreground">
-              Configure a regra de direcionamento para novos contatos do WhatsApp, Instagram e Facebook.
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <button
-              onClick={() => handleSetDistributionRule("least_busy")}
-              disabled={user?.role === "attendant"}
-              className={`px-3 py-1.5 text-[11px] font-bold rounded-xl border transition-all ${
-                rule === "least_busy"
-                  ? "bg-primary text-primary-foreground border-primary shadow"
-                  : "bg-muted/40 text-muted-foreground border-border/40 hover:text-foreground"
-              }`}
-            >
-              ⚖️ Menor Carga (Least-Busy)
-            </button>
-            <button
-              onClick={() => handleSetDistributionRule("round_robin")}
-              disabled={user?.role === "attendant"}
-              className={`px-3 py-1.5 text-[11px] font-bold rounded-xl border transition-all ${
-                rule === "round_robin"
-                  ? "bg-primary text-primary-foreground border-primary shadow"
-                  : "bg-muted/40 text-muted-foreground border-border/40 hover:text-foreground"
-              }`}
-            >
-              🎯 Roleta de Vendas (Round Robin)
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Grid of channels */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="h-[200px] animate-pulse bg-muted/20 border-border"></Card>
-          <Card className="h-[200px] animate-pulse bg-muted/20 border-border"></Card>
-          <Card className="h-[200px] animate-pulse bg-muted/20 border-border"></Card>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {(channels as Channel[])?.map((channel: Channel) => {
-            const Icon = getIcon(channel.type);
+            </CardContent>
+          </Card>
+          {(["instagram", "facebook"] as const).map(type => {
+            const linked = channels.find(c => c.type === type);
+            const Icon = type === "instagram" ? Instagram : Facebook;
             return (
-              <Card 
-                key={channel.id} 
-                className="relative overflow-hidden bg-card border-border hover:shadow-md transition-all duration-300"
-              >
-                {/* Visual Connection status bar on the left */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                  channel.status === "connected" ? "bg-emerald-500" : "bg-muted"
-                }`}></div>
-
-                <CardHeader className="pb-3 pl-6 pr-6 pt-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl ${getBadgeColor(channel.type)}`}>
-                        <Icon className="h-4.5 w-4.5" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-sm text-foreground">{channel.name}</h3>
-                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5 block">
-                          {channel.type} ID: #{channel.id}
-                        </span>
-                      </div>
-                    </div>
-
-                    {user?.role !== "attendant" && (
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenEdit(channel)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
-                          title="Configurar Canal"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteChannel(channel.id)}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                          title="Remover Canal"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+              <Card key={type}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Icon className="h-5 w-5 text-primary" />
+                    {labels[type]}
+                  </CardTitle>
                 </CardHeader>
-
-                <CardContent className="pl-6 pr-6 pb-5 space-y-4">
-                  <div className="flex items-center gap-2 p-2.5 bg-accent/5 rounded-xl border border-border/40">
-                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-xs font-semibold text-foreground truncate">{channel.identifier}</span>
-                  </div>
-
-                  {/* Metrics grid */}
-                  <div className="grid grid-cols-3 gap-2 pt-1.5 border-t border-border/60">
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider text-[9px]">Contatos</p>
-                      <p className="text-sm font-bold text-foreground mt-0.5">{channel.contacts.toLocaleString()}</p>
-                    </div>
-                    <div className="text-center border-l border-border/60">
-                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider text-[9px]">Depto</p>
-                      <p className="text-sm font-bold text-foreground mt-0.5">{channel.departments}</p>
-                    </div>
-                    <div className="text-center border-l border-border/60">
-                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider text-[9px]">Operadores</p>
-                      <p className="text-sm font-bold text-foreground mt-0.5">{channel.attendants}</p>
-                    </div>
-                  </div>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    {type === "instagram"
+                      ? "Autorize seu Instagram profissional vinculado a uma Página do Facebook."
+                      : "Entre com o Facebook e escolha a Página da sua empresa."}
+                  </p>
+                  <Button
+                    variant="outline"
+                    disabled={busy || !config.data?.ready}
+                    onClick={() => startLogin.mutate({ type })}
+                  >
+                    {linked
+                      ? "Renovar autorização"
+                      : `Conectar ${type === "instagram" ? "Instagram" : "Facebook"}`}
+                  </Button>
+                  {linked && (
+                    <p className="text-xs text-muted-foreground">
+                      Conta atual: {linked.identifier}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             );
           })}
-
-          {/* Add Channel dashed card */}
-          {user?.role !== "attendant" && (
-            <Card 
-              onClick={() => setIsCreateOpen(true)}
-              className="border-2 border-dashed border-border hover:border-primary/40 bg-card/20 hover:bg-card/50 cursor-pointer flex flex-col items-center justify-center p-6 text-center h-[218px] group transition-all duration-300"
-            >
-              <div className="p-3 rounded-full bg-primary/10 text-primary mb-3.5 group-hover:scale-105 transition-transform duration-300">
-                <Plus className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-sm text-foreground">Cadastrar canal</h3>
-              <p className="text-xs text-muted-foreground mt-1 max-w-[200px] leading-relaxed">Cadastre e gerencie seus canais de comunicação</p>
-              <span className="text-xs font-semibold text-primary mt-3 group-hover:underline">Cadastrar canal &rarr;</span>
-            </Card>
-          )}
         </div>
       )}
-
-      {/* Register/Edit Channel Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent 
-          className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto glass-card border border-border"
-          onPointerDownOutside={(e) => e.preventDefault()}
+      {isOwner && (config.error || (config.data && !config.data.ready)) && (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm"
         >
+          {config.error?.message ||
+            "A integração com a Meta ainda precisa ser configurada pelo administrador do sistema. Os botões de conexão serão liberados quando essa configuração estiver pronta."}
+        </div>
+      )}
+      {list.isLoading ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Carregando canais…
+        </p>
+      ) : list.error ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/30 p-4"
+        >
+          <p>{list.error.message}</p>
+          <Button
+            className="mt-3"
+            variant="outline"
+            onClick={() => list.refetch()}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      ) : channels.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-10 text-center">
+          <Radio className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+          <h2 className="font-semibold">Nenhum canal conectado</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {isOwner
+              ? "Adicione um número ou autorize uma conta para começar a receber mensagens."
+              : "O responsável pela empresa precisa conectar um canal."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {channels.map(channel => (
+            <Card key={channel.id}>
+              <CardHeader>
+                <p className="text-xs uppercase text-muted-foreground">
+                  {labels[channel.type]}
+                </p>
+                <CardTitle className="text-base">{channel.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="break-all text-sm">{channel.identifier}</p>
+                <p
+                  className={`text-xs font-medium ${channel.status === "error" ? "text-destructive" : channel.status === "connected" ? "text-emerald-600" : "text-muted-foreground"}`}
+                >
+                  {statusLabels[channel.status]}
+                </p>
+                {channel.lastVerifiedAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Última validação:{" "}
+                    {new Date(channel.lastVerifiedAt).toLocaleString("pt-BR")}
+                  </p>
+                )}
+                {channel.lastWebhookAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Último evento:{" "}
+                    {new Date(channel.lastWebhookAt).toLocaleString("pt-BR")}
+                  </p>
+                )}
+                {isOwner && (
+                  <div className="flex flex-wrap gap-2 border-t pt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => verify.mutate({ id: channel.id })}
+                    >
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                      Verificar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`Renomear ${channel.name}`}
+                      onClick={() => {
+                        setRenameChannel(channel);
+                        setName(channel.name);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    {channel.type === "whatsapp" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => openWhatsapp(channel)}
+                      >
+                        Credenciais
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() => setRemoveChannel(channel)}
+                    >
+                      <Unplug className="mr-1 h-3 w-3" />
+                      Desconectar
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Distribuição de novos contatos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button
+            variant={
+              distribution.data?.rule === "least_busy" ? "default" : "outline"
+            }
+            disabled={!isOwner || setRule.isPending}
+            onClick={() => setRule.mutate({ rule: "least_busy" })}
+          >
+            Atendente com menor carga
+          </Button>
+          <Button
+            variant={
+              distribution.data?.rule === "round_robin" ? "default" : "outline"
+            }
+            disabled={!isOwner || setRule.isPending}
+            onClick={() => setRule.mutate({ rule: "round_robin" })}
+          >
+            Alternar entre atendentes
+          </Button>
+          {distribution.error && (
+            <p role="alert" className="text-sm text-destructive">
+              {distribution.error.message}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+      {isOwner && config.data && (
+        <details className="rounded-xl border p-4 text-sm">
+          <summary className="cursor-pointer font-medium">
+            Endereços da integração Meta
+          </summary>
+          <div className="mt-3 space-y-3 text-muted-foreground">
+            {[
+              { label: "Retorno do login", url: config.data.callbackUrl },
+              {
+                label: "Recebimento de mensagens",
+                url: config.data.webhookUrl,
+              },
+            ].map(item => (
+              <div key={item.label}>
+                <p className="text-xs">{item.label}</p>
+                <div className="flex items-center gap-2">
+                  <code className="break-all text-xs">{item.url}</code>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label={`Copiar ${item.label}`}
+                    onClick={() => copy(item.url)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+      <Dialog
+        open={whatsappOpen}
+        onOpenChange={open => {
+          if (!open && !connect.isPending) closeWhatsapp();
+        }}
+      >
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              {editingChannel ? <Edit3 className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
-              {editingChannel ? "Configurar Canal" : "Cadastrar Novo Canal"}
+            <DialogTitle>
+              {editing
+                ? "Atualizar credenciais do WhatsApp"
+                : "Adicionar número de WhatsApp"}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Insira os dados do canal de atendimento e as credenciais de API da Meta.
+            <DialogDescription>
+              Informe os dados do WhatsApp Business. O número será consultado e
+              validado diretamente com a Meta.
             </DialogDescription>
           </DialogHeader>
-
-          <form onSubmit={handleSaveChannel} className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="channel-name" className="text-xs font-semibold">Nome do Canal</Label>
-              <Input 
-                id="channel-name" 
-                placeholder="Ex: WhatsApp Vendas SP, Instagram Suporte" 
-                value={newChannelName}
-                onChange={(e) => setNewChannelName(e.target.value)}
-                className="h-9 text-xs bg-card border-border"
+          <form
+            className="space-y-4"
+            onSubmit={e => {
+              e.preventDefault();
+              connect.mutate({
+                id: editing?.id,
+                name,
+                phoneNumberId,
+                businessAccountId,
+                accessToken: token,
+              });
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="channel-name">Nome do canal</Label>
+              <Input
+                id="channel-name"
+                value={name}
+                maxLength={150}
                 required
+                onChange={e => setName(e.target.value)}
               />
             </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="channel-type" className="text-xs font-semibold">Tipo do Canal</Label>
-              <Select 
-                value={newChannelType} 
-                onValueChange={(v: any) => setNewChannelType(v)}
-                disabled={!!editingChannel}
-              >
-                <SelectTrigger id="channel-type" className="h-9 text-xs bg-card border-border">
-                  <SelectValue placeholder="Selecione o canal" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="whatsapp">💬 WhatsApp Cloud API</SelectItem>
-                  <SelectItem value="instagram">📸 Instagram Direct</SelectItem>
-                  <SelectItem value="facebook">👥 Facebook Messenger</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label htmlFor="phone-id">ID do número (Phone Number ID)</Label>
+              <Input
+                id="phone-id"
+                value={phoneNumberId}
+                inputMode="numeric"
+                pattern="[0-9]{5,32}"
+                required
+                disabled={!!editing}
+                onChange={e => setPhoneNumberId(e.target.value)}
+              />
             </div>
-
-            {/* Identificador Principal */}
-            <div className="space-y-1.5">
-              <Label htmlFor="channel-identifier" className="text-xs font-semibold">
-                {newChannelType === "whatsapp" ? "Número do WhatsApp (com DDI)" : 
-                 newChannelType === "instagram" ? "Handle do Instagram" : "Nome ou URL da Página"}
+            <div className="space-y-2">
+              <Label htmlFor="waba-id">
+                ID da conta WhatsApp Business (WABA ID)
               </Label>
-              <Input 
-                id="channel-identifier" 
-                placeholder={newChannelType === "whatsapp" ? "Ex: +5511999999999" : 
-                             newChannelType === "instagram" ? "Ex: @empresa_digital" : "Ex: Minha Página Oficial"} 
-                value={newChannelIdentifier}
-                onChange={(e) => setNewChannelIdentifier(e.target.value)}
-                className="h-9 text-xs bg-card border-border"
+              <Input
+                id="waba-id"
+                value={businessAccountId}
+                inputMode="numeric"
+                pattern="[0-9]{5,32}"
                 required
+                onChange={e => setBusinessAccountId(e.target.value)}
               />
             </div>
-
-            {/* Credenciais para WhatsApp */}
-            {newChannelType === "whatsapp" && (
-              <div className="space-y-4 pt-2 border-t border-border/60">
-                <h4 className="text-xs font-bold text-primary flex items-center gap-1.5">Credenciais WhatsApp API</h4>
-                
-                <div className="space-y-1.5">
-                  <Label htmlFor="phoneNumberId" className="text-xs font-semibold">ID do Número (Phone Number ID)</Label>
-                  <Input 
-                    id="phoneNumberId" 
-                    placeholder="Ex: 105432987654321" 
-                    value={phoneNumberId}
-                    onChange={(e) => setPhoneNumberId(e.target.value)}
-                    className="h-9 text-xs bg-card border-border"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="accessToken" className="text-xs font-semibold">Token de Acesso Permanente (Meta)</Label>
-                  <Input 
-                    id="accessToken" 
-                    type="password"
-                    placeholder="Token Bearer da Meta (EAA...)" 
-                    value={accessToken}
-                    onChange={(e) => setAccessToken(e.target.value)}
-                    className="h-9 text-xs bg-card border-border font-mono"
-                  />
-                </div>
-
-                {/* Instruções de Webhook da Meta */}
-                <div className="p-3.5 rounded-xl border border-primary/10 bg-primary/5 space-y-3">
-                  <div className="flex items-center gap-1.5 text-primary">
-                    <Info className="h-4.5 w-4.5 shrink-0" />
-                    <h5 className="text-[10px] font-bold uppercase tracking-wider">Webhook da Meta</h5>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    Acesse <b>developers.facebook.com</b>, adicione o produto <b>WhatsApp</b> e configure:
-                  </p>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 rounded bg-background/50 border gap-2">
-                      <div className="space-y-0.5 truncate">
-                        <span className="text-[8px] text-muted-foreground font-bold uppercase">Callback URL</span>
-                        <p className="text-[10px] font-mono text-foreground truncate select-all">{webhookUrl}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleCopy(webhookUrl, "Callback URL")}
-                        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2 rounded bg-background/50 border gap-2">
-                      <div className="space-y-0.5 truncate">
-                        <span className="text-[8px] text-muted-foreground font-bold uppercase">Verify Token</span>
-                        <p className="text-[10px] font-mono text-foreground truncate select-all">{verifyToken}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleCopy(verifyToken, "Verify Token")}
-                        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Credenciais para Instagram */}
-            {newChannelType === "instagram" && (
-              <div className="space-y-3 pt-2 border-t border-border/60">
-                <h4 className="text-xs font-bold text-primary">Credenciais Instagram Direct</h4>
-                
-                <div className="space-y-1.5">
-                  <Label htmlFor="instagramAccountId" className="text-xs font-semibold">ID da Conta Profissional (Instagram Account ID)</Label>
-                  <Input 
-                    id="instagramAccountId" 
-                    placeholder="Ex: 17841400000000000" 
-                    value={instagramAccountId}
-                    onChange={(e) => setInstagramAccountId(e.target.value)}
-                    className="h-9 text-xs bg-card border-border"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="pageAccessTokenInsta" className="text-xs font-semibold">Token de Acesso da Página (Page Access Token)</Label>
-                  <Input 
-                    id="pageAccessTokenInsta" 
-                    type="password"
-                    placeholder="Token Bearer da Página conectada (EAA...)" 
-                    value={pageAccessToken}
-                    onChange={(e) => setPageAccessToken(e.target.value)}
-                    className="h-9 text-xs bg-card border-border font-mono"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Credenciais para Facebook */}
-            {newChannelType === "facebook" && (
-              <div className="space-y-3 pt-2 border-t border-border/60">
-                <h4 className="text-xs font-bold text-primary">Credenciais Facebook Messenger</h4>
-                
-                <div className="space-y-1.5">
-                  <Label htmlFor="pageId" className="text-xs font-semibold">ID da Página do Facebook (Facebook Page ID)</Label>
-                  <Input 
-                    id="pageId" 
-                    placeholder="Ex: 104329876543210" 
-                    value={pageId}
-                    onChange={(e) => setPageId(e.target.value)}
-                    className="h-9 text-xs bg-card border-border"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="pageAccessTokenFB" className="text-xs font-semibold">Token de Acesso da Página (Page Access Token)</Label>
-                  <Input 
-                    id="pageAccessTokenFB" 
-                    type="password"
-                    placeholder="Token Bearer da Página (EAA...)" 
-                    value={pageAccessToken}
-                    onChange={(e) => setPageAccessToken(e.target.value)}
-                    className="h-9 text-xs bg-card border-border font-mono"
-                  />
-                </div>
-              </div>
-            )}
-
-            <DialogFooter className="pt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleCloseModal}
-                className="h-9 text-xs border-border"
+            <div className="space-y-2">
+              <Label htmlFor="channel-token">Token de acesso da Meta</Label>
+              <Input
+                id="channel-token"
+                type="password"
+                autoComplete="new-password"
+                value={token}
+                minLength={20}
+                maxLength={4096}
+                required
+                onChange={e => setToken(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use uma autorização do aplicativo integrado a este CRM, com
+                acesso ao número e ao envio de mensagens.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={connect.isPending}
+                onClick={closeWhatsapp}
               >
                 Cancelar
               </Button>
-              <Button 
-                type="submit" 
-                className="h-9 text-xs"
-                disabled={saveChannelsMutation.isPending}
-              >
-                {saveChannelsMutation.isPending ? "Salvando..." : editingChannel ? "Salvar Configurações" : "Conectar Canal"}
+              <Button type="submit" disabled={connect.isPending}>
+                {connect.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {connect.isPending
+                  ? "Validando com a Meta…"
+                  : "Validar e conectar"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-
+      <Dialog
+        open={!!flow}
+        onOpenChange={open => {
+          if (!open && !completeLogin.isPending) clearFlow();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Escolha a conta da empresa</DialogTitle>
+            <DialogDescription>
+              Selecione uma das contas que você autorizou na Meta. Ela será
+              vinculada exclusivamente à sua empresa.
+            </DialogDescription>
+          </DialogHeader>
+          {choices.isLoading && (
+            <p role="status">Carregando contas autorizadas…</p>
+          )}
+          {choices.error && (
+            <p role="alert" className="text-sm text-destructive">
+              {choices.error.message}
+            </p>
+          )}
+          <div className="max-h-72 space-y-2 overflow-auto">
+            {choices.data?.map(c => (
+              <label
+                key={c.externalId}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border p-3"
+              >
+                <input
+                  type="radio"
+                  name="meta-account"
+                  value={c.externalId}
+                  checked={choice === c.externalId}
+                  onChange={() => setChoice(c.externalId)}
+                />
+                <span>
+                  <span className="block text-sm font-semibold">{c.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {c.identifier}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={completeLogin.isPending}
+              onClick={clearFlow}
+            >
+              Cancelar
+            </Button>
+            <Button
+              disabled={!choice || completeLogin.isPending}
+              onClick={() => completeLogin.mutate({ flow, externalId: choice })}
+            >
+              {completeLogin.isPending
+                ? "Conectando…"
+                : "Conectar conta selecionada"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!renameChannel}
+        onOpenChange={open => {
+          if (!open) setRenameChannel(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear canal</DialogTitle>
+            <DialogDescription>
+              Escolha um nome para identificar este canal na sua equipe.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={e => {
+              e.preventDefault();
+              if (renameChannel) rename.mutate({ id: renameChannel.id, name });
+            }}
+          >
+            <Label htmlFor="rename-channel">Nome</Label>
+            <Input
+              id="rename-channel"
+              value={name}
+              maxLength={150}
+              required
+              onChange={e => setName(e.target.value)}
+            />
+            <DialogFooter>
+              <Button disabled={rename.isPending} type="submit">
+                Salvar nome
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!removeChannel}
+        onOpenChange={open => {
+          if (!open && !disconnect.isPending) setRemoveChannel(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Desconectar {removeChannel?.name}?</DialogTitle>
+            <DialogDescription>
+              O CRM deixará de receber e enviar mensagens por este canal. O
+              histórico existente será preservado.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={disconnect.isPending}
+              onClick={() => setRemoveChannel(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={disconnect.isPending}
+              onClick={() =>
+                removeChannel && disconnect.mutate({ id: removeChannel.id })
+              }
+            >
+              {disconnect.isPending ? "Desconectando…" : "Desconectar canal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

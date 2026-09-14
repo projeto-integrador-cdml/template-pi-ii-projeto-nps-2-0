@@ -1197,6 +1197,7 @@ export async function createWhatsappMessage(data: any): Promise<any> {
     mediaUrl: data.mediaUrl || null,
     status: data.status || "sent",
     externalId: data.externalId || null,
+    channelId: data.channelId || null,
     transcription: data.transcription || null,
     transcriptionStatus: data.transcriptionStatus || null,
     sentiment: data.sentiment || null,
@@ -1215,6 +1216,31 @@ export async function listWhatsappMessages(userId: number, clientId: number): Pr
     .orderBy(asc(whatsappMessages.createdAt));
 }
 
+export async function bindClientChannel(companyId: number, clientId: number, channelId: string, externalContactId: string) {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.bindClientChannel(companyId, clientId, channelId, externalContactId);
+  if (!db) throw new Error("Banco indisponível");
+  await db.transaction(async tx => {
+    const [client] = await tx.select().from(clients).where(and(eq(clients.id, clientId), eq(clients.userId, companyId))).for("update");
+    if (!client || (client.channelId && client.channelId !== channelId)) throw new Error("O contato pertence a outro canal.");
+    if (!client.channelId) await tx.update(clients).set({ channelId, externalContactId }).where(and(eq(clients.id, clientId), eq(clients.userId, companyId)));
+  });
+}
+
+export async function channelMessageExists(companyId: number, channelId: string, externalId: string) {
+  const db = await getDb();
+  if (useJsonDb) return (await jsonDb.listAllWhatsappMessages()).some(m => m.userId === companyId && m.channelId === channelId && m.externalId === externalId);
+  if (!db) throw new Error("Banco indisponível");
+  return (await db.select({ id: whatsappMessages.id }).from(whatsappMessages).where(and(eq(whatsappMessages.userId, companyId), eq(whatsappMessages.channelId, channelId), eq(whatsappMessages.externalId, externalId))).limit(1)).length > 0;
+}
+
+export async function updateChannelMessageStatus(companyId: number, channelId: string, externalId: string, status: "sent" | "delivered" | "read" | "failed") {
+  const db = await getDb();
+  if (useJsonDb) return jsonDb.updateChannelMessageStatus(companyId, channelId, externalId, status);
+  if (!db) throw new Error("Banco indisponível");
+  await db.update(whatsappMessages).set({ status }).where(and(eq(whatsappMessages.userId, companyId), eq(whatsappMessages.channelId, channelId), eq(whatsappMessages.externalId, externalId)));
+}
+
 export async function updateUserWhatsappConfig(
   userId: number,
   data: {
@@ -1228,6 +1254,7 @@ export async function updateUserWhatsappConfig(
   const db = await getDb();
   if (useJsonDb) return jsonDb.updateUserWhatsappConfig(userId, data);
   if (!db) return;
+  await db.update(users).set(data).where(eq(users.id, userId));
 }
 
 export async function updateWhatsappMessageStatus(externalId: string, status: string): Promise<void> {
@@ -1263,18 +1290,28 @@ export async function routeIncomingWhatsappMessage(
   phone: string,
   name: string,
   message: string,
-  mediaUrl?: string
+  mediaUrl?: string,
+  channel?: { id: string; type: string; externalContactId: string; externalId: string }
 ): Promise<{ msg: any; assignedAttendantId: number | null }> {
   const allClients = await listAllClients();
-  let client = allClients.find(c => c.userId === companyId && c.phone === phone);
+  let client = allClients.find(c => c.userId === companyId && (channel
+    ? c.channelId === channel.id && c.externalContactId === channel.externalContactId
+    : !c.channelId && c.phone === phone));
   
   if (!client) {
-    const newClientRes = await createClient({
+    let newClientRes;
+    try { newClientRes = await createClient({
       userId: companyId,
       name: name,
       phone: phone,
       status: "prospect",
-    } as any);
+      ...(channel ? { channelId: channel.id, externalContactId: channel.externalContactId, source: channel.type === "facebook" ? "messenger" : channel.type } : {}),
+    } as any); } catch (e: any) {
+      if (!channel || (e.code !== "ER_DUP_ENTRY" && e.cause?.code !== "ER_DUP_ENTRY")) throw e;
+      const existing = (await listAllClients()).find(c => c.userId === companyId && c.channelId === channel.id && c.externalContactId === channel.externalContactId);
+      if (!existing) throw e;
+      newClientRes = { id: existing.id };
+    }
     client = await getClientById(newClientRes.id, companyId);
   }
   
@@ -1283,7 +1320,7 @@ export async function routeIncomingWhatsappMessage(
   let assignedId = client.assignedAttendantId;
   if (assignedId) {
     const att = await getAttendantById(assignedId);
-    if (!att || !att.isActive || att.status !== "available") {
+    if (!att || att.companyId !== companyId || !att.isActive || att.status !== "available") {
       assignedId = null;
     }
   }
@@ -1339,13 +1376,7 @@ export async function routeIncomingWhatsappMessage(
   let transcriptionStatus: string | null = null;
 
   const isAudio = message.toLowerCase().includes("[áudio]") || message.toLowerCase().includes("[audio]") || message.toLowerCase().includes("audio:") || (mediaUrl && mediaUrl.includes(".mp3"));
-  if (isAudio) {
-    transcription = "Olá! Gostaria de saber qual o preço do plano premium de vocês e se vocês oferecem suporte aos finais de semana.";
-    transcriptionStatus = "completed";
-    if (message.toLowerCase().includes("[áudio]") && !mediaUrl) {
-      finalMediaUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
-    }
-  }
+  if (isAudio) transcriptionStatus = "pending";
 
   const textToAnalyze = (transcription || message || "").toLowerCase();
   let sentiment = "neutral";
@@ -1361,6 +1392,8 @@ export async function routeIncomingWhatsappMessage(
     userId: companyId,
     clientId: client.id,
     direction: "inbound",
+    channelId: channel?.id || null,
+    externalId: channel?.externalId || null,
     message: finalMessage,
     status: "read",
     mediaUrl: finalMediaUrl,

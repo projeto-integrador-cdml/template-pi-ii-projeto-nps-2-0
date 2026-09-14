@@ -47,7 +47,7 @@ export async function createContext(
   return {
     req: opts.req,
     res: opts.res,
-    user,
+    user: attendant ? null : user,
     attendant,
   };
 }
