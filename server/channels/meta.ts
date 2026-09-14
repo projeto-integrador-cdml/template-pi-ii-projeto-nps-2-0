@@ -123,13 +123,7 @@ export async function socialCandidates(
   const granted = new Set(
     permissions.filter(p => p.status === "granted").map(p => p.permission)
   );
-  const isGranted = (scope: string) => {
-    if (granted.has(scope)) return true;
-    if (scope === "instagram_business_basic" && granted.has("instagram_basic")) return true;
-    if (scope === "instagram_business_manage_messages" && granted.has("instagram_manage_messages")) return true;
-    return false;
-  };
-  if (!process.env.META_CONFIG_ID && scopes(type).some(scope => !isGranted(scope))) {
+  if (!process.env.META_CONFIG_ID && scopes(type).some(scope => !granted.has(scope))) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message:
