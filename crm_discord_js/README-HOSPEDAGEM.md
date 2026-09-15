@@ -79,6 +79,18 @@ Teste novamente o `/api/health` do site. No proxy atualizado, `BACKEND_TLS_ERROR
 
 ## Meta
 
+### Autorizacao falha depois de selecionar a Pagina ou o Instagram
+
+A selecao na Meta confirma os ativos escolhidos, mas o CRM ainda precisa validar a sessao, trocar o codigo recebido e consultar as contas autorizadas. O backend atualizado registra a etapa da falha em linhas iniciadas por `[Meta OAuth]`, sem registrar cookies, codigos de autorizacao ou tokens.
+
+- `callback_failed stage=session` ou `stage=browser`: entre novamente no dominio principal do CRM e refaca a conexao na mesma janela; confira se o navegador permite os cookies do site.
+- `stage=flow`, `stage=consume_flow` ou `stage=save_selection`: confira a migracao/conexao MySQL e inicie uma tentativa nova.
+- `stage=decrypt`: confira se todas as instancias preservam o mesmo `CHANNEL_ENCRYPTION_KEY`.
+- `stage=code_exchange`: procure tambem a linha `operation=code_exchange` ou `operation=token_extension`. Ela informa os codigos numericos retornados pela Meta, necessarios para distinguir credencial, URL de retorno e tipo de token.
+- `stage=accounts`: procure `operation=list_permissions` ou `operation=list_pages` e seus codigos. A selecao visual de uma conta nao confirma todas as permissoes de mensagens exigidas.
+
+Envie apenas essas linhas de diagnostico ao solicitar suporte. Inicie uma nova tentativa pelo botao de conectar: o retorno OAuth e de uso unico. O frontend atualizado mostra mensagens especificas para cada etapa; ele precisa de um novo deploy na Vercel para exibi-las.
+
 No aplicativo Meta existente, configure:
 
 - Retorno OAuth: `https://template-pi-ii-projeto-nps-2-0.vercel.app/api/meta/callback`

@@ -47,12 +47,20 @@ export async function graph<T = any>(
       method,
       url: `${graphBase()}/${endpoint}`,
       timeout: 20000,
-      headers: { Authorization: `Bearer ${token}` },
+      // Code exchange authenticates with app credentials; there is no bearer token yet.
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
       ...(method === "GET" ? { params: data } : { data }),
     });
     return response.data;
   } catch (e: any) {
     const code = e.response?.data?.error?.code;
+    const operation = endpoint === "oauth/access_token"
+      ? (data.grant_type === "fb_exchange_token" ? "token_extension" : "code_exchange")
+      : endpoint === "me/accounts" ? "list_pages"
+      : endpoint === "me/permissions" ? "list_permissions" : "graph_request";
+    const safeNumber = (value: unknown) => Number.isSafeInteger(value) ? value : "unknown";
+    // Axios errors can contain app secrets, authorization codes and access tokens.
+    console.warn(`[Meta OAuth] operation=${operation} http=${safeNumber(e.response?.status)} code=${safeNumber(code)} subcode=${safeNumber(e.response?.data?.error?.error_subcode)}`);
     const message =
       code === 190
         ? "A autorização da Meta expirou ou foi revogada. Reconecte o canal."
@@ -92,6 +100,8 @@ export async function exchangeCode(code: string) {
     redirect_uri: callbackUrl(),
     code,
   });
+  if (typeof initial.access_token !== "string" || !initial.access_token)
+    throw new Error("A Meta nao retornou uma autorizacao valida.");
   const longLived = await graph("GET", "oauth/access_token", "", {
     ...credentials,
     grant_type: "fb_exchange_token",

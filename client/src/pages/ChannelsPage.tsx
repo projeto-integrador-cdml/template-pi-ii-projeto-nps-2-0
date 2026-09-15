@@ -150,14 +150,26 @@ export default function ChannelsPage() {
     disconnect.isPending;
 
   useEffect(() => {
-    const error = new URLSearchParams(window.location.search).get("meta_error");
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("meta_error");
     if (!error) return;
+    const stageMessages: Record<string, string> = {
+      session: "Sua sessão no CRM expirou. Entre novamente e conecte o Instagram ou Facebook.",
+      state: "O retorno do login está incompleto. Inicie uma nova conexão pelo CRM.",
+      flow: "Esta tentativa de conexão expirou ou está indisponível. Inicie uma nova conexão pelo CRM.",
+      decrypt: "O servidor não conseguiu recuperar a autorização. Peça ao administrador para conferir a configuração de criptografia.",
+      browser: "A confirmação do navegador não foi encontrada. Inicie a conexão novamente na mesma janela e permita cookies para este site.",
+      consume_flow: "Não foi possível validar esta tentativa de conexão. Tente novamente; se persistir, avise o administrador.",
+      code_exchange: "A Meta não confirmou a autorização. Peça ao administrador para conferir o aplicativo Meta e o retorno do login.",
+      accounts: "Não foi possível consultar as contas autorizadas na Meta. Confira as permissões de acesso e o vínculo entre Instagram e Página.",
+      save_selection: "Não foi possível salvar a autorização no CRM. Peça ao administrador para conferir o banco de dados.",
+    };
     toast.error(
       error === "cancelled"
         ? "Login cancelado. Nenhuma conta foi conectada."
         : error === "no_accounts"
           ? "Nenhuma conta elegível encontrada. Para Instagram, use uma conta profissional vinculada a uma Página que você gerencia."
-          : "Não foi possível concluir a autorização. Entre novamente e confira as permissões do aplicativo da Meta."
+          : stageMessages[params.get("meta_stage") || ""] || "Não foi possível concluir a autorização. Entre novamente e confira as permissões do aplicativo da Meta."
     );
     window.history.replaceState({}, "", "/channels");
   }, []);

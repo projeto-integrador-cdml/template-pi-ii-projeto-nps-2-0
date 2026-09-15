@@ -320,7 +320,28 @@ describe("retorno de login OAuth", () => {
     );
     expect(meta.exchangeCode).not.toHaveBeenCalled();
     expect(res.redirect).toHaveBeenCalledWith(
-      "https://crm.example.com/channels?meta_error=authorization"
+      "https://crm.example.com/channels?meta_error=authorization&meta_stage=browser"
     );
+  });
+
+  it.each(["session", "code_exchange", "accounts", "save_selection"])("identifica a falha em %s sem expor a autorizacao", async stage => {
+    const { callback, res } = setup();
+    const log = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const failure = new Error("secret-token-and-sql");
+      vi.mocked(sdk.authenticateRequest).mockResolvedValue({ id: 12, isActive: true } as any);
+      vi.mocked(repo.readFlow).mockResolvedValue({ payload: encryptSecret(JSON.stringify({ phase: "login", type: "instagram", browserNonce: "browser" })) } as any);
+      vi.mocked(meta.exchangeCode).mockResolvedValue("secret-token");
+      vi.mocked(meta.socialCandidates).mockResolvedValue([{ externalId: "123", token: "secret-token" }] as any);
+      if (stage === "session") vi.mocked(sdk.authenticateRequest).mockRejectedValue(failure);
+      if (stage === "code_exchange") vi.mocked(meta.exchangeCode).mockRejectedValue(failure);
+      if (stage === "accounts") vi.mocked(meta.socialCandidates).mockRejectedValue(failure);
+      if (stage === "save_selection") vi.mocked(repo.saveFlow).mockRejectedValue(failure);
+      await callback({ headers: { cookie: "meta_channel_oauth=browser" }, query: { state: "b".repeat(64), code: "private-code" } }, res);
+      expect(res.redirect).toHaveBeenCalledWith(`https://crm.example.com/channels?meta_error=authorization&meta_stage=${stage}`);
+      expect(log).toHaveBeenCalledWith(`[Meta OAuth] callback_failed stage=${stage}`);
+      expect(JSON.stringify(log.mock.calls)).not.toMatch(/secret-token|private-code/);
+      if (stage === "session") expect(meta.exchangeCode).not.toHaveBeenCalled();
+    } finally { log.mockRestore(); }
   });
 });

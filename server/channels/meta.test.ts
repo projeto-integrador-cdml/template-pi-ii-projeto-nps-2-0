@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
-import { sendThroughChannel, verifyWhatsapp } from "./meta";
+import { exchangeCode, sendThroughChannel, verifyWhatsapp } from "./meta";
 
 vi.mock("axios", () => ({ default: { request: vi.fn() } }));
 beforeEach(() => {
@@ -11,6 +11,37 @@ beforeEach(() => {
 });
 
 describe("contratos da Meta", () => {
+  it("troca o codigo sem enviar Bearer vazio e usa o token recebido na extensao", async () => {
+    vi.stubEnv("PUBLIC_APP_URL", "https://crm.example.com");
+    vi.mocked(axios.request).mockResolvedValueOnce({ data: { access_token: "short-token" } });
+    vi.mocked(axios.request).mockResolvedValueOnce({ data: { access_token: "long-token" } });
+    await expect(exchangeCode("auth-code")).resolves.toBe("long-token");
+    const calls = vi.mocked(axios.request).mock.calls.map(([options]) => options);
+    expect(calls[0]).not.toHaveProperty("headers.Authorization");
+    expect(calls[0].params).toMatchObject({ code: "auth-code", redirect_uri: "https://crm.example.com/api/meta/callback" });
+    expect(calls[1]).not.toHaveProperty("headers.Authorization");
+    expect(calls[1].params).toMatchObject({ fb_exchange_token: "short-token" });
+  });
+
+  it("nao tenta estender uma resposta sem token", async () => {
+    vi.mocked(axios.request).mockResolvedValueOnce({ data: {} });
+    await expect(exchangeCode("auth-code")).rejects.toThrow("autorizacao valida");
+    expect(axios.request).toHaveBeenCalledOnce();
+  });
+
+  it("registra somente a operacao e codigos numericos quando a Meta recusa a troca", async () => {
+    const log = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      vi.mocked(axios.request).mockRejectedValue({
+        message: "secret-details", config: { params: { code: "secret-details" } },
+        response: { status: 400, data: { error: { code: 100, error_subcode: 36008, message: "secret-details" } } },
+      });
+      await expect(exchangeCode("secret-details")).rejects.toThrow();
+      expect(log).toHaveBeenCalledWith("[Meta OAuth] operation=code_exchange http=400 code=100 subcode=36008");
+      expect(JSON.stringify(log.mock.calls)).not.toContain("secret-details");
+    } finally { log.mockRestore(); }
+  });
+
   it("valida aplicativo, permissões, WABA e número antes de assinar mensagens", async () => {
     vi.mocked(axios.request).mockResolvedValueOnce({
       data: {

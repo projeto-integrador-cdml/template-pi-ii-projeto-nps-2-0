@@ -192,13 +192,18 @@ export async function processMetaWebhook(body: any) {
 export function registerMetaRoutes(app: Express) {
   app.get("/api/meta/callback", async (req, res) => {
     res.setHeader("Referrer-Policy", "no-referrer");
+    let stage = "session";
     try {
       const user = await sdk.authenticateRequest(req);
       if (!user.isActive) throw new Error("Sessão inválida");
+      stage = "state";
       const state = typeof req.query.state === "string" ? req.query.state : "";
       if (!/^[a-f0-9]{64}$/.test(state)) throw new Error("Estado inválido");
+      stage = "flow";
       const flow = await repo.readFlow(user.id, state);
+      stage = "decrypt";
       const payload = JSON.parse(decryptSecret(flow.payload));
+      stage = "browser";
       const cookie = parse(req.headers.cookie || "")[oauthCookieName];
       if (
         payload.phase !== "login" ||
@@ -206,6 +211,7 @@ export function registerMetaRoutes(app: Express) {
         payload.browserNonce !== cookie
       )
         throw new Error("Navegador inválido");
+      stage = "consume_flow";
       await repo.readFlow(user.id, state, true);
       res.clearCookie(oauthCookieName, {
         path: "/api/meta",
@@ -217,15 +223,18 @@ export function registerMetaRoutes(app: Express) {
         return res.redirect(
           `${meta.publicOrigin()}/channels?meta_error=cancelled`
         );
+      stage = "code_exchange";
       if (typeof req.query.code !== "string")
         throw new Error("Autorização ausente");
       const token = await meta.exchangeCode(req.query.code);
+      stage = "accounts";
       const candidates = await meta.socialCandidates(payload.type, token);
       if (!candidates.length)
         return res.redirect(
           `${meta.publicOrigin()}/channels?meta_error=no_accounts`
         );
       const selection = crypto.randomBytes(32).toString("hex");
+      stage = "save_selection";
       await repo.saveFlow({
         id: selection,
         companyId: user.id,
@@ -236,8 +245,10 @@ export function registerMetaRoutes(app: Express) {
         `${meta.publicOrigin()}/channels?meta_flow=${selection}`
       );
     } catch {
+      // Only log a controlled stage, never request URLs, cookies or error objects.
+      console.warn(`[Meta OAuth] callback_failed stage=${stage}`);
       return res.redirect(
-        `${meta.publicOrigin()}/channels?meta_error=authorization`
+        `${meta.publicOrigin()}/channels?meta_error=authorization&meta_stage=${stage}`
       );
     }
   });
