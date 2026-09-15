@@ -57,7 +57,8 @@ export async function graph<T = any>(
     const operation = endpoint === "oauth/access_token"
       ? (data.grant_type === "fb_exchange_token" ? "token_extension" : "code_exchange")
       : endpoint === "me/accounts" ? "list_pages"
-      : endpoint === "me/permissions" ? "list_permissions" : "graph_request";
+      : endpoint === "me/permissions" ? "list_permissions"
+      : endpoint === "debug_token" ? "inspect_token" : "graph_request";
     const safeNumber = (value: unknown) => Number.isSafeInteger(value) ? value : "unknown";
     // Axios errors can contain app secrets, authorization codes and access tokens.
     console.warn(`[Meta OAuth] operation=${operation} http=${safeNumber(e.response?.status)} code=${safeNumber(code)} subcode=${safeNumber(e.response?.data?.error?.error_subcode)}`);
@@ -125,15 +126,22 @@ export async function socialCandidates(
   type: "instagram" | "facebook",
   token: string
 ): Promise<SocialCandidate[]> {
-  const permissions = await graphList(
-    "me/permissions",
-    token,
-    "permission,status"
+  const debug = await graph(
+    "GET", "debug_token",
+    `${process.env.META_APP_ID}|${process.env.META_APP_SECRET}`,
+    { input_token: token }
   );
+  const authorization = debug.data;
+  if (!authorization?.is_valid || String(authorization.app_id) !== process.env.META_APP_ID) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "A autorizacao nao pertence ao aplicativo Meta deste CRM ou deixou de ser valida. Conecte novamente." });
+  }
+  const granular: { scope: string; target_ids?: unknown[] }[] = Array.isArray(authorization.granular_scopes) ? authorization.granular_scopes : [];
   const granted = new Set(
-    permissions.filter(p => p.status === "granted").map(p => p.permission)
+    [...(Array.isArray(authorization.scopes) ? authorization.scopes : []), ...granular.map(p => p.scope)]
   );
-  if (!process.env.META_CONFIG_ID && scopes(type).some(scope => !granted.has(scope))) {
+  const missing = scopes(type).filter(scope => !granted.has(scope));
+  if (missing.length) {
+    console.warn(`[Meta OAuth] missing_permissions=${missing.join(",")}`);
     throw new TRPCError({
       code: "BAD_REQUEST",
       message:
@@ -145,15 +153,37 @@ export async function socialCandidates(
       ? "id,name,access_token,tasks,instagram_business_account{id,username,name}"
       : "id,name,access_token,tasks";
   const pages = await graphList("me/accounts", token, fields);
-  console.log(`[Meta OAuth] ${type}: ${pages.length} página(s) retornada(s).`, pages.map(p => ({
-    id: p.id,
-    name: p.name,
-    hasToken: Boolean(p.access_token),
-    tasks: p.tasks,
-    hasInstagram: Boolean(p.instagram_business_account?.id),
-    igUsername: p.instagram_business_account?.username,
-  })));
-  return pages
+  const listedCount = pages.length;
+  let targetCount = 0;
+  if (!pages.length) {
+    // Business Login can grant individual assets even when /me/accounts is empty.
+    // Only Page permission targets are Page IDs; Instagram/business targets are not.
+    const pageScopes = new Set(["pages_show_list", "pages_read_engagement", "pages_manage_metadata", "pages_messaging"]);
+    const pageIds = Array.from(new Set(granular
+      .filter(permission => pageScopes.has(permission.scope))
+      .flatMap(permission => Array.isArray(permission.target_ids) ? permission.target_ids : [])
+      .filter((id): id is string => typeof id === "string" && /^\d{5,32}$/.test(id))));
+    targetCount = pageIds.length;
+    // `tasks` belongs to the /me/accounts edge, not the direct Page lookup.
+    const pageFields = type === "instagram"
+      ? "id,name,access_token,instagram_business_account{id,username,name}"
+      : "id,name,access_token";
+    let lookupError: unknown;
+    for (let offset = 0; offset < pageIds.length; offset += 5) {
+      const ids = pageIds.slice(offset, offset + 5);
+      const results = await Promise.allSettled(ids.map(async id => {
+        const page = await graph("GET", id, token, { fields: pageFields });
+        if (String(page.id) !== id) throw new Error("A Meta retornou uma Pagina diferente da autorizada.");
+        return page;
+      }));
+      for (const result of results) {
+        if (result.status === "fulfilled") pages.push(result.value);
+        else lookupError = result.reason;
+      }
+    }
+    if (!pages.length && lookupError) throw lookupError;
+  }
+  const candidates = pages
     .filter(
       p =>
         p.access_token &&
@@ -187,6 +217,9 @@ export async function socialCandidates(
           ? `https://www.facebook.com/${p.id}`
           : `@${p.instagram_business_account.username}`,
     }));
+  const tokenType = ["USER", "SYSTEM_USER", "PAGE"].includes(authorization.type) ? authorization.type : "UNKNOWN";
+  console.log(`[Meta OAuth] ${type}: token_type=${tokenType} listed_pages=${listedCount} authorized_page_targets=${targetCount} resolved_pages=${pages.length} eligible_accounts=${candidates.length}`);
+  return candidates;
 }
 
 export async function subscribeSocial(candidate: SocialCandidate) {

@@ -91,6 +91,10 @@ A selecao na Meta confirma os ativos escolhidos, mas o CRM ainda precisa validar
 
 Envie apenas essas linhas de diagnostico ao solicitar suporte. Inicie uma nova tentativa pelo botao de conectar: o retorno OAuth e de uso unico. O frontend atualizado mostra mensagens especificas para cada etapa; ele precisa de um novo deploy na Vercel para exibi-las.
 
+Quando `/me/accounts` retorna zero Paginas, o backend consulta as Paginas indicadas nos `target_ids` das permissoes de Pagina retornadas pela Meta em `debug_token`. A autorizacao deve estar valida, pertencer ao aplicativo configurado e incluir as permissoes de mensagens, inclusive com `META_CONFIG_ID`. IDs de Instagram e de portfolio nao sao usados como IDs de Pagina, e cada consulta precisa retornar a identidade esperada e um token de Pagina.
+
+O resumo `[Meta OAuth] instagram: ...` informa `listed_pages` (listagem inicial), `authorized_page_targets` (IDs autorizados consultados na segunda busca), `resolved_pages` (Paginas encontradas) e `eligible_accounts` (contas com os dados necessarios). Se a lista e os IDs autorizados estiverem vazios, revise no painel Meta os ativos e permissoes efetivamente concedidos e o acesso da pessoa que autoriza a Pagina. `missing_permissions=...` identifica as permissoes ausentes. Nenhum ID deve ser fixado no codigo para contornar uma autorizacao vazia.
+
 No aplicativo Meta existente, configure:
 
 - Retorno OAuth: `https://template-pi-ii-projeto-nps-2-0.vercel.app/api/meta/callback`
