@@ -31,9 +31,10 @@ Configure o domínio `template-pi-ii-projeto-nps-2-0.vercel.app` e o produto de 
 
 Permissões solicitadas pelo fluxo:
 
-- Ambas as plataformas: `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata`.
-- Facebook Messenger: `pages_messaging`.
+- Ambas as plataformas: `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata`, `pages_messaging`.
 - Instagram: `instagram_basic`, `instagram_manage_messages`.
+
+Neste fluxo, `pages_messaging` também é necessária para assinar `messages` na Página vinculada ao Instagram. Se o servidor usa `META_CONFIG_ID`, inclua essa permissão na configuração correspondente em **Facebook Login for Business > Configurações** no painel Meta. O parâmetro `config_id` usa as permissões do painel, não a lista `scope` do código. Após alterar a configuração, inicie uma nova conexão no CRM: o token concedido anteriormente não recebe a permissão automaticamente. O backend verifica as permissões antes de oferecer as contas.
 
 No painel Meta, configure os webhooks de `page` e `instagram` para mensagens (`messages` e, conforme o produto, `messaging_postbacks`). Configure também `whatsapp_business_account`, campo `messages`. O servidor assina a Página/WABA ao conectar; a configuração dos objetos e campos no aplicativo continua necessária. Confira a opção de permitir acesso às mensagens nas ferramentas conectadas do Instagram.
 

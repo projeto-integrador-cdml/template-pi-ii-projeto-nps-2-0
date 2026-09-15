@@ -38,11 +38,19 @@ async function receive(
   externalId: string,
   mediaUrl?: string
 ) {
-  if (!sender || !externalId || (!text && !mediaUrl)) return;
-  const owner = await db.getUserById(channel.companyId);
-  if (!owner?.isActive) return;
-  if (await db.channelMessageExists(channel.companyId, channel.id, externalId))
+  if (!sender || !externalId || (!text && !mediaUrl)) {
+    console.warn(`[Meta Webhook] receive: descartada por campos vazios sender=${!!sender} externalId=${!!externalId} text=${!!text} mediaUrl=${!!mediaUrl}`);
     return;
+  }
+  const owner = await db.getUserById(channel.companyId);
+  if (!owner?.isActive) {
+    console.warn(`[Meta Webhook] receive: empresa ${channel.companyId} inativa ou não encontrada`);
+    return;
+  }
+  if (await db.channelMessageExists(channel.companyId, channel.id, externalId)) {
+    console.log(`[Meta Webhook] receive: mensagem duplicada externalId=${externalId}`);
+    return;
+  }
   let routed;
   try {
     routed = await db.routeIncomingWhatsappMessage(
@@ -58,8 +66,10 @@ async function receive(
         externalId,
       }
     );
+    console.log(`[Meta Webhook] receive: mensagem roteada com sucesso. clientId=${routed.msg?.clientId} attendant=${routed.assignedAttendantId}`);
   } catch (e: any) {
     if (e.code !== "ER_DUP_ENTRY" && e.cause?.code !== "ER_DUP_ENTRY") throw e;
+    console.log(`[Meta Webhook] receive: duplicata no banco (ER_DUP_ENTRY)`);
     return;
   }
   // Preserve the existing WhatsApp assistant, now using the exact conversation
@@ -94,6 +104,7 @@ async function receive(
 }
 
 export async function processMetaWebhook(body: any) {
+  console.log(`[Meta Webhook] Recebido: object=${body.object} entries=${(body.entry || []).length}`);
   for (const entry of body.entry || []) {
     if (body.object === "whatsapp_business_account") {
       for (const change of entry.changes || []) {
@@ -101,7 +112,10 @@ export async function processMetaWebhook(body: any) {
         const numberId = value?.metadata?.phone_number_id;
         if (!numberId) continue;
         const channel = await repo.findByIdentity("whatsapp", String(numberId));
-        if (!channel) continue;
+        if (!channel) {
+          console.warn(`[Meta Webhook] WhatsApp: canal não encontrado para phone_number_id=${numberId}`);
+          continue;
+        }
         await repo.updateChannel(channel.companyId, channel.id, {
           lastWebhookAt: new Date(),
           status: "connected",
@@ -142,6 +156,7 @@ export async function processMetaWebhook(body: any) {
             );
             if (!mediaUrl) throw new Error("Falha ao receber arquivo da Meta.");
           }
+          console.log(`[Meta Webhook] WhatsApp: processando msg de ${sender} mid=${msg.id}`);
           await receive(
             channel,
             sender,
@@ -154,28 +169,39 @@ export async function processMetaWebhook(body: any) {
       }
     } else if (body.object === "page" || body.object === "instagram") {
       const type = body.object === "page" ? "facebook" : "instagram";
+      console.log(`[Meta Webhook] ${type}: entry.id=${entry.id} messaging_events=${(entry.messaging || []).length}`);
       const channel = await repo.findByIdentity(type, String(entry.id));
-      if (!channel) continue;
+      if (!channel) {
+        console.warn(`[Meta Webhook] ${type}: canal NÃO encontrado para externalId=${entry.id}. Verifique se a conta está conectada no CRM.`);
+        continue;
+      }
+      console.log(`[Meta Webhook] ${type}: canal encontrado id=${channel.id} company=${channel.companyId}`);
       await repo.updateChannel(channel.companyId, channel.id, {
         lastWebhookAt: new Date(),
         status: "connected",
       });
       for (const event of entry.messaging || []) {
-        if (
-          event.message?.is_echo ||
-          String(event.sender?.id) === channel.externalId
-        )
+        const senderId = String(event.sender?.id || "");
+        const isEcho = !!event.message?.is_echo;
+        const isSelf = senderId === channel.externalId;
+        if (isEcho || isSelf) {
+          console.log(`[Meta Webhook] ${type}: ignorado (is_echo=${isEcho} is_self=${isSelf} sender=${senderId})`);
           continue;
+        }
         if (event.message?.mid) {
           const attachment = event.message.attachments?.[0];
+          console.log(`[Meta Webhook] ${type}: processando msg de sender=${senderId} mid=${event.message.mid} text=${!!event.message.text} attachment=${attachment?.type || "nenhum"}`);
           await receive(
             channel,
-            String(event.sender?.id || ""),
-            `${type === "instagram" ? "Instagram" : "Facebook"} ${event.sender?.id || ""}`,
+            senderId,
+            `${type === "instagram" ? "Instagram" : "Facebook"} ${senderId}`,
             event.message.text || `[${attachment?.type || "Mensagem"}]`,
             event.message.mid,
             attachment?.payload?.url
           );
+          console.log(`[Meta Webhook] ${type}: mensagem roteada com sucesso mid=${event.message.mid}`);
+        } else {
+          console.log(`[Meta Webhook] ${type}: evento sem message.mid (delivery/read/etc) sender=${senderId}`);
         }
         for (const mid of event.delivery?.mids || [])
           await db.updateChannelMessageStatus(
@@ -185,6 +211,8 @@ export async function processMetaWebhook(body: any) {
             "delivered"
           );
       }
+    } else {
+      console.warn(`[Meta Webhook] Objeto desconhecido: ${body.object}`);
     }
   }
 }
@@ -265,21 +293,27 @@ export function registerMetaRoutes(app: Express) {
       return res.sendStatus(403);
     });
     app.post(route, async (req: Request & { rawBody?: Buffer }, res) => {
-      if (!process.env.META_APP_SECRET) return res.sendStatus(503);
+      console.log(`[Meta Webhook] POST ${route} recebido. META_APP_SECRET configurado: ${!!process.env.META_APP_SECRET}, rawBody: ${!!req.rawBody} (${req.rawBody?.length || 0} bytes), signature: ${!!req.headers["x-hub-signature-256"]}`);
+      if (!process.env.META_APP_SECRET) {
+        console.error("[Meta Webhook] META_APP_SECRET não configurado! Retornando 503.");
+        return res.sendStatus(503);
+      }
       if (
         !validSignature(
           req.rawBody,
           req.headers["x-hub-signature-256"],
           process.env.META_APP_SECRET
         )
-      )
+      ) {
+        console.warn("[Meta Webhook] Assinatura inválida! Retornando 401.");
         return res.sendStatus(401);
+      }
       try {
         await processMetaWebhook(req.body);
         return res.sendStatus(200);
-      } catch {
+      } catch (e: any) {
         console.error(
-          "[Meta Webhook] Falha ao persistir evento; a Meta poderá tentar novamente."
+          `[Meta Webhook] Falha ao persistir evento; a Meta poderá tentar novamente. Erro: ${e.message || "desconhecido"}`
         );
         return res.sendStatus(500);
       }

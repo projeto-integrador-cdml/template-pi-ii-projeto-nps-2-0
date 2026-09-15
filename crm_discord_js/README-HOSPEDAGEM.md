@@ -95,12 +95,18 @@ Quando `/me/accounts` retorna zero Paginas, o backend consulta as Paginas indica
 
 O resumo `[Meta OAuth] instagram: ...` informa `listed_pages` (listagem inicial), `authorized_page_targets` (IDs autorizados consultados na segunda busca), `resolved_pages` (Paginas encontradas) e `eligible_accounts` (contas com os dados necessarios). Se a lista e os IDs autorizados estiverem vazios, revise no painel Meta os ativos e permissoes efetivamente concedidos e o acesso da pessoa que autoriza a Pagina. `missing_permissions=...` identifica as permissoes ausentes. Nenhum ID deve ser fixado no codigo para contornar uma autorizacao vazia.
 
+Se a conta aparece para selecao, mas a conexao recebe `http=403 code=200`, a descoberta ja funcionou: ainda falta a Meta aceitar a operacao seguinte. A assinatura do Instagram solicita somente `messages`; o CRM nao trata postbacks de botoes nesse canal. A assinatura do Facebook permanece com `messages,messaging_postbacks`.
+
+O diagnostico `operation=subscribe_webhook` identifica a assinatura e mostra `requested_fields`, `permission_hints` e `field_hints`. Os hints sao apenas nomes conhecidos citados pela resposta da Meta, nao uma confirmacao de qual permissao esta ausente. Nenhum token ou mensagem bruta e registrado. Se a recusa continuar, confira as permissoes citadas, os acessos da pessoa que autoriza e o nivel de acesso aprovado no painel Meta. A selecao de uma conta por si so nao confirma a assinatura. Para atualizar essa correcao, substitua `/home/container/backend.cjs`, reinicie a Blaze e inicie uma nova conexao no CRM; o fluxo anterior e de uso unico.
+
 No aplicativo Meta existente, configure:
 
 - Retorno OAuth: `https://template-pi-ii-projeto-nps-2-0.vercel.app/api/meta/callback`
 - Webhook: `https://template-pi-ii-projeto-nps-2-0.vercel.app/api/meta/webhook`
 - Token de verificação: o mesmo de `META_WEBHOOK_VERIFY_TOKEN` no `.env` do bot.
 
-O Instagram usa Facebook Login: precisa ser profissional e estar vinculado a uma Página. Autorize `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata`, `instagram_basic`, `instagram_manage_messages`; Facebook Messenger usa também `pages_messaging`. Configure os objetos/campos de webhooks e as aprovações exigidas pela Meta. O WhatsApp usa um token do mesmo aplicativo, com `whatsapp_business_management` e `whatsapp_business_messaging`.
+O Instagram usa Facebook Login: precisa ser profissional e estar vinculado a uma Página. Autorize `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata`, `pages_messaging`, `instagram_basic`, `instagram_manage_messages`. Neste fluxo, Instagram e Facebook Messenger assinam `messages` na Página e precisam de `pages_messaging`; remover `messaging_postbacks` não elimina essa exigência. Configure os objetos/campos de webhooks e as aprovações exigidas pela Meta. O WhatsApp usa um token do mesmo aplicativo, com `whatsapp_business_management` e `whatsapp_business_messaging`.
+
+Se aparecer `permission_hints=pages_messaging`, confira essa permissão no aplicativo Meta. Quando `META_CONFIG_ID` estiver preenchido no servidor, abra **Facebook Login for Business > Configurações**, edite a configuração correspondente a esse ID e inclua `pages_messaging` nas permissões. Se precisar criar outra configuração, atualize `META_CONFIG_ID` na Blaze. O login com `config_id` usa as permissões definidas no painel Meta; mudar apenas a lista de scopes no código não altera essa configuração. Reinicie com o `backend.cjs` atualizado e comece uma nova autorização no CRM para obter o token com a permissão. Confira também o nível de acesso disponível/aprovado para essa permissão antes de liberar contas de clientes externos.
 
 Cada empresa deve reconectar seus canais na tela nova; os registros antigos sem validação e os exemplos não são importados. O passo a passo completo fica em `docs/CANAIS-META.md` na raiz do projeto.

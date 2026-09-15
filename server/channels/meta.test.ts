@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
-import { exchangeCode, sendThroughChannel, verifyWhatsapp } from "./meta";
+import { exchangeCode, sendThroughChannel, subscribeSocial, verifyWhatsapp } from "./meta";
 
 vi.mock("axios", () => ({ default: { request: vi.fn() } }));
 beforeEach(() => {
@@ -11,6 +11,39 @@ beforeEach(() => {
 });
 
 describe("contratos da Meta", () => {
+  it.each(["instagram", "facebook"] as const)("assina os eventos de %s com o token da Pagina autorizada", async type => {
+    vi.mocked(axios.request).mockResolvedValueOnce({ data: { success: true } });
+    await subscribeSocial({ type, externalId: "ig-id", pageId: "page-id", token: "page-token", name: "Empresa", identifier: "empresa" });
+    expect(axios.request).toHaveBeenCalledTimes(1);
+    expect(axios.request).toHaveBeenLastCalledWith(expect.objectContaining({
+      method: "POST", url: expect.stringContaining("/page-id/subscribed_apps"),
+      headers: { Authorization: "Bearer page-token" },
+      data: { subscribed_fields: type === "instagram" ? "messages" : "messages,messaging_postbacks" },
+    }));
+  });
+
+  it("identifica a permissao citada na recusa sem expor a mensagem bruta da Meta", async () => {
+    const log = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      vi.mocked(axios.request).mockRejectedValueOnce({
+        config: { headers: { Authorization: "Bearer private-token" } },
+        response: { status: 403, data: { error: { code: 200,
+          message: "To subscribe to messages, pages_manage_metadata is needed. private-token https://example.com/?secret=private-secret",
+        } } },
+      });
+      await expect(subscribeSocial({ type: "instagram", externalId: "ig-id", pageId: "page-id", token: "private-token", name: "Empresa", identifier: "empresa" }))
+        .rejects.toThrow("Permissões citadas pela Meta: pages_manage_metadata.");
+      expect(log).toHaveBeenCalledWith("[Meta OAuth] operation=subscribe_webhook http=403 code=200 subcode=unknown requested_fields=messages permission_hints=pages_manage_metadata field_hints=messages");
+      expect(JSON.stringify(log.mock.calls)).not.toMatch(/private-token|private-secret|example.com/);
+    } finally { log.mockRestore(); }
+  });
+
+  it("exige confirmacao da Meta antes de concluir a assinatura", async () => {
+    vi.mocked(axios.request).mockResolvedValueOnce({ data: { success: false } });
+    await expect(subscribeSocial({ type: "instagram", externalId: "ig-id", pageId: "page-id", token: "token", name: "Empresa", identifier: "empresa" }))
+      .rejects.toThrow("não confirmou a assinatura");
+  });
+
   it("troca o codigo sem enviar Bearer vazio e usa o token recebido na extensao", async () => {
     vi.stubEnv("PUBLIC_APP_URL", "https://crm.example.com");
     vi.mocked(axios.request).mockResolvedValueOnce({ data: { access_token: "short-token" } });

@@ -30,9 +30,10 @@ export const scopes = (type: "instagram" | "facebook") => [
   "pages_show_list",
   "pages_read_engagement",
   "pages_manage_metadata",
-  ...(type === "facebook"
-    ? ["pages_messaging"]
-    : ["instagram_basic", "instagram_manage_messages"]),
+  // Both flows subscribe to the Page's `messages` webhook, which requires this
+  // permission even when the selected channel is the linked Instagram account.
+  "pages_messaging",
+  ...(type === "instagram" ? ["instagram_basic", "instagram_manage_messages"] : []),
 ];
 
 // Never propagate Axios errors: they contain the Authorization header and URLs.
@@ -58,15 +59,28 @@ export async function graph<T = any>(
       ? (data.grant_type === "fb_exchange_token" ? "token_extension" : "code_exchange")
       : endpoint === "me/accounts" ? "list_pages"
       : endpoint === "me/permissions" ? "list_permissions"
-      : endpoint === "debug_token" ? "inspect_token" : "graph_request";
+      : endpoint === "debug_token" ? "inspect_token"
+      : endpoint.endsWith("/subscribed_apps") ? "subscribe_webhook" : "graph_request";
     const safeNumber = (value: unknown) => Number.isSafeInteger(value) ? value : "unknown";
+    // Extract only known identifiers, never the raw provider message or request.
+    const providerWords = new Set(
+      typeof e.response?.data?.error?.message === "string"
+        ? e.response.data.error.message.match(/[A-Za-z0-9_]+/g) || [] : []
+    );
+    const permissionHints = Array.from(new Set([...scopes("instagram"), ...scopes("facebook")]))
+      .filter(permission => providerWords.has(permission));
+    const fieldHints = ["messages", "messaging_postbacks"].filter(field => providerWords.has(field));
+    const subscriptionDetails = operation === "subscribe_webhook"
+      ? ` requested_fields=${["messages", "messaging_postbacks"].filter(field => String(data.subscribed_fields || "").split(",").includes(field)).join(",") || "none"} permission_hints=${permissionHints.join(",") || "none"} field_hints=${fieldHints.join(",") || "none"}`
+      : "";
     // Axios errors can contain app secrets, authorization codes and access tokens.
-    console.warn(`[Meta OAuth] operation=${operation} http=${safeNumber(e.response?.status)} code=${safeNumber(code)} subcode=${safeNumber(e.response?.data?.error?.error_subcode)}`);
+    console.warn(`[Meta OAuth] operation=${operation} http=${safeNumber(e.response?.status)} code=${safeNumber(code)} subcode=${safeNumber(e.response?.data?.error?.error_subcode)}${subscriptionDetails}`);
     const message =
       code === 190
         ? "A autorização da Meta expirou ou foi revogada. Reconecte o canal."
         : code === 10 || code === 200
-          ? "A Meta não autorizou esta operação. Confira as permissões e a aprovação do aplicativo."
+          ? "A Meta não autorizou esta operação. Confira as permissões e a aprovação do aplicativo." +
+            (permissionHints.length ? ` Permissões citadas pela Meta: ${permissionHints.join(", ")}.` : "")
           : "A Meta não confirmou a operação. Confira a conta, as credenciais e a janela permitida para responder mensagens.";
     throw new TRPCError({ code: "BAD_REQUEST", message, cause: undefined });
   }
@@ -145,7 +159,8 @@ export async function socialCandidates(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message:
-        "Autorize todas as permissões de mensagens solicitadas para conectar o canal.",
+        `Autorize todas as permissões de mensagens solicitadas para conectar o canal. Permissões ausentes: ${missing.join(", ")}.` +
+        (process.env.META_CONFIG_ID ? " O administrador deve incluí-las na configuração do Facebook Login for Business e iniciar uma nova autorização." : ""),
     });
   }
   const fields =
@@ -229,7 +244,8 @@ export async function subscribeSocial(candidate: SocialCandidate) {
     `${candidate.pageId}/subscribed_apps`,
     candidate.token,
     {
-      subscribed_fields: "messages,messaging_postbacks",
+      // Instagram receives text/attachments only; Page postbacks are not used.
+      subscribed_fields: candidate.type === "instagram" ? "messages" : "messages,messaging_postbacks",
     }
   );
   if (result.success !== true)

@@ -26,6 +26,15 @@ function mockGraph({ listed = [] as any[], granular = [] as any[], granted = sco
 const page = (id = "12345") => ({ id, name: "Company Page", access_token: "page-secret", instagram_business_account: { id: "98765", username: "company", name: "Company" } });
 
 describe("descoberta de contas autorizadas no login Meta", () => {
+  it.each(["", "business-config"])("recusa Instagram sem pages_messaging antes de oferecer a conta (config=%s)", async configId => {
+    vi.stubEnv("META_CONFIG_ID", configId);
+    // These were the permissions granted by the failing production login.
+    mockGraph({ granted: ["pages_show_list", "pages_read_engagement", "pages_manage_metadata", "instagram_basic", "instagram_manage_messages"], listed: [page()] });
+    await expect(socialCandidates("instagram", "login-secret")).rejects.toThrow("Permissões ausentes: pages_messaging.");
+    expect(axios.request).toHaveBeenCalledOnce();
+    expect(console.warn).toHaveBeenCalledWith("[Meta OAuth] missing_permissions=pages_messaging");
+  });
+
   it("recupera o Instagram por uma Pagina autorizada quando me/accounts esta vazio", async () => {
     mockGraph({ granular: [
       { scope: "pages_manage_metadata", target_ids: ["12345", "12345"] },
