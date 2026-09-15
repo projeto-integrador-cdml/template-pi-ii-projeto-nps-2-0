@@ -233,6 +233,7 @@ export function registerMetaRoutes(app: Express) {
       const payload = JSON.parse(decryptSecret(flow.payload));
       stage = "browser";
       const cookie = parse(req.headers.cookie || "")[oauthCookieName];
+      console.log(`[Meta OAuth] callback: cookie_header_present=${!!req.headers.cookie} oauth_cookie_present=${!!cookie} phase=${payload.phase} nonce_match=${cookie ? payload.browserNonce === cookie : "N/A"}`);
       if (
         payload.phase !== "login" ||
         !cookie ||
